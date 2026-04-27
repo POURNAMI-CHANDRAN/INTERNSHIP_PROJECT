@@ -66,14 +66,10 @@ export default function App() {
           <Route path="/ai-insights" element={<AIInsights />} />
 
           {/* ===== USER MANAGEMENT (ADMIN ONLY) ===== */}
-          <Route
-            path="/user-management"
-            element={
-              <RoleRoute allowedRoles={["Admin"]} />
-            }
-          >
-            <Route element={<UserManagement />} />
+          <Route element={<RoleRoute allowedRoles={["Admin"]} />}>
+            <Route path="/user-management" element={<UserManagement />} />
           </Route>
+
 
           {/* ===== RESOURCES MODULE ===== */}
           <Route path="/resources" element={<ResourcesLayout />}>

@@ -531,7 +531,7 @@ const handleSubmit = async () => {
 };
 
   const inputClass = "w-full border border-slate-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-sky-500/20 outline-none bg-slate-50/50 transition-all font-medium";
-  const labelClass = "block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1";
+  const labelClass = "block text-[10px] font-bold text-sky-800 uppercase tracking-wider mb-1.5 ml-1";
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -595,8 +595,7 @@ const handleSubmit = async () => {
           </div>
         </div>
 
-        <div className="p-6 border-t bg-slate-50/50 flex justify-end gap-3">
-          <button onClick={onClose} className="px-5 py-2 text-sm font-bold text-slate-500">Cancel</button>
+        <div className="p-6 border-t bg-slate-50/50 flex justify-center gap-3">
           <button 
             onClick={handleSubmit} 
             disabled={loading}
@@ -604,6 +603,9 @@ const handleSubmit = async () => {
           >
             {loading ? "Saving..." : isEdit ? "Update Project" : "Create Project"}
           </button>
+
+          <button onClick={onClose} className="px-5 py-2 text-sm font-bold text-slate-500">Cancel</button>
+
         </div>
       </div>
     </div>

@@ -30,7 +30,7 @@ export default function ResourcesLayout() {
     <div className="h-full flex flex-col bg-white font-sans antialiased text-slate-900">
       
       {/* ===== SKY BLUE & WHITE HEADER ===== */}
-      <header className="sticky top-0 z-50 bg-white border-b border-sky-100 px-8 shadow-sm">
+      <header className="relative z-10 bg-white border-b border-sky-100 px-8 shadow-sm">
         <div className="flex items-center justify-between h-20 max-w-[1600px] mx-auto">
           
           {/* Brand Section */}

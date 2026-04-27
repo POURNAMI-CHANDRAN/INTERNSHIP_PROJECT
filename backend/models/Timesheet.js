@@ -92,7 +92,7 @@ const timesheetSchema = new mongoose.Schema(
     },
     story_id: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Story",
+      ref: "Equivalent",
       required: true
     },
 

@@ -11,6 +11,7 @@ import {
   DollarSign,
   User,
   Mail,
+  Wrench,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
@@ -34,10 +35,31 @@ export default function EmployeeDrawer({
   >(null);
   const [activeAllocation, setActiveAllocation] = useState<any>(null);
 
+  const [allSkills, setAllSkills] = useState<any[]>([]);
+
+  useEffect(() => {
+  const fetchSkills = async () => {
+    try {
+      const res = await axios.get(`${API}/api/skills`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      setAllSkills(res.data || []);
+    } catch (err) {
+      console.error("Failed to Fetch Skills", err);
+    }
+  };
+
+  fetchSkills();
+}, []);
+
   const [editForm, setEditForm] = useState({
     joiningDate: "",
     location: "",
     hourlyCost: "",
+    skills: [] as string[],
   });
 
   useEffect(() => {
@@ -45,6 +67,7 @@ export default function EmployeeDrawer({
       joiningDate: employee?.joiningDate?.slice(0, 10) || "",
       location: employee?.location || "",
       hourlyCost: employee?.hourlyCost?.toString() || "",
+      skills: employee.skills?.map((s: any) => s._id) || [],
     });
   }, [employee]);
 
@@ -91,6 +114,7 @@ export default function EmployeeDrawer({
           joiningDate: editForm.joiningDate,
           location: editForm.location,
           hourlyCost: Number(editForm.hourlyCost),
+          skills: editForm.skills,
         },
         {
           headers: {
@@ -202,6 +226,24 @@ export default function EmployeeDrawer({
                   label="Email"
                   value={employee?.email || "—"}
                 />
+
+                <Row
+                  icon={<Wrench size={14} />}
+                  label="Skills"
+                  value={
+                    <div className="flex flex-wrap justify-end gap-1 max-w-[180px]">
+                      {employee?.skills?.length ? (
+                        employee.skills.map((s: any) => (
+                          <span key={s._id} className="bg-sky-100 text-slate-800 px-2 py-0.5 rounded text-[10px] font-medium">
+                            {s.name ?? s}
+                          </span>
+                        ))
+                      ) : (
+                        "—"
+                      )}
+                    </div>
+                  }
+                />
               </div>
             ) : (
               <div className="space-y-3">
@@ -239,6 +281,66 @@ export default function EmployeeDrawer({
                     })
                   }
                 />
+
+            <div className="relative">
+              <label className="text-[10px] font-bold uppercase text-slate-400 mb-1 block">
+                Skills
+              </label>
+
+              {/* Selection Trigger Area */}
+              <div 
+                className="min-h-[40px] p-1.5 flex flex-wrap gap-1.5 bg-white border border-slate-200 rounded-lg text-sm transition-all focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 cursor-text"
+                onClick={() => { /* Logic to open dropdown if you want it to toggle on click */ }}
+              >
+                {editForm.skills.length === 0 && (
+                  <span className="text-slate-400 py-1 px-1">Select Skills...</span>
+                )}
+                
+                {allSkills.filter(s => editForm.skills.includes(s._id)).map((skill) => (
+                  <span 
+                    key={skill._id}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[11px] font-bold rounded-md border border-indigo-100"
+                  >
+                    {skill.name}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const newSkills = editForm.skills.filter(id => id !== skill._id);
+                        setEditForm({ ...editForm, skills: newSkills });
+                      }}
+                      className="hover:bg-indigo-200 rounded-full p-0.5 transition-colors"
+                    >
+                      <X size={10} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+
+              {/* The Dropdown List */}
+              <div className="mt-2 max-h-40 overflow-y-auto border border-slate-200 rounded-lg bg-white shadow-sm">
+                {allSkills.map((skill: any) => {
+                  const isSelected = editForm.skills.includes(skill._id);
+                  return (
+                    <div
+                      key={skill._id}
+                      onClick={() => {
+                        const newSkills = isSelected
+                          ? editForm.skills.filter((id: string) => id !== skill._id)
+                          : [...editForm.skills, skill._id];
+                        setEditForm({ ...editForm, skills: newSkills });
+                      }}
+                      className={`px-3 py-2 text-xs cursor-pointer flex items-center justify-between hover:bg-slate-50 transition-colors ${
+                        isSelected ? "text-indigo-600 bg-indigo-50/30" : "text-slate-600"
+                      }`}
+                    >
+                      {skill.name}
+                      {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
                 <div className="flex gap-2 pt-2">
                   <IconButton

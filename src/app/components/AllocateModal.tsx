@@ -462,7 +462,7 @@ export function AllocateModal({
             {/* Employee Selection */}
             {mode === "create" && (
               <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-sky-800 flex items-center gap-1.5">
                   <User size={12} /> Resource
                 </label>
                 <select
@@ -481,7 +481,7 @@ export function AllocateModal({
             {/* Project Selection */}
             {(mode === "create" || mode === "move") && (
               <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-sky-800 flex items-center gap-1.5">
                   <Briefcase size={12} /> Target Project
                 </label>
                 <select
@@ -500,7 +500,7 @@ export function AllocateModal({
             {/* Work Category */}
             {mode === "create" && (
               <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-sky-800 flex items-center gap-1.5">
                    Category
                 </label>
                 <select
@@ -520,7 +520,7 @@ export function AllocateModal({
             {(mode === "create" || mode === "edit") && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-sky-800 flex items-center gap-1.5">
                     <Clock size={12} /> Hours/Mo
                   </label>
                   <input
@@ -549,7 +549,7 @@ export function AllocateModal({
             {/* Period */}
             {mode === "create" && (
               <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-sky-800 flex items-center gap-1.5">
                   <Calendar size={12} /> Allocation Period
                 </label>
                 <div className="grid grid-cols-2 gap-2">

@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 /* ============================================================
-   SAFE TYPES
+   TYPES
 ============================================================ */
 
 type EmployeeRef = {
@@ -23,29 +23,34 @@ interface Project {
   assignedTo?: string;
 }
 
-interface Story {
+interface EquivalentItem {
   _id: string;
   title: string;
   story_points: number;
-  project_id: { _id: string; name: string };
+  project_id: {
+    _id: string;
+    name: string;
+  };
 }
 
 interface TimesheetEntry {
   _id: string;
   employee_id: string | EmployeeRef | null;
   project_id: Project;
-  story_id: Story;
+  story_id: EquivalentItem;
   story_points_completed: number;
   work_date: string;
   status: "Pending" | "Approved" | "Rejected";
 }
 
 /* ============================================================
-   MAIN COMPONENT
+   COMPONENT
 ============================================================ */
 
 export default function Timesheets() {
-  const API_BASE = (import.meta as any).env.VITE_API_BASE_URL;
+  const API_BASE =
+    (import.meta as any).env.VITE_API_BASE_URL || "http://localhost:5000";
+
   const token = localStorage.getItem("token");
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
@@ -54,13 +59,12 @@ export default function Timesheets() {
 
   const [employees, setEmployees] = useState<EmployeeRef[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [Equivalent, setStories] = useState<Story[]>([]);
+  const [equivalents, setEquivalents] = useState<EquivalentItem[]>([]);
   const [timesheets, setTimesheets] = useState<TimesheetEntry[]>([]);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
 
-  const [errors, setErrors] = useState<any>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [form, setForm] = useState({
@@ -71,130 +75,73 @@ export default function Timesheets() {
     work_date: "",
   });
 
-  const getEmployeeObj = (emp: string | EmployeeRef | null): EmployeeRef => {
+  /* ============================================================
+     HELPERS
+  ============================================================ */
+
+  const getEmployeeObj = (
+    emp: string | EmployeeRef | null
+  ): EmployeeRef => {
     if (!emp) return { _id: "N/A", name: "Unknown" };
+
     if (typeof emp === "string") {
-      const match = employees.find((e) => e._id === emp);
-      return match || { _id: emp, name: "Unknown" };
+      const found = employees.find((e) => e._id === emp);
+      return found || { _id: emp, name: "Unknown" };
     }
+
     return emp;
   };
 
   /* ============================================================
-     VALIDATION
-  ============================================================= */
-
-  const validateForm = () => {
-    const newErrors: any = {};
-
-    if (!form.project_id) newErrors.project_id = "Project is required";
-    if (!form.story_id) newErrors.story_id = "Story is required";
-
-    if (!form.story_points_completed) {
-      newErrors.story_points_completed = "Points are required";
-    } else if (Number(form.story_points_completed) <= 0) {
-      newErrors.story_points_completed = "Points must be greater than 0";
-    }
-
-    if (!form.work_date) {
-      newErrors.work_date = "Date is required";
-    } else {
-      const selected = new Date(form.work_date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      if (selected > today) {
-        newErrors.work_date = "Future dates are not allowed";
-      }
-    }
-
-    // Duplicate prevention
-    const duplicate = timesheets.find(
-      (t) =>
-        t.story_id?._id === form.story_id &&
-        t.work_date?.split("T")[0] === form.work_date &&
-        getEmployeeObj(t.employee_id)._id === userId
-    );
-
-    if (duplicate) newErrors.duplicate = "Already submitted for this story/date";
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  /* ============================================================
-     LOAD EVERYTHING (employees → timesheets → projects)
-  ============================================================= */
+     LOAD DATA
+  ============================================================ */
 
   const loadData = async () => {
-    /* Employees */
-    let empList: EmployeeRef[] = [];
-    if (role === "Employee") {
-      empList = [{ _id: userId, name: user.name }];
-    } else {
-      const empJson = await fetch(`${API_BASE}/api/employees`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then((r) => r.json());
-      empList = empJson.data || empJson || [];
-    }
-    setEmployees(empList);
+    try {
+      /* EMPLOYEES */
+      let empList: EmployeeRef[] = [];
 
-    /* Timesheets */
-    const tsJson = await fetch(
-      role === "Employee"
-        ? `${API_BASE}/api/timesheets/employee/${userId}`
-        : `${API_BASE}/api/timesheets`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    ).then((r) => r.json());
+      if (role === "Employee") {
+        empList = [{ _id: userId, name: user.name }];
+      } else {
+        const res = await fetch(`${API_BASE}/api/employees`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-    const tsRaw = Array.isArray(tsJson)
-      ? tsJson
-      : Array.isArray(tsJson.data)
-      ? tsJson.data
-      : [];
+        const json = await res.json();
+        empList = json.data || [];
+      }
 
-    const normalized = tsRaw.map((t: any) => ({
-      ...t,
-      employee_id:
-        typeof t.employee_id === "string"
-          ? empList.find((e) => e._id === t.employee_id) || {
-              _id: t.employee_id,
-              name: "Unknown",
-            }
-          : t.employee_id || { _id: "N/A", name: "Unknown" },
-    }));
+      setEmployees(empList);
 
-    setTimesheets(normalized);
-
-    /* Projects */
-    const projJson = await fetch(`${API_BASE}/api/projects`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }).then((r) => r.json());
-
-    let projList: Project[] = Array.isArray(projJson.data)
-      ? projJson.data
-      : projJson.data
-      ? [projJson.data]
-      : [];
-
-    if (role === "Employee") {
-      const assigned = projList.filter((p: any) => p.assignedTo === userId);
-
-      const storyJson = await fetch(`${API_BASE}/api/Equivalent`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then((r) => r.json());
-
-      const allStories = storyJson.data || [];
-      const storyProjectIds = new Set(
-        allStories.map((s: any) => s.project_id?._id)
+      /* TIMESHEETS */
+      const tsRes = await fetch(
+        role === "Employee"
+          ? `${API_BASE}/api/timesheets/employee/${userId}`
+          : `${API_BASE}/api/timesheets`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
 
-      const available = projList.filter((p) => storyProjectIds.has(p._id));
+      const tsJson = await tsRes.json();
 
-      projList = [...new Set([...assigned, ...available])];
+      const tsData = Array.isArray(tsJson)
+        ? tsJson
+        : tsJson.data || [];
+
+      setTimesheets(tsData);
+
+      /* PROJECTS */
+      const projRes = await fetch(`${API_BASE}/api/projects`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const projJson = await projRes.json();
+      setProjects(projJson.data || []);
+    } catch (error) {
+      console.error(error);
     }
-
-    setProjects(projList);
   };
 
   useEffect(() => {
@@ -202,114 +149,97 @@ export default function Timesheets() {
   }, []);
 
   /* ============================================================
-     LOAD Equivalent WHEN PROJECT CHANGES
-  ============================================================= */
+     LOAD STORIES
+  ============================================================ */
 
   useEffect(() => {
-    if (!form.project_id) return setStories([]);
+    if (!form.project_id) {
+      setEquivalents([]);
+      return;
+    }
 
-    fetch(`${API_BASE}/api/Equivalent?project_id=${form.project_id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch(
+      `${API_BASE}/api/equivalents?project_id=${form.project_id}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    )
       .then((r) => r.json())
       .then((json) => {
-        let list = json.data || [];
-        list = list.filter((s: Story) => s.project_id?._id === form.project_id);
-        setStories(list);
+        setEquivalents(json.data || []);
       });
   }, [form.project_id]);
 
   /* ============================================================
-     SUBMIT TIMESHEET
-  ============================================================= */
+     SUBMIT
+  ============================================================ */
 
   const submitTimesheet = async () => {
-    if (!validateForm()) return;
-    if (isSubmitting) return;
-
-    setIsSubmitting(true);
-
     try {
-      const res = await fetch(`${API_BASE}/api/timesheets/submit`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(form),
-      });
+      setIsSubmitting(true);
+
+      const res = await fetch(
+        `${API_BASE}/api/timesheets/submit`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(form),
+        }
+      );
 
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.message || data.error);
+        alert(data.message || "Failed");
         return;
       }
 
-      alert("Timesheet Submitted!");
+      alert("Submitted!");
 
       setForm({
-        ...form,
+        employee_id: userId,
         project_id: "",
         story_id: "",
         story_points_completed: "",
         work_date: "",
       });
 
-      setErrors({});
       loadData();
     } catch (error) {
-      alert("Something went wrong.");
+      alert("Error");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   /* ============================================================
-   ADMIN ACTIONS (RESTORED)
-============================================================ */
+     ADMIN ACTIONS
+  ============================================================ */
 
-const approveTimesheet = async (id: string) => {
-  try {
-    const res = await fetch(`${API_BASE}/api/timesheets/approve/${id}`, {
+  const approveTimesheet = async (id: string) => {
+    await fetch(`${API_BASE}/api/timesheets/approve/${id}`, {
       method: "PUT",
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    if (!res.ok) {
-      const data = await res.json();
-      alert(data.message || data.error || "Failed to approve");
-      return;
-    }
-
     loadData();
-  } catch (err) {
-    alert("Error approving timesheet.");
-  }
-};
+  };
 
-const rejectTimesheet = async (id: string) => {
-  try {
-    const res = await fetch(`${API_BASE}/api/timesheets/reject/${id}`, {
+  const rejectTimesheet = async (id: string) => {
+    await fetch(`${API_BASE}/api/timesheets/reject/${id}`, {
       method: "PUT",
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    if (!res.ok) {
-      const data = await res.json();
-      alert(data.message || data.error || "Failed to reject");
-      return;
-    }
-
     loadData();
-  } catch (err) {
-    alert("Error rejecting timesheet.");
-  }
-};
+  };
 
   /* ============================================================
-     FILTERED LIST
-  ============================================================= */
+     FILTER
+  ============================================================ */
 
   const filtered = timesheets
     .filter((t) => {
@@ -317,145 +247,144 @@ const rejectTimesheet = async (id: string) => {
       return getEmployeeObj(t.employee_id)._id === userId;
     })
     .filter((t) => {
-      const s = search.toLowerCase();
+      const q = search.toLowerCase();
+
       return (
-        getEmployeeObj(t.employee_id).name.toLowerCase().includes(s) ||
-        t.project_id.name.toLowerCase().includes(s) ||
-        t.story_id.title.toLowerCase().includes(s)
+        getEmployeeObj(t.employee_id)
+          .name.toLowerCase()
+          .includes(q) ||
+        t.project_id?.name?.toLowerCase().includes(q) ||
+        t.story_id?.title?.toLowerCase().includes(q)
       );
     })
-    .filter((t) => statusFilter === "All" || t.status === statusFilter);
+    .filter(
+      (t) =>
+        statusFilter === "All" ||
+        t.status === statusFilter
+    );
 
   /* ============================================================
      UI
-  ============================================================= */
+  ============================================================ */
 
   return (
-    <div className="p-6 w-full space-y-8 bg-sky-50">
-
+    <div className="p-6 space-y-8 bg-sky-50 min-h-screen">
       {/* HEADER */}
-      <div className="bg-sky-200 p-7 rounded-xl shadow-lg flex items-center gap-4">
-        <div className="bg-white p-3 rounded-lg shadow">
-          <ClipboardList size={28} className="text-sky-700" />
-        </div>
+      <div className="bg-sky-200 p-6 rounded-xl flex gap-4">
+        <ClipboardList className="text-sky-700" size={28} />
+
         <div>
           <h1 className="text-3xl font-bold text-sky-900">
             Timesheets
           </h1>
-          <p className="text-sky-700">Track story-point submissions</p>
+          <p className="text-sky-700">
+            Track submissions
+          </p>
         </div>
       </div>
 
-      {/* EMPLOYEE FORM */}
+      {/* FORM */}
       {role === "Employee" && (
-        <div className="bg-white p-8 rounded-xl shadow-lg border border-sky-200">
-          <h2 className="text-xl font-semibold text-center text-sky-800 mb-6">
-            Submit Timesheet
-          </h2>
-
-          <div className="grid grid-cols-2 gap-6 mb-6">
-
-            {/* PROJECT */}
-            <div>
-              <label className="text-sm mb-2">Project</label>
-              <select
-                value={form.project_id}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    project_id: e.target.value,
-                    story_id: "",
-                  })
-                }
-                className="w-full px-4 py-2 bg-sky-100 border rounded-lg"
-              >
-                <option value="">Select Project</option>
-                {projects.map((p) => (
-                  <option key={p._id} value={p._id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* STORY */}
-            <div>
-              <label className="text-sm mb-2">Story</label>
-              <select
-                value={form.story_id}
-                onChange={(e) =>
-                  setForm({ ...form, story_id: e.target.value })
-                }
-                className="w-full px-4 py-2 bg-sky-100 border rounded-lg"
-              >
-                <option value="">Select Story</option>
-                {Equivalent.map((s) => (
-                  <option key={s._id} value={s._id}>
-                    {s.title} ({s.story_points} pts)
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* POINTS */}
-            <div>
-              <label className="text-sm mb-2">Points Completed</label>
-              <input
-                type="number"
-                value={form.story_points_completed}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    story_points_completed: e.target.value,
-                  })
-                }
-                className="w-full px-4 py-2 bg-sky-100 border rounded-lg"
-              />
-            </div>
-
-            {/* DATE */}
-            <div>
-              <label className="text-sm mb-2">Date</label>
-              <input
-                type="date"
-                value={form.work_date}
-                onChange={(e) => setForm({ ...form, work_date: e.target.value })}
-                className="w-full px-4 py-2 bg-sky-100 border rounded-lg"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-center">
-            <button
-              onClick={submitTimesheet}
-              className="px-6 py-3 bg-sky-600 text-white rounded-lg shadow hover:bg-sky-700 flex items-center gap-2"
+        <div className="bg-white p-6 rounded-xl shadow">
+          <div className="grid grid-cols-2 gap-4">
+            <select
+              value={form.project_id}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  project_id: e.target.value,
+                  story_id: "",
+                })
+              }
+              className="border p-2 rounded"
             >
-              <Plus size={18} /> Submit Timesheet
-            </button>
+              <option value="">Project</option>
+
+              {projects.map((p) => (
+                <option key={p._id} value={p._id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={form.story_id}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  story_id: e.target.value,
+                })
+              }
+              className="border p-2 rounded"
+            >
+              <option value="">Story</option>
+
+              {equivalents.map((s) => (
+                <option key={s._id} value={s._id}>
+                  {s.title} ({s.story_points})
+                </option>
+              ))}
+            </select>
+
+            <input
+              type="number"
+              placeholder="Points"
+              value={form.story_points_completed}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  story_points_completed:
+                    e.target.value,
+                })
+              }
+              className="border p-2 rounded"
+            />
+
+            <input
+              type="date"
+              value={form.work_date}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  work_date: e.target.value,
+                })
+              }
+              className="border p-2 rounded"
+            />
           </div>
+
+          <button
+            onClick={submitTimesheet}
+            disabled={isSubmitting}
+            className="mt-4 bg-sky-600 text-white px-5 py-2 rounded"
+          >
+            <Plus className="inline mr-2" size={16} />
+            Submit
+          </button>
         </div>
       )}
 
-      {/* FILTER BAR */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-sky-200 flex flex-wrap justify-center gap-4">
-
-        <div className="flex items-center gap-2 border border-sky-300 px-3 py-2 rounded-lg w-full md:w-72">
-          <Search size={18} className="text-sky-700" />
+      {/* FILTERS */}
+      <div className="bg-white p-4 rounded-xl flex gap-4">
+        <div className="flex items-center gap-2 border px-3 rounded">
+          <Search size={16} />
           <input
-            type="text"
-            placeholder="Search..."
-            className="outline-none w-full"
+            placeholder="Search"
+            className="outline-none"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
           />
         </div>
 
-        <div className="flex items-center gap-2 border border-sky-300 px-3 py-2 rounded-lg">
-          <Filter size={18} className="text-sky-700" />
+        <div className="flex items-center gap-2 border px-3 rounded">
+          <Filter size={16} />
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-transparent outline-none"
+            onChange={(e) =>
+              setStatusFilter(e.target.value)
+            }
           >
             <option>All</option>
             <option>Pending</option>
@@ -466,72 +395,72 @@ const rejectTimesheet = async (id: string) => {
       </div>
 
       {/* TABLE */}
-      <div className="bg-white rounded-xl shadow border border-sky-200 overflow-hidden">
+      <div className="bg-white rounded-xl overflow-hidden shadow">
         <table className="w-full text-sm">
-          <thead className="bg-sky-100 text-sky-800 text-center">
+          <thead className="bg-sky-100">
             <tr>
-              <th className="py-3">Employee</th>
-              <th className="py-3">Project</th>
-              <th className="py-3">Story</th>
-              <th className="py-3">Points</th>
-              <th className="py-3">Date</th>
-              <th className="py-3">Status</th>
-              {(role === "Finance" || role === "Admin") && (
-                <th className="py-3">Actions</th>
-              )}
+              <th className="p-3">Employee</th>
+              <th>Project</th>
+              <th>Story</th>
+              <th>Points</th>
+              <th>Date</th>
+              <th>Status</th>
+              {(role === "Admin" ||
+                role === "Finance") && <th>Action</th>}
             </tr>
           </thead>
 
-          <tbody className="text-center">
+          <tbody>
             {filtered.map((t) => (
-              <tr key={t._id} className="border-b hover:bg-sky-50">
-
-                <td className="py-3">{getEmployeeObj(t.employee_id).name}</td>
-                <td className="py-3">{t.project_id.name}</td>
-                <td className="py-3">{t.story_id.title}</td>
-                <td className="py-3">{t.story_points_completed}</td>
-                <td className="py-3">{t.work_date.split("T")[0]}</td>
-
-                <td className="py-3">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs ${
-                      t.status === "Approved"
-                        ? "bg-green-100 text-green-700"
-                        : t.status === "Rejected"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-yellow-100 text-yellow-700"
-                    }`}
-                  >
-                    {t.status}
-                  </span>
+              <tr
+                key={t._id}
+                className="border-t text-center"
+              >
+                <td className="p-3">
+                  {getEmployeeObj(t.employee_id).name}
                 </td>
+                <td>{t.project_id?.name}</td>
+                <td>{t.story_id?.title}</td>
+                <td>{t.story_points_completed}</td>
+                <td>
+                  {t.work_date?.split("T")[0]}
+                </td>
+                <td>{t.status}</td>
 
-                {(role === "Finance" || role === "Admin") && (
-                  <td className="py-3 flex justify-center gap-4">
+                {(role === "Admin" ||
+                  role === "Finance") && (
+                  <td className="flex justify-center gap-2 p-2">
                     <button
-                      onClick={() => approveTimesheet(t._id)}
-                      className="p-2 hover:bg-green-50 rounded-full"
+                      onClick={() =>
+                        approveTimesheet(t._id)
+                      }
                     >
-                      <ThumbsUp size={20} className="text-green-600" />
+                      <ThumbsUp
+                        className="text-green-600"
+                        size={18}
+                      />
                     </button>
 
                     <button
-                      onClick={() => rejectTimesheet(t._id)}
-                      className="p-2 hover:bg-red-50 rounded-full"
+                      onClick={() =>
+                        rejectTimesheet(t._id)
+                      }
                     >
-                      <ThumbsDown size={20} className="text-red-600" />
+                      <ThumbsDown
+                        className="text-red-600"
+                        size={18}
+                      />
                     </button>
                   </td>
                 )}
-
               </tr>
             ))}
 
             {filtered.length === 0 && (
               <tr>
                 <td
-                  colSpan={role === "Finance" || role === "Admin" ? 7 : 6}
-                  className="text-center py-10 text-sky-700"
+                  colSpan={7}
+                  className="p-8 text-center"
                 >
                   No Timesheets Found
                 </td>
@@ -539,7 +468,6 @@ const rejectTimesheet = async (id: string) => {
             )}
           </tbody>
         </table>
-
       </div>
     </div>
   );

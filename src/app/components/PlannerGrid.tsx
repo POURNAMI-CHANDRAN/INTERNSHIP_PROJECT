@@ -1,16 +1,14 @@
 import {
-  Pencil,
   Search,
   Users,
   Briefcase,
   Code2,
   Target,
   DollarSign,
-  TrendingUp,
-  ChevronRight,
 } from "lucide-react";
 
 const DEFAULT_MARGIN = 1.6;
+const HOURS_PER_MONTH = 160;
 
 function calculateRatePerHour(hourlyCost: number) {
   if (!hourlyCost) return 0;
@@ -40,7 +38,11 @@ const StatusBadge = ({ fte }: { fte: number }) => {
   };
 
   const status =
-    fte === 0 ? config.bench : fte < 1 ? config.partial : config.full;
+    fte === 0
+      ? config.bench
+      : fte < 1
+      ? config.partial
+      : config.full;
 
   return (
     <span
@@ -52,7 +54,7 @@ const StatusBadge = ({ fte }: { fte: number }) => {
 };
 
 export function ResourcePlanningGrid({
-  employees,
+  employees = [],
   onSelectEmployee,
 }: {
   employees: any[];
@@ -60,35 +62,39 @@ export function ResourcePlanningGrid({
 }) {
   return (
     <div className="w-full rounded-2xl border border-slate-200 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] antialiased">
-      {/* ================= PREMIUM HEADER ================= */}
+      {/* HEADER */}
       <div className="flex flex-col gap-4 border-b border-slate-100 p-6 lg:flex-row lg:items-center lg:justify-between bg-slate-50/30 rounded-t-2xl">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 shadow-lg shadow-blue-200">
               <Users className="h-5 w-5 text-white" />
             </div>
+
             <div>
               <h2 className="text-xl font-bold tracking-tight text-slate-900 leading-none">
                 Resource Allocation
               </h2>
+
               <p className="text-sm text-slate-500 mt-1">
-                Comprehensive overview of team utilization and skill distribution
+                Comprehensive overview of team utilization and skill
+                distribution
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <div className="relative group">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-blue-500" />
+
             <input
               type="text"
               placeholder="Filter by Name, Skill, or Project..."
-              className="h-10 w-80 rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none"
+              className="h-10 w-72 rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none"
             />
           </div>
 
-          <p className="text-slate-500">
+          <p className="text-slate-500 whitespace-nowrap">
             Total Headcount:{" "}
             <span className="text-slate-900 font-bold">
               {employees.length}
@@ -97,93 +103,74 @@ export function ResourcePlanningGrid({
         </div>
       </div>
 
+
       {/* ================= DATA GRID ================= */}
-      <div className="overflow-x-auto">
-        <table className="w-full border-separate border-spacing-0">
+      <div className="w-full overflow-hidden">
+        <table className="w-full table-auto border-separate border-spacing-0">
           <thead>
-            <tr className="bg-slate-50/80 text-[11px] uppercase tracking-[0.1em] text-sky-800">
-              <th className="sticky left-0 z-10 bg-slate-50/80 px-6 py-4 text-left font-bold border-b border-slate-100">
-                Member
-              </th>
-              <th className="px-4 py-4 text-left font-bold border-b border-slate-100">
-                Role & Category
-              </th>
-              <th className="px-4 py-4 text-left font-bold border-b border-slate-100">
-                Skill Inventory
-              </th>
-              <th className="px-4 py-4 text-left font-bold border-b border-slate-100">
-                Active Engagements
-              </th>
-              <th className="px-4 py-4 text-center font-bold border-b border-slate-100">
-                Capacity
-              </th>
-              <th className="px-6 py-4 text-right font-bold border-b border-slate-100">
-                Financials
-              </th>
+            <tr className="bg-sky-50/80 text-[12px] uppercase tracking-[0.1em] text-sky-900">
+              <th className="px-6 py-4 text-center font-bold border-b border-slate-100">Member</th>
+              <th className="px-4 py-4 text-center font-bold border-b border-slate-100">Category</th>
+              <th className="px-4 py-4 text-center font-bold border-b border-slate-100">Skill Inventory</th>
+              <th className="px-4 py-4 text-center font-bold border-b border-slate-100">Active Engagements</th>
+              <th className="px-4 py-4 text-center font-bold border-b border-slate-100">Capacity</th>
+              <th className="px-6 py-4 text-center font-bold border-b border-slate-100">Financials</th>
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-slate-100">
-            {employees.map((emp) => {
-            const HOURS_PER_MONTH = 160;
+          <tbody>
+           {employees.map((emp) => {
+              const allocations = emp.allocations || [];
 
-            const rawFte =
-              emp.allocations.reduce(
+              const totalHours = allocations.reduce(
                 (sum: number, a: any) =>
-                  sum + (a.allocatedHours || 0) / HOURS_PER_MONTH,
-                0
-              );
+                 sum + Number(a?.allocatedHours || 0),
+                 0
+                );
 
-            const fte = Math.min(rawFte, 1);
+                const fte = Number((totalHours / HOURS_PER_MONTH).toFixed(2));
 
-          console.log(emp.name, emp.fte, emp.allocations);
-              const projects =
-                (emp.allocations || [])
-                  .map((a: any) => a.projectId?.name)
-                  .filter(Boolean) || [];
+                const projects = [...new Set(allocations
+                                             .map((a: any) => a?.projectId?.name)
+                                             .filter(Boolean)),
+                                 ];
+
+                const initials = emp?.name
+                                    ?.split(" ")
+                                    ?.map((n: string) => n[0])
+                                    ?.join("")
+                                    ?.slice(0, 2)
+                                    ?.toUpperCase() || "U";
 
               return (
                 <tr
                   key={emp._id}
                   onClick={() => onSelectEmployee?.(emp)}
-                  className="group cursor-pointer transition-all hover:bg-blue-50/40"
+                  className="group cursor-pointer hover:bg-blue-50/40 border-b border-slate-100 transition-colors"
                 >
                   {/* MEMBER */}
-                  <td className="sticky left-0 z-10 bg-white group-hover:bg-blue-50/10 px-6 py-5">
-                    <div className="flex items-center gap-4">
-                      <div className="relative">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white shadow-inner">
-                          {emp.name
-                            .split(" ")
-                            .map((n: any) => n[0])
-                            .join("")}
+                  <td className="px-6 py-5">
+                    <div className="flex items-center gap-3">
+                      <div className="relative shrink-0">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-600 text-sm font-bold text-white shadow-inner">
+                          {initials}
                         </div>
-                        <div
-                          className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white ${
-                            fte >= 1
-                              ? "bg-emerald-500"
-                              : "bg-slate-300"
-                          }`}
-                        />
+                        <div className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 
+                          rounded-full border-2 border-white 
+                          ${fte >= 1 ? "bg-emerald-500" : fte > 0 ? "bg-amber-400" : "bg-rose-300"}`} />
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-                          {emp.name}
-                        </span>
-                        <span className="text-[11px] font-medium text-slate-400 uppercase tracking-tight">
-                          ID: {emp.employeeCode}
-                        </span>
+                        <p className="text-sm font-bold text-slate-900 group-hover:text-blue-600">{emp.name}</p>
+                        <p className="text-[10px] font-medium text-slate-400">ID: {emp.employeeCode}</p>
                       </div>
                     </div>
                   </td>
 
-                  {/* ROLE */}
+                  {/* CATEGORY */}
                   <td className="px-4 py-5">
                     <div className="flex items-center gap-2">
-                      <div className="rounded-lg bg-blue-50 p-1.5 text-blue-600">
-                        <Briefcase className="h-4 w-4" />
-                      </div>
-                      <span className="text-sm font-medium text-slate-700">
+                      <Briefcase className="h-4 w-4 text-blue-500 shrink-0" />
+                      <span className="text-sm font-medium text-slate-700 whitespace-nowrap">
                         {emp.primaryWorkCategoryId?.name || "Unassigned"}
                       </span>
                     </div>
@@ -191,58 +178,53 @@ export function ResourcePlanningGrid({
 
                   {/* SKILLS */}
                   <td className="px-4 py-5">
-                    <div className="flex flex-wrap gap-1 max-w-[280px]">
+                    <div className="flex flex-wrap gap-1.5 max-w-[240px] text-center justify-center">
                       {emp.skills?.map((s: any, i: number) => (
-                        <span
-                          key={i}
-                          className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-600"
-                        >
-                          <Code2 className="h-2.5 w-2.5 text-slate-400" />
+                        <span key={i} className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-sky-50 px-2 py-0.5 text-[10px] font-bold text-slate-700">
+                          <Code2 className="h-2.5 w-2.5 text-sky-600" />
                           {s.name}
                         </span>
                       ))}
                     </div>
                   </td>
 
-                  {/* PROJECTS */}
+                  {/* PROJECTS - THE "STRAIGHT LINE" FIX */}
                   <td className="px-4 py-5">
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-2 min-w-[200px] justify-center items-start">
                       {projects.length ? (
-                        projects.map((p: string, i: number) => (
-                          <div
-                            key={i}
-                            className="flex items-center gap-2 text-xs font-semibold text-slate-700"
-                          >
-                            <Target className="h-3.5 w-3.5 text-sky-500" />
-                            {p}
+                        projects.map((p: any, i: number) => (
+                          <div key={i} className="flex items-center gap-2 text-[11px] font-bold text-slate-700">
+                            <div className="flex shrink-0 w-4 items-center justify-center">
+                              <Target className="h-3.5 w-3.5 text-sky-500" />
+                            </div>
+                            <span className="truncate">{p}</span>
                           </div>
                         ))
                       ) : (
-                        <span className="text-xs text-slate-400 italic">
-                          Available for assignment
-                        </span>
+                        <div className="flex items-center gap-2 text-slate-400 italic text-[11px]">
+                          <div className="w-4 h-0.5 bg-slate-200 shrink-0" />
+                          <span>Available for Allocations</span>
+                        </div>
                       )}
                     </div>
                   </td>
 
-                  {/* CAPACITY */}
+                  {/* CAPACITY - Centered */}
                   <td className="px-4 py-5 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="text-sm font-black text-slate-800">
+                    <div className="flex flex-col items-center justify-center gap-1">
+                      <span className="text-sm font-black text-slate-800 tabular-nums">
                         {Math.round(fte * 100)}%
-                      </div>
+                      </span>
                       <StatusBadge fte={fte} />
                     </div>
                   </td>
 
-                  {/* FINANCIALS */}
+                  {/* FINANCIALS - Right Aligned */}
                   <td className="px-6 py-5 text-right">
-                    <div className="flex flex-col items-end">
-                      <div className="flex items-center gap-1 text-base font-black text-slate-900">
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="flex items-center gap-1 text-base font-black text-slate-900 tabular-nums">
                         <DollarSign className="h-3.5 w-3.5 text-slate-400" />
-                        {calculateRatePerHour(
-                          emp.hourlyCost ?? 0
-                        ).toLocaleString()}
+                        {calculateRatePerHour(Number(emp.hourlyCost || 0)).toLocaleString()}
                       </div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         Hourly Rate

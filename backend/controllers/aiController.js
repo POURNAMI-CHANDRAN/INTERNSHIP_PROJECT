@@ -3,24 +3,31 @@ import Allocation from "../models/Allocation.js";
 import Employee from "../models/Employee.js";
 import Billing from "../models/Billing.js";
 
+/* ================= CONFIG ================= */
+const HOURLY_RATE = 600;
+const MONTHLY_CAPACITY = 160;
+
+/* ================= AI COPILOT ================= */
+
 export const askAI = async (req, res) => {
   try {
     const { question } = req.body;
-
     const q = question.toLowerCase();
 
-    /* ================= UNDERUTILIZED ================= */
-    if (q.includes("underutilized") || q.includes("low utilization")) {
+    /* =====================================================
+       🔥 BENCH INTELLIGENCE (CORE COPILOT FEATURE)
+    ===================================================== */
+    if (q.includes("bench") || q.includes("who is on bench")) {
       const data = await Allocation.aggregate([
         {
           $group: {
             _id: "$employee",
-            totalFTE: { $sum: "$fte" }
-          }
-        },
-        {
-          $match: {
-            totalFTE: { $lt: 50 } // < 50% = underutilized
+            billable: {
+              $sum: {
+                $cond: [{ $eq: ["$isBillable", true] }, "$fte", 0]
+              }
+            },
+            total: { $sum: "$fte" }
           }
         },
         {
@@ -34,17 +41,77 @@ export const askAI = async (req, res) => {
         { $unwind: "$emp" }
       ]);
 
+      const bench = data.filter(e => e.billable === 0);
+
+      const insights = bench.map(e => {
+        const benchHours = MONTHLY_CAPACITY;
+        const revenueImpact = benchHours * HOURLY_RATE;
+
+        let reason = "No billable allocation";
+        if (e.total > 0) reason = "Only internal/shadow work";
+
+        let risk = "HIGH";
+        if (e.billable > 0) risk = "MEDIUM";
+
+        return {
+          employee: e.emp.name,
+          employeeId: e.emp._id,
+          reason,
+          risk,
+          benchHours,
+          revenueImpact,
+          recommendation: "Assign to active billable project immediately",
+        };
+      });
+
       return res.json({
-        answer: `Found ${data.length} underutilized employees`,
-        insights: data.map(d => ({
-          employee: d.emp.name,
-          allocation: `${d.totalFTE}%`,
-          recommendation: "Assign to billable project"
+        answer: `Found ${bench.length} employees on bench with risk analysis`,
+        insights,
+      });
+    }
+
+    /* =====================================================
+       📉 UNDERUTILIZATION INTELLIGENCE
+    ===================================================== */
+    if (q.includes("underutilized") || q.includes("low utilization")) {
+      const data = await Allocation.aggregate([
+        {
+          $group: {
+            _id: "$employee",
+            billable: {
+              $sum: {
+                $cond: [{ $eq: ["$isBillable", true] }, "$fte", 0]
+              }
+            }
+          }
+        },
+        {
+          $lookup: {
+            from: "employees",
+            localField: "_id",
+            foreignField: "_id",
+            as: "emp"
+          }
+        },
+        { $unwind: "$emp" }
+      ]);
+
+      const underutilized = data.filter(e => e.billable < 80);
+
+      return res.json({
+        answer: `Found ${underutilized.length} underutilized employees`,
+        insights: underutilized.map(e => ({
+          employee: e.emp.name,
+          utilization: e.billable,
+          risk: e.billable < 40 ? "HIGH" : "MEDIUM",
+          recommendation: "Increase project allocation"
         }))
       });
     }
 
-    /* ================= REVENUE ================= */
+    /* =====================================================
+       💰 REVENUE INTELLIGENCE
+    ===================================================== */
     if (q.includes("revenue")) {
       const data = await Billing.aggregate([
         {
@@ -57,17 +124,19 @@ export const askAI = async (req, res) => {
       ]);
 
       return res.json({
-        answer: "Top revenue generating projects",
+        answer: "Revenue analysis completed",
         insights: data.map(d => ({
-          project: d._id,
+          projectId: d._id,
           revenue: d.revenue
         }))
       });
     }
 
-    /* ================= BENCH ================= */
-    if (q.includes("bench")) {
-      const data = await Allocation.aggregate([
+    /* =====================================================
+       🎯 SMART ALLOCATION SUGGESTION ENGINE
+    ===================================================== */
+    if (q.includes("allocate") || q.includes("suggest")) {
+      const employees = await Allocation.aggregate([
         {
           $group: {
             _id: "$employee",
@@ -78,7 +147,6 @@ export const askAI = async (req, res) => {
             }
           }
         },
-        { $match: { billable: 0 } },
         {
           $lookup: {
             from: "employees",
@@ -90,22 +158,38 @@ export const askAI = async (req, res) => {
         { $unwind: "$emp" }
       ]);
 
+      const projects = await Billing.distinct("project_id");
+
+      const suggestions = employees
+        .filter(e => e.billable < 120)
+        .slice(0, 5)
+        .map((e, i) => ({
+          employee: e.emp.name,
+          projectId: projects[i] || "TBD",
+          suggestedHours: 40,
+          reason: "Available capacity + optimization opportunity"
+        }));
+
       return res.json({
-        answer: `Bench employees: ${data.length}`,
-        insights: data.map(d => ({
-          employee: d.emp.name,
-          recommendation: "Allocate to project"
-        }))
+        answer: "Smart allocation suggestions generated",
+        insights: suggestions
       });
     }
 
-    /* ================= FALLBACK TO OLLAMA ================= */
-    const ollamaRes = await axios.post("http://127.0.0.1:11434/api/generate", {
-      model: "llama3",
-      prompt: `You are an enterprise resource management AI.
-      Answer this clearly: ${question}`,
-      stream: false
-    });
+    /* =====================================================
+       🧠 FALLBACK LLM (OLLAMA)
+    ===================================================== */
+    const ollamaRes = await axios.post(
+      "http://127.0.0.1:11434/api/generate",
+      {
+        model: "llama3",
+        prompt: `You are a workforce AI copilot.
+Answer clearly and concisely:
+
+${question}`,
+        stream: false
+      }
+    );
 
     res.json({
       answer: ollamaRes.data.response,
