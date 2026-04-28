@@ -58,6 +58,6 @@ app.get("/", (req, res) => {
   res.send("API is Running 🚀");
 });
 
-app.listen(5000, () => console.log("🚀 Server Running on Port 5000"));
+app.listen(5000, () => console.log("🚀 Server Port 5000"));
 
-console.log("JWT SECRET:", process.env.JWT_SECRET);
+console.log("JWT SECRET : ", process.env.JWT_SECRET);

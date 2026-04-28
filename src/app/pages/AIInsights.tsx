@@ -9,219 +9,569 @@ import {
   Users,
   Briefcase,
   IndianRupee,
+  Sparkles,
+  Activity,
+  ShieldAlert,
+  User,
+  BadgeCheck,
 } from "lucide-react";
 
-/* ================= TYPES ================= */
-
-type InsightRow = Record<string, any>;
-
+/* =====================================================
+   TYPES
+===================================================== */
 type AIResponse = {
   query: string;
   answer: string;
-  insights: InsightRow[];
+  intent?: string;
+  data?: any;
 };
 
 type DashboardSummary = {
   totalEmployees: number;
-  billableEmployees: number;
   benchCount: number;
-  averageUtilizationPct: number;
-  revenueForecast: number;
+  underutilizedCount: number;
+  overallocatedCount: number;
+  avgUtilization: number;
+  totalRevenue: number;
+  totalMargin: number;
 };
 
-/* ================= COMPONENT ================= */
-
+/* =====================================================
+   MAIN COMPONENT
+===================================================== */
 export default function AIInsights() {
   const [question, setQuestion] = useState("");
-  const [response, setResponse] = useState<AIResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [kpi, setKpi] = useState<DashboardSummary | null>(null);
+  const [response, setResponse] =
+    useState<AIResponse | null>(null);
 
-  /* ================= LOAD DASHBOARD ================= */
+  const [loading, setLoading] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const [kpi, setKpi] =
+    useState<DashboardSummary | null>(
+      null
+    );
 
   useEffect(() => {
     loadDashboard();
   }, []);
 
-  const loadDashboard = async () => {
-    try {
-      const now = new Date();
-      const month = now.getMonth() + 1;
-      const year = now.getFullYear();
+  const loadDashboard =
+    async () => {
+      try {
+        const res =
+          await api.post(
+            "/ai/ask",
+            {
+              question:
+                "dashboard summary",
+            }
+          );
 
-      const [utilizationRes, benchRes, revenueRes] = await Promise.all([
-        api.get("/utilization", { params: { month, year } }),
-        api.get("/bench", { params: { month, year } }),
-        api.get("/revenue", { params: { month, year } }),
-      ]);
+        setKpi(
+          res.data?.data ||
+            null
+        );
+      } catch (err) {
+        console.error(err);
+      }
+    };
 
-      const utilization = utilizationRes.data?.data || [];
-      const bench = benchRes.data?.data || [];
-      const revenue = revenueRes.data?.data || [];
+  const askAI =
+    async () => {
+      if (!question.trim())
+        return;
 
-      const totalEmployees = utilization.length;
+      try {
+        setLoading(true);
+        setError("");
 
-      const billableEmployees = utilization.filter(
-        (e: any) => e.billableHours > 0
-      ).length;
+        const res =
+          await api.post(
+            "/ai/ask",
+            {
+              question,
+            }
+          );
 
-      const benchCount = bench.length;
+        setResponse({
+          query:
+            question,
+          answer:
+            res.data?.answer,
+          intent:
+            res.data?.intent,
+          data:
+            res.data?.data,
+        });
 
-      const averageUtilizationPct =
-        totalEmployees > 0
-          ? utilization.reduce(
-              (sum: number, e: any) => sum + (e.utilizationPct || 0),
-              0
-            ) / totalEmployees
-          : 0;
+        setQuestion("");
+      } catch (
+        err: any
+      ) {
+        setError(
+          err?.response
+            ?.data
+            ?.error ||
+            "AI Request Failed"
+        );
+      } finally {
+        setLoading(
+          false
+        );
+      }
+    };
 
-      const revenueForecast = revenue.reduce(
-        (sum: number, r: any) => sum + (r.revenue || 0),
-        0
-      );
-
-      setKpi({
-        totalEmployees,
-        billableEmployees,
-        benchCount,
-        averageUtilizationPct: Number(averageUtilizationPct.toFixed(2)),
-        revenueForecast,
-      });
-    } catch (err) {
-      console.error(err);
-      setKpi(null);
+  const onKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (
+      e.key ===
+      "Enter"
+    ) {
+      askAI();
     }
   };
-
-  /* ================= AI CALL ================= */
-
-  const askAI = async () => {
-    if (!question.trim()) return;
-
-    try {
-      setLoading(true);
-      setError("");
-
-      const res = await api.post("/ai/ask", {
-        question,
-      });
-
-      setResponse({
-        query: question,
-        answer: res.data?.answer,
-        insights: res.data?.insights || [],
-      });
-
-      setQuestion("");
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "AI request failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* ================= SMART INSIGHT ENGINE ================= */
-
-  const getInsightLabel = () => {
-    if (!kpi) return "";
-
-    if (kpi.averageUtilizationPct < 50)
-      return "🔴 Low utilization – urgent resource optimization needed";
-
-    if (kpi.averageUtilizationPct < 75)
-      return "🟡 Moderate utilization – optimization needed";
-
-    return "🟢 Healthy utilization";
-  };
-
-  /* ================= UI ================= */
 
   return (
-    <div className="p-6 space-y-6">
-
+    <div className="min-h-screen bg-sky-50 p-6 space-y-6 text-slate-800">
       {/* HEADER */}
       <div className="flex items-center gap-3">
-        <Brain className="text-indigo-600" />
-        <h1 className="text-2xl font-bold">AI Insights Dashboard</h1>
+        <div className="p-3 bg-sky-500 rounded-2xl shadow-md">
+          <Brain className="w-6 h-6 text-white" />
+        </div>
+
+        <div>
+        <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+          <span className="text-sky-600">Alloc</span>AI
+        </h1>
+          <p className="text-sky-700 text-sm">
+            Smart staffing insights dashboard
+          </p>
+        </div>
       </div>
 
-      {/* INPUT */}
-      <div className="flex gap-2">
+      {/* ASK BOX */}
+      <div className="bg-white border border-sky-200 rounded-2xl shadow-md p-4 flex gap-3">
         <input
           value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          className="border p-3 w-full rounded-lg"
-          placeholder="Ask AI about workforce..."
+          onChange={(e) =>
+            setQuestion(
+              e.target.value
+            )
+          }
+          onKeyDown={onKeyDown}
+          placeholder="Ask about staffing, bench, revenue..."
+          className="w-full border border-sky-300 rounded-xl px-4 py-3 bg-white text-slate-800 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-sky-300"
         />
 
         <button
           onClick={askAI}
-          className="bg-black text-white px-5 rounded-lg flex items-center gap-2"
+          className="bg-sky-500 hover:bg-sky-600 text-white px-5 rounded-xl flex items-center gap-2 font-semibold"
         >
-          {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <Send />}
+          {loading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Send className="w-4 h-4" />
+          )}
           Ask
         </button>
       </div>
 
       {/* ERROR */}
       {error && (
-        <div className="text-red-600 flex gap-2">
-          <AlertCircle /> {error}
+        <div className="bg-red-50 border border-red-300 text-red-700 rounded-xl p-3 flex gap-2">
+          <AlertCircle className="w-4 h-4" />
+          {error}
         </div>
       )}
 
-      {/* KPI DASHBOARD */}
+      {/* KPI */}
       {kpi && (
         <>
-          <div className="grid grid-cols-4 gap-4 mt-4">
+          <div className="grid md:grid-cols-4 gap-4">
+          <Card
+            icon={<TrendingUp />}
+            title="Utilization"
+            value={`₹${(kpi?.avgUtilization || 0).toLocaleString()}`}
+          />
 
-            <div className="p-4 border rounded-xl">
-              <TrendingUp />
-              <p>Utilization</p>
-              <h2>{kpi.averageUtilizationPct}%</h2>
-            </div>
+          <Card
+            icon={<Users />}
+            title="Bench"
+            value={`₹${(kpi?.benchCount || 0).toLocaleString()}`}
+          />
 
-            <div className="p-4 border rounded-xl">
-              <Users />
-              <p>Bench</p>
-              <h2>{kpi.benchCount}</h2>
-            </div>
+          <Card
+            icon={<Briefcase />}
+            title="Revenue"
+            value={`₹${(kpi?.totalRevenue || 0).toLocaleString()}`}
+          />
 
-            <div className="p-4 border rounded-xl">
-              <Briefcase />
-              <p>Billable</p>
-              <h2>{kpi.billableEmployees}</h2>
-            </div>
-
-            <div className="p-4 border rounded-xl">
-              <IndianRupee />
-              <p>Revenue</p>
-              <h2>₹{kpi.revenueForecast.toLocaleString()}</h2>
-            </div>
-
+          <Card
+            icon={<IndianRupee />}
+            title="Margin"
+            value={`₹${(kpi?.totalMargin || 0).toLocaleString()}`}
+          />
           </div>
 
-          {/* AI INSIGHT BANNER */}
-          <div className="p-4 mt-4 border rounded-xl bg-yellow-50 text-yellow-800 font-medium">
-            {getInsightLabel()}
+          <div className="bg-sky-100 border border-sky-300 rounded-2xl p-4 text-sky-900 font-semibold flex gap-2">
+            <Sparkles className="w-4 h-4" />
+            Workforce Insights Ready
           </div>
         </>
       )}
 
-      {/* AI RESPONSE */}
-      {response && (
-        <div className="p-4 border rounded-xl space-y-2">
-          <h2 className="font-bold text-lg">{response.answer}</h2>
+      {/* QUICK BUTTONS */}
+      <div className="grid md:grid-cols-3 gap-3">
+        <QuickButton
+          label="Who is on Bench?"
+          setQuestion={
+            setQuestion
+          }
+        />
 
-          {response.insights.length > 0 && (
-            <div className="text-sm text-gray-600">
-              <pre>{JSON.stringify(response.insights, null, 2)}</pre>
-            </div>
-          )}
+        <QuickButton
+          label="Forecast Revenue"
+          setQuestion={
+            setQuestion
+          }
+        />
+
+        <QuickButton
+          label="Need React Developers"
+          setQuestion={
+            setQuestion
+          }
+        />
+      </div>
+
+      {/* RESPONSE */}
+      {response && (
+        <div className="bg-white border border-sky-200 rounded-2xl shadow-md p-5 space-y-4">
+          <div className="flex items-center gap-2">
+            <Activity className="w-5 h-5 text-sky-600" />
+            <h2 className="font-bold text-xl text-sky-900">
+              {response.data}
+            </h2>
+          </div>
+
+          <p className="text-sm text-slate-500">
+            Intent:{" "}
+            {response.intent}
+          </p>
+
+          <RenderAIData
+            data={
+              response.data
+            }
+          />
         </div>
       )}
 
+      {/* FOOTER */}
+      <div className="text-xs text-slate-500 flex gap-2">
+        <ShieldAlert className="w-4 h-4" />
+        Internal AI insights powered by company data
+      </div>
     </div>
+  );
+}
+
+/* =====================================================
+   DATA RENDERER
+===================================================== */
+function RenderAIData({
+  data,
+}: any) {
+  if (
+    data === null ||
+    data === undefined
+  )
+    return null;
+
+  if (
+    Array.isArray(data)
+  ) {
+    return (
+      <div className="space-y-4">
+        {data.map(
+          (
+            row,
+            index
+          ) => (
+            <EmployeeCard
+              key={index}
+              row={row}
+            />
+          )
+        )}
+      </div>
+    );
+  }
+
+  if (
+    typeof data ===
+    "object"
+  ) {
+    return (
+      <div className="grid md:grid-cols-2 gap-4">
+        {Object.entries(
+          data
+        ).map(
+          ([
+            key,
+            value,
+          ]) => (
+            <div
+              key={key}
+              className="bg-sky-50 border border-sky-200 rounded-xl p-4"
+            >
+              <p className="text-xs uppercase text-slate-500 mb-2">
+                {beautifyKey(
+                  key
+                )}
+              </p>
+
+              <p className="text-xl font-bold text-slate-800">
+                {formatValue(
+                  key,
+                  value
+                )}
+              </p>
+            </div>
+          )
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="font-semibold text-slate-800">
+      {String(data)}
+    </div>
+  );
+}
+
+/* =====================================================
+   EMPLOYEE CARD
+===================================================== */
+function EmployeeCard({
+  row,
+}: any) {
+  const cleanId =
+    row.employeeCode ||
+    row.employeeId ||
+    row.id ||
+    "-";
+
+  return (
+    <div className="bg-sky-50 border border-sky-200 rounded-2xl p-5 space-y-4">
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="font-bold text-lg flex items-center gap-2 text-slate-800">
+            <User className="w-4 h-4 text-sky-600" />
+            {row.name ||
+              "Employee"}
+          </h3>
+
+          <p className="text-sm text-sky-700 font-medium">
+            ID: {cleanId}
+          </p>
+        </div>
+
+        {row.recommendation && (
+          <span className="px-3 py-1 text-xs rounded-full bg-sky-500 text-white font-semibold flex items-center gap-1">
+            <BadgeCheck className="w-3 h-3" />
+            {
+              row.recommendation
+            }
+          </span>
+        )}
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-3">
+        {Object.entries(
+          row
+        )
+          .filter(
+            ([key]) =>
+              ![
+                "name",
+                "employeeId",
+                "employeeCode",
+                "id",
+                "recommendation",
+              ].includes(
+                key
+              )
+          )
+          .map(
+            ([
+              key,
+              value,
+            ]) => (
+              <div
+                key={key}
+                className="bg-white border border-sky-200 rounded-xl p-3"
+              >
+                <p className="text-xs text-slate-500 mb-1">
+                  {beautifyKey(
+                    key
+                  )}
+                </p>
+
+                <p className="font-semibold text-slate-800 break-words">
+                  {formatValue(
+                    key,
+                    value
+                  )}
+                </p>
+              </div>
+            )
+          )}
+      </div>
+    </div>
+  );
+}
+
+/* =====================================================
+   HELPERS
+===================================================== */
+function formatValue(
+  key: string,
+  value: any
+) {
+  if (
+    Array.isArray(value)
+  ) {
+    return value
+      .map((item) =>
+        typeof item ===
+        "object"
+          ? item.name ||
+            item.skillName ||
+            item.skill ||
+            "-"
+          : item
+      )
+      .join(", ");
+  }
+
+  if (
+    typeof value ===
+      "object" &&
+    value !== null
+  ) {
+    return (
+      value.name ||
+      value.skillName ||
+      value.skill ||
+      "-"
+    );
+  }
+
+  if (
+    typeof value ===
+    "number"
+  ) {
+    const k =
+      key.toLowerCase();
+
+    if (
+      k.includes(
+        "revenue"
+      ) ||
+      k.includes(
+        "margin"
+      )
+    ) {
+      return `₹${value.toLocaleString()}`;
+    }
+
+    if (
+      k.includes(
+        "pct"
+      ) ||
+      k.includes(
+        "utilization"
+      )
+    ) {
+      return `${value}%`;
+    }
+
+    if (
+      k.includes(
+        "hours"
+      )
+    ) {
+      return `${value} hrs`;
+    }
+  }
+
+  return String(value);
+}
+
+function beautifyKey(
+  text: string
+) {
+  return text
+    .replace(
+      /([A-Z])/g,
+      " $1"
+    )
+    .replace(
+      /_/g,
+      " "
+    )
+    .trim();
+}
+
+/* =====================================================
+   CARD
+===================================================== */
+function Card({
+  icon,
+  title,
+  value,
+}: any) {
+  return (
+    <div className="bg-white border border-sky-200 rounded-2xl p-4 shadow-md">
+      <div className="text-sky-600 mb-2">
+        {icon}
+      </div>
+
+      <p className="text-sm text-slate-500">
+        {title}
+      </p>
+
+      <h2 className="text-2xl font-bold text-slate-800">
+        {value}
+      </h2>
+    </div>
+  );
+}
+
+/* =====================================================
+   QUICK BUTTON
+===================================================== */
+function QuickButton({
+  label,
+  setQuestion,
+}: any) {
+  return (
+    <button
+      onClick={() =>
+        setQuestion(
+          label
+        )
+      }
+      className="bg-white border border-sky-200 rounded-xl p-3 text-left text-slate-700 hover:bg-sky-50 transition font-medium"
+    >
+      {label}
+    </button>
   );
 }
