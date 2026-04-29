@@ -1,12 +1,25 @@
 import mongoose from "mongoose";
 
-const DocumentSchema = new mongoose.Schema({
-  text: String,
-  embedding: [Number], // vector stored in MongoDB
-  metadata: {
-    type: Object,
-    default: {},
+const DocumentSchema = new mongoose.Schema(
+  {
+    text: {
+      type: String,
+      required: true
+    },
+
+    embedding: {
+      type: [Number],
+      required: true
+    },
+
+    metadata: {
+      type: Object,
+      default: {}
+    }
   },
-});
+  { timestamps: true }
+);
 
 export default mongoose.model("Document", DocumentSchema);
+
+

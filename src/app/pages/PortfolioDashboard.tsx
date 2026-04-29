@@ -29,7 +29,7 @@ export function PortfolioDashboard() {
 
   const canEdit = canEditEmployee();
   const { loading, utilization, bench, revenue } = useAnalytics(month, year);
-  const { employees, projects, workCategories, refetchEmployees } = useResourceData(month, year);
+  const { employees, projects, workCategories, refetchEmployees, departments } = useResourceData(month, year);
 
   const filteredEmployees = useMemo(() => {
     if (!search.trim()) return employees;
@@ -148,6 +148,7 @@ export function PortfolioDashboard() {
           canEdit={canEdit}
           projects={projects}
           workCategories={workCategories}
+          departments={departments}
           refetchEmployees={refetchEmployees}
         />
       )}

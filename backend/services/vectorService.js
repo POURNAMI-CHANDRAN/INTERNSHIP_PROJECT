@@ -1,30 +1,36 @@
-import Employee from "../models/Employee.js";
+import AIDocument from "../models/AIDocument.js";
+import { getEmbedding } from "./embeddingService.js";
 
-// cosine similarity
-function cosine(a, b) {
-  let dot = 0, magA = 0, magB = 0;
+export async function searchTalent(question, entities) {
+  const vector = await getEmbedding(question);
 
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    magA += a[i] * a[i];
-    magB += b[i] * b[i];
+  const stage = {
+    index: "ALLOCAI_MASTER",
+    path: "embedding",
+    queryVector: vector,
+    numCandidates: 100,
+    limit: 5,
+    filter: { sourceType: "employee" },
+  };
+
+  if (entities.location) {
+    stage.filter["metadata.location"] =
+      entities.location[0].toUpperCase() + entities.location.slice(1);
   }
 
-  return dot / (Math.sqrt(magA) * Math.sqrt(magB));
-}
+  const docs = await AIDocument.aggregate([
+    { $vectorSearch: stage },
+    { $project: { score: { $meta: "vectorSearchScore" }, metadata: 1 } },
+  ]);
 
-export async function vectorSearch(queryEmbedding, topK = 5) {
-  const employees = await Employee.find().lean();
+  let rows = docs.map(d => d.metadata);
 
-  const scored = employees.map(emp => {
-    const score = emp.embedding
-      ? cosine(queryEmbedding, emp.embedding)
-      : 0;
+  if (entities.cheapest) {
+    rows.sort((a, b) => a.hourlyCost - b.hourlyCost);
+  }
 
-    return { ...emp, score };
-  });
-
-  return scored
-    .sort((a, b) => b.score - a.score)
-    .slice(0, topK);
+  return {
+    answer: `Found ${rows.length} matching employees`,
+    data: rows,
+  };
 }

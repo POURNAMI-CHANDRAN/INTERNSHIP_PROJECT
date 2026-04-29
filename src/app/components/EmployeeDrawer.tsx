@@ -1,3 +1,4 @@
+
 import {
   X,
   Calendar,
@@ -12,6 +13,7 @@ import {
   User,
   Mail,
   Wrench,
+  Building2,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
@@ -20,56 +22,90 @@ import { AllocateModal } from "./AllocateModal";
 const API = import.meta.env.VITE_API_BASE_URL;
 const CAPACITY = 160;
 
+/* ===================== TYPES ===================== */
+
+type Department = {
+  _id: string;
+  name: string;
+};
+
+type EditFormState = {
+  departmentId: string;
+  joiningDate: string;
+  location: string;
+  hourlyCost: string;
+  skills: string[];
+};
+
+type EmployeeDrawerProps = {
+  employee: any;
+  onClose: () => void;
+  canEdit: boolean;
+  projects: any[];
+  workCategories: any[];
+  departments: Department[];
+  refetchEmployees: () => void;
+};
+
+/* ===================== COMPONENT ===================== */
+
 export default function EmployeeDrawer({
   employee,
   onClose,
   canEdit,
   projects,
   workCategories,
+  departments,
   refetchEmployees,
-}: any) {
+}: EmployeeDrawerProps) {
   const [editingInfo, setEditingInfo] = useState(false);
   const [savingInfo, setSavingInfo] = useState(false);
   const [allocationMode, setAllocationMode] = useState<
     "edit" | "move" | null
   >(null);
   const [activeAllocation, setActiveAllocation] = useState<any>(null);
-
   const [allSkills, setAllSkills] = useState<any[]>([]);
 
+  /* ===================== EFFECTS ===================== */
+
   useEffect(() => {
-  const fetchSkills = async () => {
-    try {
-      const res = await axios.get(`${API}/api/skills`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+    const fetchSkills = async () => {
+      try {
+        const res = await axios.get(`${API}/api/skills`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        setAllSkills(res.data || []);
+      } catch (err) {
+        console.error("Failed to Fetch Skills", err);
+      }
+    };
 
-      setAllSkills(res.data || []);
-    } catch (err) {
-      console.error("Failed to Fetch Skills", err);
-    }
-  };
+    fetchSkills();
+  }, []);
 
-  fetchSkills();
-}, []);
+  /* ===================== FORM STATE ===================== */
 
-  const [editForm, setEditForm] = useState({
+  const [editForm, setEditForm] = useState<EditFormState>({
+    departmentId: "",
     joiningDate: "",
     location: "",
     hourlyCost: "",
-    skills: [] as string[],
+    skills: [],
   });
 
   useEffect(() => {
     setEditForm({
+      departmentId: employee?.departmentId || "",
       joiningDate: employee?.joiningDate?.slice(0, 10) || "",
       location: employee?.location || "",
       hourlyCost: employee?.hourlyCost?.toString() || "",
-      skills: employee.skills?.map((s: any) => s._id) || [],
+      skills: employee?.skills?.map((s: any) => s._id) || [],
     });
   }, [employee]);
+
+  /* ===================== DERIVED VALUES ===================== */
 
   const allocations = employee?.allocations || [];
 
@@ -104,6 +140,16 @@ export default function EmployeeDrawer({
     return years <= 0 ? `${months}m` : `${years}y ${months}m`;
   }, [employee]);
 
+  const departmentName = useMemo(() => {
+    if (!Array.isArray(departments)) return "Remote";
+
+    return (
+      departments.find(d => d._id === editForm.departmentId)?.name ?? "Remote"
+    );
+  }, [departments, editForm.departmentId]);
+
+  /* ===================== SAVE ===================== */
+
   const saveEmployeeInfo = async () => {
     try {
       setSavingInfo(true);
@@ -113,6 +159,7 @@ export default function EmployeeDrawer({
         {
           joiningDate: editForm.joiningDate,
           location: editForm.location,
+          departmentId: editForm.departmentId,
           hourlyCost: Number(editForm.hourlyCost),
           skills: editForm.skills,
         },
@@ -191,6 +238,12 @@ export default function EmployeeDrawer({
               <div className="space-y-4">
                 <Row
                 //  value={employee?.name?}
+                />
+
+                <Row
+                  icon={<Building2 size={14} />}
+                  label="Department"
+                  value={departmentName}
                 />
 
                 <Row
