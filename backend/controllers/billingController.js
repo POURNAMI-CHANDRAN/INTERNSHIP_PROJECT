@@ -2,120 +2,145 @@ import Billing from "../models/Billing.js";
 import Allocation from "../models/Allocation.js";
 
 /* =========================================================
-   ✅ GENERATE BILLING (FINAL REAL-WORLD VERSION)
+   ✅ GENERATE BILLING FOR ALL MONTHS (OPTIMIZED)
 ========================================================= */
 export const generateBilling = async (req, res) => {
   try {
-    const { month, year } = req.body;
-
-    if (!month || !year) {
-      return res.status(400).json({
-        message: "month and year are required",
-      });
-    }
-
-    const allocations = await Allocation.find({ month, year })
-      .populate("employee")
-      .populate("project");
-
-    if (!allocations.length) {
-      return res.json({ message: "No Allocations Found" });
-    }
-
-    const billingMap = new Map();
-
-    let skipped = 0;
-    let totalProcessed = 0;
-
     /* -----------------------------------------------------
-       🔥 GROUPING LOGIC
+       🧠 STEP 1: GET UNIQUE MONTHS FROM DB (NOT MEMORY)
     ----------------------------------------------------- */
-    for (const a of allocations) {
-      if (!a.employee || !a.project) continue;
+    const uniqueMonths = await Allocation.aggregate([
+      { $match: { isBillable: true } },
+      {
+        $group: {
+          _id: { month: "$month", year: "$year" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          month: "$_id.month",
+          year: "$_id.year",
+        },
+      },
+    ]);
 
-      // ❗ Skip non-billable
-      if (!a.isBillable) {
-        skipped++;
-        continue;
-      }
-
-      totalProcessed++;
-
-      const key = `${a.employee._id}_${a.project._id}`;
-
-      const rate =
-        a.employee.costPerMonth && a.employee.costPerMonth > 0
-          ? a.employee.costPerMonth / 160
-          : 500; // fallback
-
-      if (!billingMap.has(key)) {
-        billingMap.set(key, {
-          employee_id: a.employee._id,
-          project_id: a.project._id,
-          total_hours: 0,
-          rate_per_hour: rate,
-        });
-      }
-
-      billingMap.get(key).total_hours += a.fte || 0;
+    if (!uniqueMonths.length) {
+      return res.json({ message: "No Billable Allocations" });
     }
 
     const results = [];
-    let totalRevenue = 0;
-    let totalHours = 0;
 
     /* -----------------------------------------------------
-       🔥 SAVE BILLING
+       🧠 STEP 2: PROCESS EACH MONTH
     ----------------------------------------------------- */
-    for (const billData of billingMap.values()) {
-    const bill = await Billing.findOneAndUpdate(
-      {
-        employee_id: billData.employee_id,
-        project_id: billData.project_id,
+    for (const { month, year } of uniqueMonths) {
+
+      const allocations = await Allocation.find({
         month,
         year,
-      },
-      {
-        ...billData,
+        isBillable: true,
+      })
+        .populate("employeeId projectId")
+        .lean(); // ⚡ faster
+
+      const billingMap = new Map();
+
+      /* -----------------------------------------------------
+         🧠 GROUPING
+      ----------------------------------------------------- */
+      for (const a of allocations) {
+        if (!a.employeeId || !a.projectId) continue;
+
+        const key = `${a.employeeId._id}_${a.projectId._id}`;
+
+        if (!billingMap.has(key)) {
+          billingMap.set(key, {
+            employee_id: a.employeeId._id,
+            project_id: a.projectId._id,
+            total_hours: 0,
+            costPerMonth: Number(a.employeeId?.costPerMonth || 0),
+          });
+        }
+
+        const bill = billingMap.get(key);
+        bill.total_hours += Number(a.allocatedHours || 0);
+      }
+
+      /* -----------------------------------------------------
+         💾 BULK WRITE (VERY IMPORTANT 🔥)
+      ----------------------------------------------------- */
+      const bulkOps = [];
+
+      for (const b of billingMap.values()) {
+        const rate =
+          b.costPerMonth > 0 ? b.costPerMonth / 160 : 500;
+
+        const totalRevenue = b.total_hours * rate;
+
+        bulkOps.push({
+          updateOne: {
+            filter: {
+              employee_id: b.employee_id,
+              project_id: b.project_id,
+              month,
+              year,
+            },
+            update: {
+              $set: {
+                employee_id: b.employee_id,
+                project_id: b.project_id,
+                month,
+                year,
+                total_hours: b.total_hours,
+                rate_per_hour: rate,
+                total_revenue: totalRevenue,
+              },
+            },
+            upsert: true,
+          },
+        });
+      }
+
+      if (bulkOps.length) {
+        await Billing.bulkWrite(bulkOps); // 🚀 FAST
+      }
+
+      results.push({
         month,
         year,
-        total_revenue: billData.total_hours * billData.rate_per_hour, // ✅ ADD THIS
-      },
-      { upsert: true, new: true }
-    );
-
-      totalRevenue += bill.total_revenue || 0;
-      totalHours += bill.total_hours || 0;
-
-      results.push(bill);
+        records: bulkOps.length,
+      });
     }
 
     /* -----------------------------------------------------
-       🔥 FINAL RESPONSE
+       📊 FINAL RESPONSE
     ----------------------------------------------------- */
+    const allBilling = await Billing.find().lean();
+
+    const totalRevenue = allBilling.reduce(
+      (s, r) => s + (r.total_revenue || 0),
+      0
+    );
+
+    const totalHours = allBilling.reduce(
+      (s, r) => s + (r.total_hours || 0),
+      0
+    );
+
     res.json({
-      message: "Billing Generated Successfully",
+      success: true,
+      message: "Billing Generated for ALL Months 🚀",
+      monthsProcessed: results.length,
       summary: {
-        totalBillingRecords: results.length,
-
-        totalEmployees: new Set(
-          results.map(r => r.employee_id.toString())
-        ).size,
-
-        totalProjects: new Set(
-          results.map(r => r.project_id.toString())
-        ).size,
-
-        totalHours,
+        totalRecords: allBilling.length,
         totalRevenue,
-
-        avgRate: totalRevenue / totalHours,
-
-        processedAllocations: totalProcessed,
-        skippedNonBillable: skipped,
+        totalHours,
+        avgRate: totalHours ? totalRevenue / totalHours : 0,
       },
-      data: results,
+      monthlyBreakdown: results,
     });
+
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -138,3 +163,4 @@ export const getBilling = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+

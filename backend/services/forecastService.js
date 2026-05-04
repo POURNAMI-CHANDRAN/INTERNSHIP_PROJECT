@@ -1,298 +1,101 @@
 import { getMonthData } from "./analyticsService.js";
 
-const MONTHLY_CAPACITY = 160;
+const avg = (arr = []) =>
+  arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
 
-/* =====================================================
-   HELPERS
-===================================================== */
-const avg = (arr = []) => {
-  if (!arr.length) return 0;
-  return arr.reduce((a, b) => a + b, 0) / arr.length;
+const growthRate = (arr = []) => {
+  if (arr.length < 2) return 0;
+  if (arr[0] === 0) return 0;
+  return (arr[arr.length - 1] - arr[0]) / arr[0];
 };
 
-const growthRate = (values = []) => {
-  if (values.length < 2) return 0;
-
-  const first = values[0];
-  const last = values[values.length - 1];
-
-  if (first === 0) return 0;
-
-  return (last - first) / first;
-};
-
-/* =====================================================
-   BUILD MONTH HISTORY
-===================================================== */
-export const buildHistory = async ({
-  months = []
-}) => {
+/* ================= BUILD HISTORY ================= */
+export const buildHistory = async ({ months = [] }) => {
   const history = [];
 
-  for (const item of months) {
-    const { employeeMetrics } =
-      await getMonthData({
-        month: item.month,
-        year: item.year
-      });
+  for (const m of months) {
+    const { employeeMetrics = [] } = await getMonthData(m);
 
-    const totalRevenue =
-      employeeMetrics.reduce(
-        (sum, e) => sum + e.revenue,
-        0
-      );
+    const revenue = employeeMetrics.reduce((s, e) => s + (e.revenue || 0), 0);
+    const cost = employeeMetrics.reduce((s, e) => s + (e.allocatedCost || 0), 0);
+    const utilization =
+      employeeMetrics.length > 0
+        ? employeeMetrics.reduce((s, e) => s + (e.utilizationPct || 0), 0) /
+          employeeMetrics.length
+        : 0;
 
-    const totalCost =
-      employeeMetrics.reduce(
-        (sum, e) => sum + e.allocatedCost,
-        0
-      );
-
-    const avgUtilization =
-      employeeMetrics.length === 0
-        ? 0
-        : employeeMetrics.reduce(
-            (sum, e) =>
-              sum + e.utilizationPct,
-            0
-          ) / employeeMetrics.length;
-
-    const benchCount =
-      employeeMetrics.filter(
-        e => e.isBench
-      ).length;
+    const benchCount = employeeMetrics.filter((e) => e.isBench).length;
 
     history.push({
-      month: item.month,
-      year: item.year,
-      revenue: Number(
-        totalRevenue.toFixed(2)
-      ),
-      cost: Number(
-        totalCost.toFixed(2)
-      ),
-      utilization: Number(
-        avgUtilization.toFixed(2)
-      ),
-      benchCount
+      month: m.month,
+      year: m.year,
+      revenue,
+      cost,
+      utilization,
+      benchCount,
     });
   }
 
   return history;
 };
 
-/* =====================================================
-   REVENUE FORECAST
-===================================================== */
-export const forecastRevenue = async ({
-  months = []
-}) => {
-  const history =
-    await buildHistory({ months });
+/* ================= REVENUE FORECAST ================= */
+export const forecastRevenue = async ({ months = [] }) => {
+  const history = await buildHistory({ months });
 
-  const revenues = history.map(
-    x => x.revenue
-  );
+  const revenues = history.map((x) => x.revenue);
 
-  const averageRevenue =
-    avg(revenues);
+  const avgRevenue = avg(revenues);
+  const trend = growthRate(revenues);
 
-  const rate =
-    growthRate(revenues);
-
-  const nextRevenue =
-    averageRevenue *
-    (1 + rate / 2);
+  const next = avgRevenue * (1 + trend / 2);
 
   return {
     history,
     forecast: {
-      nextMonthRevenue: Number(
-        nextRevenue.toFixed(2)
-      ),
-      confidence:
-        revenues.length >= 6
-          ? "HIGH"
-          : "MEDIUM"
-    }
+      nextMonthRevenue: Number(next.toFixed(2)),
+      confidence: revenues.length >= 6 ? "HIGH" : "MEDIUM",
+    },
   };
 };
 
-/* =====================================================
-   BENCH FORECAST
-===================================================== */
-export const forecastBench = async ({
-  months = []
-}) => {
-  const history =
-    await buildHistory({ months });
+/* ================= BENCH FORECAST ================= */
+export const forecastBench = async ({ months = [] }) => {
+  const history = await buildHistory({ months });
 
-  const benchValues =
-    history.map(
-      x => x.benchCount
-    );
+  const values = history.map((x) => x.benchCount);
 
-  const averageBench =
-    avg(benchValues);
+  const avgBench = avg(values);
+  const trend = growthRate(values);
 
-  const trend =
-    growthRate(benchValues);
-
-  const nextBench =
-    Math.max(
-      0,
-      Math.round(
-        averageBench +
-          averageBench *
-            (trend / 2)
-      )
-    );
+  const next = Math.max(0, Math.round(avgBench + avgBench * (trend / 2)));
 
   return {
     history,
     forecast: {
-      nextMonthBench:
-        nextBench,
-      risk:
-        nextBench >= 5
-          ? "HIGH"
-          : nextBench >= 2
-          ? "MEDIUM"
-          : "LOW"
-    }
+      nextMonthBench: next,
+      risk: next >= 5 ? "HIGH" : next >= 2 ? "MEDIUM" : "LOW",
+    },
   };
 };
 
-/* =====================================================
-   UTILIZATION FORECAST
-===================================================== */
-export const forecastUtilization =
-  async ({ months = [] }) => {
-    const history =
-      await buildHistory({
-        months
-      });
+/* ================= UTILIZATION FORECAST ================= */
+export const forecastUtilization = async ({ months = [] }) => {
+  const history = await buildHistory({ months });
 
-    const values =
-      history.map(
-        x => x.utilization
-      );
+  const values = history.map((x) => x.utilization);
 
-    const average =
-      avg(values);
+  const avgUtil = avg(values);
+  const trend = growthRate(values);
 
-    const trend =
-      growthRate(values);
+  const next = Math.min(120, Math.max(0, avgUtil + avgUtil * (trend / 2)));
 
-    const nextUtilization =
-      Math.min(
-        120,
-        Math.max(
-          0,
-          average +
-            average *
-              (trend / 2)
-        )
-      );
-
-    return {
-      history,
-      forecast: {
-        nextMonthUtilization:
-          Number(
-            nextUtilization.toFixed(
-              2
-            )
-          ),
-        status:
-          nextUtilization < 60
-            ? "UNDERUTILIZED"
-            : nextUtilization >
-              100
-            ? "OVERALLOCATED"
-            : "HEALTHY"
-      }
-    };
+  return {
+    history,
+    forecast: {
+      nextMonthUtilization: Number(next.toFixed(2)),
+      status:
+        next < 60 ? "UNDERUTILIZED" : next > 100 ? "OVERALLOCATED" : "HEALTHY",
+    },
   };
-
-/* =====================================================
-   HIRING DEMAND FORECAST
-===================================================== */
-export const forecastHiringDemand =
-  async ({
-    currentEmployees = 0,
-    months = []
-  }) => {
-    const util =
-      await forecastUtilization({
-        months
-      });
-
-    const nextUtil =
-      util.forecast
-        .nextMonthUtilization;
-
-    let recommendedHires = 0;
-
-    if (nextUtil > 95) {
-      recommendedHires =
-        Math.ceil(
-          (nextUtil - 95) / 10
-        );
-    }
-
-    return {
-      currentEmployees,
-      forecastUtilization:
-        nextUtil,
-      recommendedHires,
-      message:
-        recommendedHires > 0
-          ? `Hire ${recommendedHires} resources soon`
-          : "No urgent hiring needed"
-    };
-  };
-
-/* =====================================================
-   EXECUTIVE FORECAST SUMMARY
-===================================================== */
-export const getForecastSummary =
-  async ({
-    months = [],
-    currentEmployees = 0
-  }) => {
-    const revenue =
-      await forecastRevenue({
-        months
-      });
-
-    const bench =
-      await forecastBench({
-        months
-      });
-
-    const utilization =
-      await forecastUtilization(
-        {
-          months
-        }
-      );
-
-    const hiring =
-      await forecastHiringDemand(
-        {
-          currentEmployees,
-          months
-        }
-      );
-
-    return {
-      revenue:
-        revenue.forecast,
-      bench:
-        bench.forecast,
-      utilization:
-        utilization.forecast,
-      hiring
-    };
-  };
+};

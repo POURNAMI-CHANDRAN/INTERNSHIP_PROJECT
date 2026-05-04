@@ -7,35 +7,73 @@ import {
   fetchMoveSuggestions,
 } from "../api/analyticsAPI";
 
-const extract = (res: any) => {
-  const data = res?.data;
+/* ============================================================
+   DOMAIN TYPES (MATCH BACKEND CONTRACT)
+============================================================ */
 
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.data)) return data.data;
-  if (Array.isArray(data?.items)) return data.items;
-  if (Array.isArray(data?.results)) return data.results;
+export type UtilizationRow = {
+  employeeId?: string;
+  allocatedHours: number;
+  utilizationPct: number;
+};
 
+export type BenchEmployee = {
+  name: string;
+  employeeCode: string;
+  idleHours: number;
+};
+
+export type RevenueRow = {
+  projectName: string;
+  month: string;
+  revenue: number;
+};
+
+export type ProjectHealth = {
+  projectName: string;
+  healthScore: number;
+  riskLevel: "LOW" | "MEDIUM" | "HIGH";
+};
+
+export type MoveSuggestion = {
+  message: string;
+};
+
+/* ============================================================
+   SAFE RESPONSE EXTRACTOR
+============================================================ */
+
+function extractArray<T>(res: unknown): T[] {
+  if (!res || typeof res !== "object") return [];
+
+  const data = (res as { data?: unknown }).data;
+
+  if (Array.isArray(data)) return data as T[];
   if (data && typeof data === "object") {
-    const firstArray = Object.values(data).find(Array.isArray);
-    if (firstArray) return firstArray;
+    const maybeArray = Object.values(data).find(Array.isArray);
+    if (maybeArray) return maybeArray as T[];
   }
 
   return [];
-};
+}
+
+/* ============================================================
+   ANALYTICS HOOK (REAL DATA)
+============================================================ */
 
 export function useAnalytics(month: number, year: number) {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  const [utilization, setUtilization] = useState<any[]>([]);
-  const [bench, setBench] = useState<any[]>([]);
-  const [revenue, setRevenue] = useState<any[]>([]);
-  const [projectHealth, setProjectHealth] = useState<any[]>([]);
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [utilization, setUtilization] = useState<UtilizationRow[]>([]);
+  const [bench, setBench] = useState<BenchEmployee[]>([]);
+  const [revenue, setRevenue] = useState<RevenueRow[]>([]);
+  const [projectHealth, setProjectHealth] = useState<ProjectHealth[]>([]);
+  const [suggestions, setSuggestions] = useState<MoveSuggestion[]>([]);
 
   useEffect(() => {
     let mounted = true;
 
-    async function load() {
+    async function loadAnalytics() {
       setLoading(true);
 
       try {
@@ -53,37 +91,29 @@ export function useAnalytics(month: number, year: number) {
           fetchMoveSuggestions(),
         ]);
 
-        // DEBUG LOGS
-        console.log("UTIL:", utilRes.data);
-        console.log("BENCH:", benchRes.data);
-        console.log("REV:", revRes.data);
-        console.log("HEALTH:", healthRes.data);
-        console.log("SUGGEST:", suggestRes.data);
+        if (!mounted) return;
+
+        setUtilization(extractArray<UtilizationRow>(utilRes));
+        setBench(extractArray<BenchEmployee>(benchRes));
+        setRevenue(extractArray<RevenueRow>(revRes));
+        setProjectHealth(extractArray<ProjectHealth>(healthRes));
+        setSuggestions(extractArray<MoveSuggestion>(suggestRes));
+      } catch (error) {
+        console.error("Analytics load failed:", error);
 
         if (!mounted) return;
 
-        setUtilization(extract(utilRes));
-        setBench(extract(benchRes));
-        setRevenue(extract(revRes));
-        setProjectHealth(extract(healthRes));
-        setSuggestions(extract(suggestRes));
-
-      } catch (err) {
-        console.error("Analytics error:", err);
-
-        if (mounted) {
-          setUtilization([]);
-          setBench([]);
-          setRevenue([]);
-          setProjectHealth([]);
-          setSuggestions([]);
-        }
+        setUtilization([]);
+        setBench([]);
+        setRevenue([]);
+        setProjectHealth([]);
+        setSuggestions([]);
       } finally {
         if (mounted) setLoading(false);
       }
     }
 
-    load();
+    loadAnalytics();
 
     return () => {
       mounted = false;

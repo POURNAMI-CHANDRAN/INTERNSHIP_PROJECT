@@ -66,6 +66,8 @@ export default function EmployeeDrawer({
   const [activeAllocation, setActiveAllocation] = useState<any>(null);
   const [allSkills, setAllSkills] = useState<any[]>([]);
 
+  const getFTE = (hours: number) => hours / CAPACITY;
+
   /* ===================== EFFECTS ===================== */
 
   useEffect(() => {
@@ -113,9 +115,11 @@ export default function EmployeeDrawer({
     (sum: number, item: any) => sum + (item?.allocatedHours || 0),
     0
   );
-
+  
   const remainingHours = Math.max(0, CAPACITY - bookedHours);
   const utilizationPct = Math.round((bookedHours / CAPACITY) * 100);
+
+  const totalFTE = getFTE(bookedHours);
 
   const getUtilColor = (pct: number) => {
     if (pct > 100) return "text-red-600";
@@ -421,14 +425,23 @@ export default function EmployeeDrawer({
             </h3>
 
             <div className="flex justify-between items-end mb-4">
-              <div>
+              {/* <div>
                 <span className="text-4xl font-black text-slate-900">
                   {bookedHours}h
                 </span>
 
                 <span className="text-slate-600 ml-1 text-2xl">/ {CAPACITY}h</span>
-              </div>
+              </div> */}
 
+              <div>
+                <span className="text-4xl font-black text-slate-900">
+                  {totalFTE.toFixed(2)} FTE
+                </span>
+
+                <div className="text-sm text-slate-500">
+                  {bookedHours}h / {CAPACITY}h
+                </div>
+              </div>
               <span
                 className={`text-lg font-bold ${getUtilColor(
                   utilizationPct
@@ -512,65 +525,73 @@ export default function EmployeeDrawer({
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">
-              {allocations.map((a: any) => (
-                <div
-                  key={a._id}
-                  className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition group"
-                >
-                  <div className="flex justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase text-indigo-500 mb-1">
-                        Project
-                      </p>
+              {allocations.map((a: any) => {
+                const hours = a.allocatedHours || 0;
+                const fte = hours / CAPACITY;
+                const allocationPct = Math.round((hours / CAPACITY) * 100);
 
-                      <h4 className="font-bold text-slate-900 truncate">
-                        {a?.projectId?.name || "Unnamed"}
-                      </h4>
-                    </div>
+                return (
+                  <div
+                    key={a._id}
+                    className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition group"
+                  >
+                    <div className="flex justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold uppercase text-indigo-500 mb-1">
+                          Project
+                        </p>
 
-                    <span
-                      className={`text-[10px] font-bold px-2 py-1 rounded-md shrink-0 ${
-                        a.isBillable
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-yellow-100 text-yellow-700"
-                      }`}
-                    >
-                      {a.isBillable
-                        ? "Billable"
-                        : "Internal"}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center mt-4 pt-3 border-t border-slate-100">
-                    <div className="flex items-center gap-1 text-xs font-semibold text-sky-700">
-                      <Clock size={12} />
-                      {a.allocatedHours}h
-                    </div>
-
-                    {canEdit && (
-                      <div className="ml-auto flex gap-1 opacity-0 group-hover:opacity-100 transition">
-                        <IconButton
-                          icon={<Edit3 size={13} />}
-                          onClick={() => {
-                            setActiveAllocation(a);
-                            setAllocationMode("edit");
-                          }}
-                          color="text-indigo-600 hover:bg-indigo-50"
-                        />
-
-                        <IconButton
-                          icon={<ArrowRightLeft size={13} />}
-                          onClick={() => {
-                            setActiveAllocation(a);
-                            setAllocationMode("move");
-                          }}
-                          color="text-sky-600 hover:bg-sky-50"
-                        />
+                        <h4 className="font-bold text-slate-900 truncate">
+                          {a?.projectId?.name || "Unnamed"}
+                        </h4>
                       </div>
-                    )}
+
+                      <span
+                        className={`text-[10px] font-bold px-2 py-1 rounded-md shrink-0 ${
+                          a.isBillable
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-yellow-100 text-yellow-700"
+                        }`}
+                      >
+                        {a.isBillable ? "Billable" : "Internal"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center mt-4 pt-3 border-t border-slate-100">
+                      <div className="flex items-center gap-1 text-xs font-semibold text-sky-700">
+                        <Clock size={12} />
+                        {hours}h
+
+                        <div className="text-[10px] text-slate-500 ml-2">
+                          {fte.toFixed(2)} FTE • {allocationPct}%
+                        </div>
+                      </div>
+
+                      {canEdit && (
+                        <div className="ml-auto flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                          <IconButton
+                            icon={<Edit3 size={13} />}
+                            onClick={() => {
+                              setActiveAllocation(a);
+                              setAllocationMode("edit");
+                            }}
+                            color="text-indigo-600 hover:bg-indigo-50"
+                          />
+
+                          <IconButton
+                            icon={<ArrowRightLeft size={13} />}
+                            onClick={() => {
+                              setActiveAllocation(a);
+                              setAllocationMode("move");
+                            }}
+                            color="text-sky-600 hover:bg-sky-50"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>

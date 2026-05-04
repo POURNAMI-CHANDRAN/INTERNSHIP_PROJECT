@@ -1,118 +1,163 @@
 import Allocation from "../models/Allocation.js";
 import Employee from "../models/Employee.js";
-import "../models/Project.js";
 
 const MONTHLY_CAPACITY = 160;
 
-const normalizeBillingType = (allocation) => {
-  if (allocation.billingType) return allocation.billingType;
-  return allocation.isBillable ? "Billable" : "Non-Billable";
-};
+/* =====================================================
+   SAFE HELPERS (ENTERPRISE GRADE)
+===================================================== */
+
+const n = (v) => Number(v || 0);
+
+const normalizeBillingType = (a) =>
+  a.billingType || (a.isBillable ? "Billable" : "Non-Billable");
+
+const safeId = (v) => v?.toString?.() || "";
+
+/* =====================================================
+   CORE METRICS ENGINE (EMPLOYEE LEVEL)
+===================================================== */
 
 export const calculateEmployeeMetrics = (employee, allocations = []) => {
-  let totalAllocatedHours = 0;
+  let totalHours = 0;
   let billableHours = 0;
   let revenue = 0;
+  let cost = 0;
 
-  for (const allocation of allocations) {
-    const hours = Number(allocation.allocatedHours || 0);
-    totalAllocatedHours += hours;
+  for (const a of allocations) {
+    const hours = n(a.allocatedHours);
+    totalHours += hours;
 
-    const billingType = normalizeBillingType(allocation);
-    if (billingType === "Billable") {
+    const type = normalizeBillingType(a);
+
+    const hourlyCost = n(employee.hourlyCost);
+    const salary = n(employee.monthlySalary);
+
+    const project = a.projectId || a.project_id;
+
+    const rate =
+      n(a.rateSnapshot) ||
+      n(project?.billingRate) ||
+      n(project?.fixedMonthlyRevenue);
+
+    if (type === "Billable") {
       billableHours += hours;
 
-      if (allocation.projectId?.billingModel === "Hourly") {
-        revenue += hours * Number(allocation.rateSnapshot || allocation.projectId?.billingRate || 0);
+      if (project?.billingModel === "Fixed") {
+        revenue += rate * (hours / MONTHLY_CAPACITY);
       } else {
-        const fixedMonthlyRevenue = Number(
-          allocation.projectId?.fixedMonthlyRevenue || allocation.rateSnapshot || 0
-        );
-        revenue += fixedMonthlyRevenue * (hours / MONTHLY_CAPACITY);
+        revenue += hours * rate;
       }
     }
+
+    cost += salary
+      ? salary * (hours / MONTHLY_CAPACITY)
+      : hourlyCost * hours;
   }
 
-  const utilizationPct = Number(((billableHours / MONTHLY_CAPACITY) * 100).toFixed(2));
-  const hourlyCost = Number(employee.hourlyCost || 0);
-  const monthlySalary = Number(employee.monthlySalary || 0);
-  const allocatedCost =
-    monthlySalary > 0
-      ? Number((monthlySalary * (totalAllocatedHours / MONTHLY_CAPACITY)).toFixed(2))
-      : Number((hourlyCost * totalAllocatedHours).toFixed(2));
+  const utilizationPct = (billableHours / MONTHLY_CAPACITY) * 100;
 
-    let utilizationBand;
+  /* ================= INTELLIGENCE LAYER ================= */
 
-    if (billableHours === 0) {
-    utilizationBand = "BENCH";
-    } else if (totalAllocatedHours > MONTHLY_CAPACITY) {
-    utilizationBand = "OVERBILLED";
-    } else if (billableHours < MONTHLY_CAPACITY * 0.5) {
-    utilizationBand = "UNDERUTILIZED";
-    } else if (billableHours === MONTHLY_CAPACITY) {
-    utilizationBand = "PERFECT_UTILIZATION";
-    } else {
-    utilizationBand = "PARTIALLY_UTILIZED";
-    }
+  let utilizationBand = "BENCH";
+
+  if (billableHours === 0) utilizationBand = "BENCH";
+  else if (utilizationPct > 110) utilizationBand = "OVERUTILIZED";
+  else if (utilizationPct < 50) utilizationBand = "UNDERUTILIZED";
+  else utilizationBand = "HEALTHY";
+
+  const margin = revenue - cost;
+
+  const riskScore =
+    billableHours === 0 ? 100 :
+    utilizationPct < 50 ? 80 :
+    utilizationPct > 110 ? 70 :
+    30;
 
   return {
     employeeId: employee._id,
-    employeeCode: employee.employeeCode,
     name: employee.name,
-    totalAllocatedHours,
+    employeeCode: employee.employeeCode,
+
+    totalHours,
     billableHours,
-    nonBillableHours: Number((totalAllocatedHours - billableHours).toFixed(2)),
-    utilizationPct,
-    allocatedCost,
-    revenue: Number(revenue.toFixed(2)),
-    margin: Number((revenue - allocatedCost).toFixed(2)),
-    isBench: billableHours === 0,
+    nonBillableHours: totalHours - billableHours,
+
+    utilizationPct: Number(utilizationPct.toFixed(2)),
     utilizationBand,
+
+    revenue: Number(revenue.toFixed(2)),
+    cost: Number(cost.toFixed(2)),
+    margin: Number(margin.toFixed(2)),
+
+    isBench: billableHours === 0,
+
+    /* 🔥 AI SIGNALS */
+    riskScore,
+    productivityScore: Number((revenue / (totalHours || 1)).toFixed(2)),
   };
 };
 
+/* =====================================================
+   MONTH ENGINE (CORE DATA PIPELINE)
+===================================================== */
+
 export const getMonthData = async ({ month, year }) => {
   const employees = await Employee.find({ status: "Active" });
-  const allocations = await Allocation.find({ month, year })
-    .populate("projectId");
 
-  const byEmployee = new Map();
-  for (const allocation of allocations) {
-    const key = allocation.employeeId.toString();
-    const existing = byEmployee.get(key) || [];
-    existing.push(allocation);
-    byEmployee.set(key, existing);
+  const allocations = await Allocation.find({ month, year })
+    .populate("projectId")
+    .populate("employeeId");
+
+  const grouped = new Map();
+
+  for (const a of allocations) {
+    const id = safeId(a.employeeId?._id);
+    if (!id) continue;
+
+    if (!grouped.has(id)) grouped.set(id, []);
+    grouped.get(id).push(a);
   }
 
-  const employeeMetrics = employees.map((employee) =>
-    calculateEmployeeMetrics(employee, byEmployee.get(employee._id.toString()) || [])
+  const employeeMetrics = employees.map((emp) =>
+    calculateEmployeeMetrics(emp, grouped.get(safeId(emp._id)) || [])
   );
 
-  return { employees, allocations, employeeMetrics };
+  return {
+    employees,
+    allocations,
+    employeeMetrics,
+  };
 };
+
+/* =====================================================
+   BENCH INTELLIGENCE
+===================================================== */
 
 export const getImpendingBench = async ({ month, year }) => {
   const { employeeMetrics } = await getMonthData({ month, year });
-  return employeeMetrics.filter((item) => item.isBench);
+
+  return employeeMetrics.filter(
+    (e) => e.isBench || e.utilizationPct < 30
+  );
 };
+
+/* =====================================================
+   UTILIZATION TREND (AI READY)
+===================================================== */
 
 export const getUtilizationTrend = async (limit = 6) => {
   return Allocation.aggregate([
     {
       $group: {
         _id: { month: "$month", year: "$year" },
-        totalBillableHours: {
+        billableHours: {
           $sum: {
             $cond: [
               {
                 $or: [
                   { $eq: ["$billingType", "Billable"] },
-                  {
-                    $and: [
-                      { $eq: ["$billingType", null] },
-                      { $eq: ["$isBillable", true] },
-                    ],
-                  },
+                  { $eq: ["$isBillable", true] },
                 ],
               },
               "$allocatedHours",
@@ -133,55 +178,63 @@ export const getUtilizationTrend = async (limit = 6) => {
             { $toString: "$_id.year" },
           ],
         },
-        totalBillableHours: 1,
+        billableHours: 1,
       },
     },
   ]);
 };
+
+/* =====================================================
+   REVENUE INTELLIGENCE ENGINE
+===================================================== */
 
 export const getRevenueSummary = async ({ month, year }) => {
   const allocations = await Allocation.find({ month, year })
     .populate("projectId")
     .populate("employeeId");
 
-  const projectAgg = new Map();
+  const map = new Map();
 
-  for (const allocation of allocations) {
-    const project = allocation.projectId;
+  for (const a of allocations) {
+    const project = a.projectId;
     if (!project) continue;
 
-    const key = project._id.toString();
-    const existing =
-      projectAgg.get(key) ||
-      {
+    const key = safeId(project._id);
+
+    if (!map.has(key)) {
+      map.set(key, {
         projectId: key,
         project: project.name,
         revenue: 0,
         cost: 0,
-      };
-
-    const billingType = normalizeBillingType(allocation);
-    const hours = Number(allocation.allocatedHours || 0);
-    const employeeHourlyCost = Number(allocation.employeeId?.hourlyCost || 0);
-
-    if (billingType === "Billable") {
-      if (project.billingModel === "Fixed") {
-        existing.revenue += Number(project.fixedMonthlyRevenue || allocation.rateSnapshot || 0) * (hours / MONTHLY_CAPACITY);
-      } else {
-        existing.revenue += Number(allocation.rateSnapshot || project.billingRate || 0) * hours;
-      }
+        margin: 0,
+      });
     }
 
-    existing.cost += employeeHourlyCost * hours;
-    projectAgg.set(key, existing);
+    const item = map.get(key);
+
+    const hours = n(a.allocatedHours);
+    const rate = n(a.rateSnapshot || project.billingRate);
+    const costRate = n(a.employeeId?.hourlyCost);
+
+    const type = normalizeBillingType(a);
+
+    if (type === "Billable") {
+      item.revenue += project.billingModel === "Fixed"
+        ? rate * (hours / MONTHLY_CAPACITY)
+        : rate * hours;
+    }
+
+    item.cost += costRate * hours;
+    item.margin = item.revenue - item.cost;
   }
 
-  return [...projectAgg.values()]
-    .map((item) => ({
-      ...item,
-      revenue: Number(item.revenue.toFixed(2)),
-      cost: Number(item.cost.toFixed(2)),
-      margin: Number((item.revenue - item.cost).toFixed(2)),
+  return Array.from(map.values())
+    .map((p) => ({
+      ...p,
+      revenue: n(p.revenue.toFixed(2)),
+      cost: n(p.cost.toFixed(2)),
+      margin: n(p.margin.toFixed(2)),
     }))
     .sort((a, b) => b.revenue - a.revenue);
 };

@@ -1,27 +1,27 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, KeyboardEvent, ReactNode, useMemo } from "react";
 import api from "../../api/api";
 import {
   Brain,
   Send,
   Loader2,
-  AlertCircle,
   TrendingUp,
   Users,
   Briefcase,
   IndianRupee,
-  Activity,
-  ShieldAlert,
-  User,
-  BadgeCheck,
+  Sparkles,
+  Search,
+  ChevronRight,
+  LayoutDashboard
 } from "lucide-react";
+
 
 /* ================= TYPES ================= */
 
 type AIResponse = {
   query: string;
   answer: string;
-  intent?: string;
-  data?: any;
+  intent: string;
+  entities: Record<string, unknown>[];
 };
 
 type DashboardSummary = {
@@ -34,260 +34,246 @@ type DashboardSummary = {
   totalMargin: number;
 };
 
-/* ================= MAIN ================= */
+/* ================= HELPERS ================= */
+
+const toNumber = (v: unknown): number => {
+  if (typeof v === "number") return v;
+  if (typeof v === "string") {
+    const n = Number(v.replace(/[^\d.]/g, ""));
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+};
+
+const formatINR = (v: unknown) => 
+  new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0
+  }).format(toNumber(v));
+
+const extractEntities = (res: any): Record<string, unknown>[] => {
+  const data = res?.data;
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.results)) return data.results;
+  if (data && typeof data === "object") {
+    const found = Object.values(data).find(Array.isArray);
+    if (Array.isArray(found)) return found;
+  }
+  return Array.isArray(res?.contextUsed) ? res.contextUsed : [];
+};
+
+/* ================= COMPONENT ================= */
 
 export default function AIInsights() {
-  const [question, setQuestion] = useState("");
+  const [question, setQuestion] = useState<string>("");
   const [response, setResponse] = useState<AIResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [kpi, setKpi] = useState<DashboardSummary | null>(null);
 
-  useEffect(() => {
-    loadDashboard();
+  const loadDashboard = useCallback(async () => {
+    try {
+      const res = await api.post("/ai/ask", { question: "dashboard summary" });
+      const d = res.data?.data ?? {};
+      setKpi({
+        totalEmployees: toNumber(d.totalEmployees),
+        benchCount: toNumber(d.benchCount),
+        underutilizedCount: toNumber(d.underutilizedCount),
+        overallocatedCount: toNumber(d.overallocatedCount),
+        avgUtilization: toNumber(d.avgUtilization),
+        totalRevenue: toNumber(d.totalRevenue),
+        totalMargin: toNumber(d.totalMargin),
+      });
+    } catch (err) {
+      console.error("Dashboard Load Failed", err);
+    }
   }, []);
 
-  /* ================= DASHBOARD ================= */
+  useEffect(() => { loadDashboard(); }, [loadDashboard]);
 
-  const loadDashboard = async () => {
-    try {
-      const res = await api.post("/ai/ask", {
-        question: "dashboard summary",
-      });
-
-      setKpi(res.data?.data || null);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  /* ================= ASK AI ================= */
-
-  const askAI = async () => {
+  const askAI = useCallback(async () => {
     if (!question.trim()) return;
-
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError("");
-
       const res = await api.post("/ai/ask", { question });
-
-      const normalized: AIResponse = {
+      setResponse({
         query: question,
-        answer: res.data?.answer || "No answer generated",
-        intent: res.data?.intent || "UNKNOWN",
-        data: res.data?.data ?? res.data?.contextUsed ?? [],
-      };
-
-      setResponse(normalized);
+        answer: res.data?.answer ?? "Analysis Complete.",
+        intent: res.data?.intent ?? "GENERAL_QUERY",
+        entities: extractEntities(res.data),
+      });
       setQuestion("");
-    } catch (err: any) {
-      setError(err?.response?.data?.error || "AI Request Failed");
+    } catch (err) {
+      setError("I encountered an issue processing that request.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [question]);
 
-  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") askAI();
-  };
+  const metrics = useMemo(() => {
+    if (!kpi) return null;
+    return [
+      { icon: <Users size={20} />, 
+        title: "Headcount", 
+        value: kpi.totalEmployees, 
+        color: "text-blue-600" },
 
-  /* ================= UI ================= */
+      { icon: <TrendingUp size={20} />, 
+      title: "Utilization", 
+      value: `${kpi.avgUtilization}%`, 
+      color: "text-emerald-600" },
 
-  return (
-    <div className="min-h-screen bg-sky-50 p-6 space-y-6 text-slate-800">
+      { icon: <Briefcase size={20} />, 
+        title: "Revenue", 
+        value: formatINR(kpi.totalRevenue), 
+        color: "text-indigo-600" },
 
-      {/* HEADER */}
-      <div className="flex items-center gap-3">
-        <div className="p-3 bg-sky-500 rounded-2xl shadow-md">
-          <Brain className="w-6 h-6 text-white" />
-        </div>
-
-        <div>
-          <h1 className="text-3xl font-black text-slate-900">
-            <span className="text-sky-600">Alloc</span>AI
-          </h1>
-          <p className="text-sky-700 text-sm">
-            Smart staffing insights dashboard
-          </p>
-        </div>
-      </div>
-
-      {/* INPUT */}
-      <div className="bg-white border border-sky-200 rounded-2xl p-4 flex gap-3">
-        <input
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          onKeyDown={onKeyDown}
-          placeholder="Ask about staffing, bench, revenue..."
-          className="w-full border border-sky-300 rounded-xl px-4 py-3"
-        />
-
-        <button
-          onClick={askAI}
-          className="bg-sky-500 hover:bg-sky-600 text-white px-5 rounded-xl flex items-center gap-2"
-        >
-          {loading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Send className="w-4 h-4" />
-          )}
-          Ask
-        </button>
-      </div>
-
-      {/* ERROR */}
-      {error && (
-        <div className="bg-red-50 border border-red-300 text-red-700 rounded-xl p-3 flex gap-2">
-          <AlertCircle className="w-4 h-4" />
-          {error}
-        </div>
-      )}
-
-      {/* KPI */}
-      {kpi && (
-        <div className="grid md:grid-cols-4 gap-4">
-          <Card icon={<TrendingUp />} title="Utilization" value={`${kpi.avgUtilization ?? 0}%`} />
-          <Card icon={<Users />} title="Bench" value={kpi.benchCount ?? 0} />
-          <Card icon={<Briefcase />} title="Revenue" value={`₹${kpi.totalRevenue ?? 0}`} />
-          <Card icon={<IndianRupee />} title="Margin" value={`₹${kpi.totalMargin ?? 0}`} />
-        </div>
-      )}
-
-      {/* QUICK ACTIONS */}
-      <div className="grid md:grid-cols-3 gap-3">
-        <QuickButton label="Who is on Bench?" setQuestion={setQuestion} />
-        <QuickButton label="Forecast Revenue" setQuestion={setQuestion} />
-        <QuickButton label="Need React Developers" setQuestion={setQuestion} />
-      </div>
-
-      {/* RESPONSE */}
-      {response && (
-        <div className="bg-white border border-sky-200 rounded-2xl p-5 space-y-4">
-
-          <div className="flex items-center gap-2">
-            <Activity className="w-5 h-5 text-sky-600" />
-            <h2 className="font-bold text-xl text-sky-900">
-              {response.intent === "GENERAL_RAG"
-                ? "AI Insights Generated"
-                : response.answer}
-            </h2>
-          </div>
-
-          <p className="text-sm text-slate-500">
-            Intent: {response.intent}
-          </p>
-
-          <RenderAIData data={response.data} />
-        </div>
-      )}
-
-      {/* FOOTER */}
-      <div className="text-xs text-slate-500 flex gap-2">
-        <ShieldAlert className="w-4 h-4" />
-        Internal AI insights powered by company data
-      </div>
-    </div>
-  );
-}
-
-/* ================= DATA RENDERER ================= */
-
-function RenderAIData({ data }: any) {
-  if (!data) return null;
-
-  const list = Array.isArray(data) ? data : [data];
+      { icon: <IndianRupee size={20} />, 
+        title: "Gross Margin", 
+        value: formatINR(kpi.totalMargin), 
+        color: "text-sky-600" },
+    ];
+  }, [kpi]);
 
   return (
-    <div className="space-y-4">
-      {list.map((row: any, index: number) => (
-        <EmployeeCard
-          key={`${row._id || index}-${index}`}
-          row={row}
-        />
-      ))}
-    </div>
-  );
-}
-
-/* ================= CARD ================= */
-
-function EmployeeCard({ row }: any) {
-  return (
-    <div className="bg-sky-50 border border-sky-200 rounded-2xl p-5 space-y-3">
-
-      <div className="flex justify-between">
-        <h3 className="font-bold flex items-center gap-2">
-          <User className="w-4 h-4 text-sky-600" />
-          {row.name || "Unknown"}
-        </h3>
-
-        {row.recommendation && (
-          <span className="bg-sky-500 text-white px-2 py-1 text-xs rounded-full flex items-center gap-1">
-            <BadgeCheck className="w-3 h-3" />
-            {row.recommendation}
-          </span>
-        )}
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-3">
-        {Object.entries(row)
-          .filter(([key]) =>
-            !["_id", "name", "id", "recommendation"].includes(key)
-          )
-          .map(([key, value]) => (
-            <div
-              key={`${key}-${row._id || ""}`}
-              className="bg-white border border-sky-200 rounded-xl p-3"
-            >
-              <p className="text-xs text-slate-500">{key}</p>
-              <p className="font-semibold break-words">
-                {formatValue(value)}
-              </p>
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans selection:bg-sky-100">
+      <div className="max-w-6xl mx-auto p-6 space-y-8">
+        
+        {/* HEADER */}
+        <header className="flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="bg-sky-600 p-2 rounded-xl shadow-lg shadow-sky-200">
+              <Brain className="text-white" size={28} />
             </div>
-          ))}
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">AllocAI <span className="text-sky-600">Insights</span></h1>
+              <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Enterprise Intelligence</p>
+            </div>
+          </div>
+          <button onClick={loadDashboard} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
+            <LayoutDashboard size={20} className="text-slate-600" />
+          </button>
+        </header>
+
+        {/* INPUT SECTION */}
+        <div className="relative group">
+          <div className="absolute -inset-1 bg-gradient-to-r from-sky-400 to-indigo-400 rounded-2xl blur opacity-25 group-focus-within:opacity-50 transition duration-1000"></div>
+          <div className="relative flex items-center bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden px-4">
+            <Search className="text-slate-400" size={20} />
+            <input
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && askAI()}
+              className="flex-1 p-5 focus:outline-none text-lg placeholder:text-slate-400"
+              placeholder="Ask about project staffing, bench costs, or revenue forecasts..."
+            />
+            <button
+              onClick={askAI}
+              disabled={loading || !question.trim()}
+              className="bg-slate-900 hover:bg-sky-600 disabled:bg-slate-200 text-white p-3 rounded-xl transition-all duration-200 flex items-center gap-2"
+            >
+              {loading ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
+            </button>
+          </div>
+        </div>
+
+        {/* KPI GRID */}
+        {metrics && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {metrics.map((m, i) => (
+              <MetricCard key={i} {...m} />
+            ))}
+          </div>
+        )}
+
+        {/* MAIN CONTENT AREA */}
+        <div className="grid grid-cols-1 gap-6">
+          {error && (
+            <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+              <div className="bg-red-100 p-1 rounded-full text-red-600">!</div>
+              {error}
+            </div>
+          )}
+
+          {response && (
+            <div className="bg-white border border-slate-200 rounded-3xl shadow-xl shadow-slate-200/50 overflow-hidden animate-in zoom-in-95 duration-300">
+              <div className="bg-slate-50 border-b border-slate-100 p-6">
+                <div className="flex items-center gap-2 text-sky-600 mb-2">
+                  <Sparkles size={16} />
+                  <span className="text-xs font-bold uppercase tracking-widest">AI Intelligence Report</span>
+                </div>
+                <h2 className="text-2xl font-semibold text-slate-800 leading-tight">
+                  {response.answer}
+                </h2>
+              </div>
+              
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Contextual Data</h3>
+                  <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-medium">
+                    Intent: {response.intent}
+                  </span>
+                </div>
+
+                {response.entities.length === 0 ? (
+                  <div className="py-10 text-center border-2 border-dashed border-slate-100 rounded-2xl">
+                    <p className="text-slate-400">No matching records found for this query.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {response.entities.map((e, i) => (
+                      <EntityCard key={i} data={e} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-/* ================= HELPERS ================= */
+/* ================= UPGRADED UI COMPONENTS ================= */
 
-function formatValue(value: any) {
-  if (value === null || value === undefined) return "-";
-
-  if (Array.isArray(value)) {
-    return value.map(v =>
-      typeof v === "object" ? v.name || v.skill || JSON.stringify(v) : v
-    ).join(", ");
-  }
-
-  if (typeof value === "object") {
-    return value.name || value.title || JSON.stringify(value);
-  }
-
-  return String(value);
-}
-
-/* ================= UI COMPONENTS ================= */
-
-function Card({ icon, title, value }: any) {
+function EntityCard({ data }: { data: Record<string, unknown> }) {
+  // Try to find a primary label like "name" or "title"
+  const entries = Object.entries(data);
+  const titleKey = entries.find(([k]) => /name|title|id/i.test(k))?.[0] || entries[0][0];
+  
   return (
-    <div className="bg-white border border-sky-200 rounded-2xl p-4">
-      <div className="text-sky-600">{icon}</div>
-      <p className="text-sm text-slate-500">{title}</p>
-      <h2 className="text-2xl font-bold">{value}</h2>
+    <div className="group border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-sky-200 hover:shadow-md transition-all duration-200 p-4 rounded-2xl">
+      <div className="flex items-start justify-between">
+        <div className="space-y-1">
+          <p className="text-xs font-bold text-sky-600 uppercase tracking-tighter">{titleKey}</p>
+          <p className="text-lg font-bold text-slate-800">{String(data[titleKey])}</p>
+        </div>
+        <ChevronRight size={18} className="text-slate-300 group-hover:text-sky-400 transition-colors" />
+      </div>
+      <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
+        {entries.filter(([k]) => k !== titleKey).slice(0, 4).map(([k, v]) => (
+          <div key={k} className="overflow-hidden">
+            <p className="text-[10px] text-slate-400 uppercase font-bold truncate">{k}</p>
+            <p className="text-sm font-medium text-slate-600 truncate">{String(v)}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
-function QuickButton({ label, setQuestion }: any) {
+function MetricCard({ icon, title, value, color }: { icon: ReactNode; title: string; value: string | number; color: string }) {
   return (
-    <button
-      onClick={() => setQuestion(label)}
-      className="bg-white border border-sky-200 rounded-xl p-3 text-left hover:bg-sky-50"
-    >
-      {label}
-    </button>
+    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+      <div className={`${color} bg-opacity-10 p-2 w-fit rounded-lg mb-3`}>
+        {icon}
+      </div>
+      <p className="text-sm font-medium text-slate-500">{title}</p>
+      <h2 className="text-2xl font-bold text-slate-900 mt-1">{value}</h2>
+    </div>
   );
 }
