@@ -27,7 +27,7 @@ export async function searchEmployees(filter = {}) {
     }));
 
   } catch (err) {
-    console.error("Employee fetch error:", err);
+    console.error("Employee Fetch Error:", err);
     return [];
   }
 }

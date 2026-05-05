@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   fetchUtilization,
   fetchBench,
@@ -7,9 +7,7 @@ import {
   fetchMoveSuggestions,
 } from "../api/analyticsAPI";
 
-/* ============================================================
-   DOMAIN TYPES (MATCH BACKEND CONTRACT)
-============================================================ */
+/* ================= TYPES ================= */
 
 export type UtilizationRow = {
   employeeId?: string;
@@ -39,30 +37,42 @@ export type MoveSuggestion = {
   message: string;
 };
 
-/* ============================================================
-   SAFE RESPONSE EXTRACTOR
-============================================================ */
+/* ================= SAFE EXTRACT ================= */
 
-function extractArray<T>(res: unknown): T[] {
-  if (!res || typeof res !== "object") return [];
+function extractArray<T>(res: any, label: string): T[] {
+  try {
+    if (!res) throw new Error("Empty response");
 
-  const data = (res as { data?: unknown }).data;
+    // Case 1: Direct array
+    if (Array.isArray(res)) return res;
 
-  if (Array.isArray(data)) return data as T[];
-  if (data && typeof data === "object") {
-    const maybeArray = Object.values(data).find(Array.isArray);
-    if (maybeArray) return maybeArray as T[];
+    // Case 2: Axios standard
+    if (Array.isArray(res?.data)) return res.data;
+
+    // Case 3: Nested object
+    if (res?.data && typeof res.data === "object") {
+      for (const key of Object.keys(res.data)) {
+        if (Array.isArray(res.data[key])) {
+          console.log(`✅ ${label} extracted from key: ${key}`);
+          return res.data[key];
+        }
+      }
+    }
+
+    console.warn(`⚠️ ${label} - No array found`, res);
+    return [];
+
+  } catch (e) {
+    console.error(`❌ ${label} extraction failed`, e);
+    return [];
   }
-
-  return [];
 }
 
-/* ============================================================
-   ANALYTICS HOOK (REAL DATA)
-============================================================ */
+/* ================= HOOK ================= */
 
 export function useAnalytics(month: number, year: number) {
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [utilization, setUtilization] = useState<UtilizationRow[]>([]);
   const [bench, setBench] = useState<BenchEmployee[]>([]);
@@ -70,62 +80,78 @@ export function useAnalytics(month: number, year: number) {
   const [projectHealth, setProjectHealth] = useState<ProjectHealth[]>([]);
   const [suggestions, setSuggestions] = useState<MoveSuggestion[]>([]);
 
-  useEffect(() => {
-    let mounted = true;
+  /* ================= FETCH FUNCTION ================= */
 
-    async function loadAnalytics() {
-      setLoading(true);
+  const loadAnalytics = useCallback(async (signal?: AbortSignal) => {
+    setLoading(true);
+    setError(null);
 
-      try {
-        const [
-          utilRes,
-          benchRes,
-          revRes,
-          healthRes,
-          suggestRes,
-        ] = await Promise.all([
-          fetchUtilization(month, year),
-          fetchBench(month, year),
-          fetchRevenue(month, year),
-          fetchProjectHealth(month, year),
-          fetchMoveSuggestions(),
-        ]);
+    try {
+      const [
+        utilRes,
+        benchRes,
+        revRes,
+        healthRes,
+        suggestRes,
+      ] = await Promise.all([
+        fetchUtilization(month, year),
+        fetchBench(month, year),
+        fetchRevenue(month, year),
+        fetchProjectHealth(month, year),
+        fetchMoveSuggestions(),
+      ]);
 
-        if (!mounted) return;
+      if (signal?.aborted) return;
 
-        setUtilization(extractArray<UtilizationRow>(utilRes));
-        setBench(extractArray<BenchEmployee>(benchRes));
-        setRevenue(extractArray<RevenueRow>(revRes));
-        setProjectHealth(extractArray<ProjectHealth>(healthRes));
-        setSuggestions(extractArray<MoveSuggestion>(suggestRes));
-      } catch (error) {
-        console.error("Analytics load failed:", error);
+      const utilData = extractArray<UtilizationRow>(utilRes, "Utilization");
+      const benchData = extractArray<BenchEmployee>(benchRes, "Bench");
+      const revenueData = extractArray<RevenueRow>(revRes, "Revenue");
+      const healthData = extractArray<ProjectHealth>(healthRes, "ProjectHealth");
+      const suggestionData = extractArray<MoveSuggestion>(suggestRes, "Suggestions");
 
-        if (!mounted) return;
+      console.log("📊 DATA DEBUG", {
+        utilData,
+        benchData,
+        revenueData,
+        healthData,
+        suggestionData,
+      });
 
-        setUtilization([]);
-        setBench([]);
-        setRevenue([]);
-        setProjectHealth([]);
-        setSuggestions([]);
-      } finally {
-        if (mounted) setLoading(false);
+      setUtilization(utilData);
+      setBench(benchData);
+      setRevenue(revenueData);
+      setProjectHealth(healthData);
+      setSuggestions(suggestionData);
+
+    } catch (err) {
+      if ((err as any)?.name !== "AbortError") {
+        console.error("🔥 API FAILURE:", err);
+        setError("Backend API failed");
       }
+    } finally {
+      if (!signal?.aborted) setLoading(false);
     }
-
-    loadAnalytics();
-
-    return () => {
-      mounted = false;
-    };
   }, [month, year]);
+
+  /* ================= EFFECT ================= */
+
+  useEffect(() => {
+    const controller = new AbortController();
+    loadAnalytics(controller.signal);
+
+    return () => controller.abort();
+  }, [loadAnalytics]);
+
+  /* ================= RETURN ================= */
 
   return {
     loading,
+    error,
     utilization,
     bench,
     revenue,
     projectHealth,
     suggestions,
+    refetch: () => loadAnalytics(),
   };
 }

@@ -40,19 +40,28 @@ export const calculateEmployeeMetrics = (employee, allocations = []) => {
       n(project?.billingRate) ||
       n(project?.fixedMonthlyRevenue);
 
-    if (type === "Billable") {
+    const isRevenueEligible =
+      type === "Billable" &&
+      project?.type === "Billable";
+
+    if (isRevenueEligible) {
       billableHours += hours;
 
-      if (project?.billingModel === "Fixed") {
+      if (project.billingModel === "Fixed") {
         revenue += rate * (hours / MONTHLY_CAPACITY);
       } else {
         revenue += hours * rate;
       }
     }
 
-    cost += salary
-      ? salary * (hours / MONTHLY_CAPACITY)
-      : hourlyCost * hours;
+    const effectiveHourlyCost =
+      salary > 0
+        ? salary / MONTHLY_CAPACITY
+        : hourlyCost > 0
+          ? hourlyCost
+          : 0;
+
+    cost += effectiveHourlyCost * hours;
   }
 
   const utilizationPct = (billableHours / MONTHLY_CAPACITY) * 100;
@@ -78,6 +87,7 @@ export const calculateEmployeeMetrics = (employee, allocations = []) => {
     employeeId: employee._id,
     name: employee.name,
     employeeCode: employee.employeeCode,
+    location: employee.location,
 
     totalHours,
     billableHours,
@@ -91,6 +101,13 @@ export const calculateEmployeeMetrics = (employee, allocations = []) => {
     margin: Number(margin.toFixed(2)),
 
     isBench: billableHours === 0,
+
+    
+    flags: {
+      financialBench: billableHours === 0,
+      operationalBench: totalHours === 0,
+    },
+
 
     /* 🔥 AI SIGNALS */
     riskScore,

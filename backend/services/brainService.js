@@ -10,6 +10,7 @@ import { forecastBench } from "./forecastService.js";
 import { forecastUtilization } from "./forecastService.js";
 import { recommendResources } from "./recommendationService.js";
 import { searchTalent } from "./vectorService.js";
+import { getMonthData } from "./analyticsService.js";
 
 /* ================= TIME CONTEXT ================= */
 
@@ -38,6 +39,8 @@ const buildContext = (question, entities, rag) => ({
 
 /* ================= BRAIN ENGINE ================= */
 
+/* ================= AI BRAIN (CORRECTED PRODUCTION VERSION) ================= */
+
 export async function askBrain(question) {
   try {
     const intent = detectIntent(question);
@@ -46,57 +49,86 @@ export async function askBrain(question) {
 
     const context = buildContext(question, entities, rag);
 
+    const effectiveTime = {
+    month: entities.month ?? context.time.month,
+    year: entities.year ?? context.time.year,
+  };
+
     switch (intent) {
 
+      /* ================= UNDERUTILIZATION ✅ ADD THIS ================= */
+
+      case "UNDERUTILIZATION": {
+        const { employeeMetrics } = await getMonthData(context.time);
+
+        const underutilized = employeeMetrics.filter(
+          e => e.utilizationBand === "UNDERUTILIZED"
+        );
+
+        return {
+          intent,
+          answer: `${underutilized.length} employees are underutilized`,
+          results: underutilized,
+        };
+      }
+
+      /* ================= EMPLOYEES BY LOCATION ================= */
+
+      case "EMPLOYEE_LOCATION_SEARCH": {
+        const { employeeMetrics } = await getMonthData(context.time);
+        const location = context.entities.location;
+
+        const matches = employeeMetrics.filter(
+          e => String(e.location || "").toLowerCase() === location
+        );
+
+        return {
+          intent,
+          answer: `${matches.length} employees found in ${location.toUpperCase()}`,
+          results: matches,
+        };
+      }
+
+      /* ================= ALL EMPLOYEES ================= */
+
+      case "EMPLOYEE_LIST": {
+        const { employeeMetrics } = await getMonthData(context.time);
+
+        return {
+          intent,
+          answer: `${employeeMetrics.length} employees found`,
+          results: employeeMetrics,
+        };
+      }
+
+      /* ================= BENCH BY LOCATION ================= */
+
+      case "BENCH_LOCATION_SEARCH": {
+        const { employeeMetrics } = await getMonthData(context.time);
+        const location = context.entities.location;
+
+        const matches = employeeMetrics.filter(
+          e =>
+            e.isBench === true &&
+            String(e.location || "").toLowerCase() === location
+        );
+
+        return {
+          intent,
+          answer: `${matches.length} bench employees found in ${location.toUpperCase()}`,
+          results: matches,
+        };
+      }
       /* ================= BENCH ================= */
+
       case "BENCH_ANALYSIS": {
-        const data = rag.contextUsed;
+        const { employeeMetrics } = await getMonthData(effectiveTime);
+        const bench = employeeMetrics.filter(e => e.isBench);
 
         return {
           intent,
-          answer: `Bench Analysis Completed for ${data.length} employees`,
-          data: {
-            summary: data,
-            insight:
-              data.length > 3
-                ? "High Bench Risk Detected"
-                : "Normal Workforce Distribution",
-          },
-        };
-      }
-
-      /* ================= FORECASTING ================= */
-
-      case "REVENUE_FORECAST": {
-        return {
-          intent,
-          answer: "Revenue Forecast Generated",
-          data: await forecastRevenue({
-            ...context,
-            months: getLastNMonths(6),
-          }),
-        };
-      }
-
-      case "BENCH_FORECAST": {
-        return {
-          intent,
-          answer: "Bench Forecast Generated",
-          data: await forecastBench({
-            ...context,
-            months: getLastNMonths(6),
-          }),
-        };
-      }
-
-      case "UTILIZATION_FORECAST": {
-        return {
-          intent,
-          answer: "Utilization Forecast Generated",
-          data: await forecastUtilization({
-            ...context,
-            months: getLastNMonths(6),
-          }),
+          answer: `Bench Analysis Completed for ${bench.length} employees`,
+          results: bench,
         };
       }
 
@@ -110,12 +142,6 @@ export async function askBrain(question) {
         };
       }
 
-      /* ================= TALENT SEARCH ================= */
-
-      case "TALENT_SEARCH": {
-        return await searchTalent(question, entities);
-      }
-
       /* ================= RECOMMENDATION ================= */
 
       case "RESOURCE_RECOMMENDATION": {
@@ -126,7 +152,7 @@ export async function askBrain(question) {
         };
       }
 
-      /* ================= DEFAULT (RAG INTELLIGENCE) ================= */
+      /* ================= DEFAULT ================= */
 
       default: {
         return {
@@ -135,7 +161,7 @@ export async function askBrain(question) {
             rag.answer && rag.answer.length > 0
               ? rag.answer
               : "No strong contextual insights found",
-          data: rag.contextUsed,
+          results: [],
         };
       }
     }
@@ -145,8 +171,9 @@ export async function askBrain(question) {
     return {
       intent: "ERROR",
       answer: "AI Brain failed to process request",
-      data: [],
+      results: [],
     };
   }
 }
 
+      /* ================= DEFAULT (RAG INTELLIGENCE) ================= */

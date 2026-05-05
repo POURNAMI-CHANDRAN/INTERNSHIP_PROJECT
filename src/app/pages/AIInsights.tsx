@@ -53,15 +53,23 @@ const formatINR = (v: unknown) =>
   }).format(toNumber(v));
 
 const extractEntities = (res: any): Record<string, unknown>[] => {
+  // ✅ 1. Top-level results (MOST IMPORTANT FIX)
+  if (Array.isArray(res?.results)) return res.results;
+
+  // ✅ 2. Standard data holders
   const data = res?.data;
+
   if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.data)) return data.data;
   if (Array.isArray(data?.results)) return data.results;
+  if (Array.isArray(data?.data)) return data.data;
+
+  // ✅ 3. Fallback: find any array inside data
   if (data && typeof data === "object") {
     const found = Object.values(data).find(Array.isArray);
     if (Array.isArray(found)) return found;
   }
-  return Array.isArray(res?.contextUsed) ? res.contextUsed : [];
+
+  return [];
 };
 
 /* ================= COMPONENT ================= */

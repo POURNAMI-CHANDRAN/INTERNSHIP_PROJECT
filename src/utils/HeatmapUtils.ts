@@ -37,9 +37,9 @@ const CAPACITY = 160;
 
 // ================= COLOR LOGIC =================
 export function getHeatmapColor(utilization: number): string {
-  if (utilization === 0) return "bg-gray-50 text-gray-400";
-  if (utilization <= 60) return "bg-green-100 text-green-800";
-  if (utilization <= 100) return "bg-yellow-100 text-yellow-800";
+  if (utilization === 0) return "bg-rose-50 text-rose-400";
+  if (utilization <= 60) return "bg-yellow-100 text-yellow-800";
+  if (utilization <= 100) return "bg-green-100 text-green-800";
   return "bg-red-200 text-red-900";
 }
 

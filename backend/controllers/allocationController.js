@@ -122,7 +122,7 @@ export const createAllocation = async (req, res) => {
     );
 
     if (!hours || hours <= 0) {
-      return res.status(400).json({ message: "Invalid hours" });
+      return res.status(400).json({ message: "Invalid Hours" });
     }
 
     if (hours > MONTHLY_CAPACITY) {
@@ -142,7 +142,7 @@ export const createAllocation = async (req, res) => {
     );
 
     if (totalAllocated + hours > MONTHLY_CAPACITY) {
-      return res.status(400).json({ message: "Over allocation" });
+      return res.status(400).json({ message: "Over Allocation" });
     }
 
     const fte = hours / MONTHLY_CAPACITY;
@@ -231,7 +231,7 @@ export const updateAllocation = async (req, res) => {
     );
 
     if (otherHours + hours > MONTHLY_CAPACITY) {
-      return res.status(400).json({ message: "Over allocation" });
+      return res.status(400).json({ message: "Over Allocation" });
     }
 
     const fte = hours / MONTHLY_CAPACITY;
@@ -294,10 +294,10 @@ export const moveAllocation = async (req, res) => {
     ).session(session);
 
     if (!allocation)
-      return res.status(404).json({ message: "Not found" });
+      return res.status(404).json({ message: "Not Found" });
 
     if (moveHours > allocation.allocatedHours) {
-      return res.status(400).json({ message: "Invalid move" });
+      return res.status(400).json({ message: "Invalid Move" });
     }
 
     const existingTarget = await Allocation.findOne({
@@ -347,7 +347,7 @@ export const moveAllocation = async (req, res) => {
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
-    res.status(500).json({ message: "Move failed" });
+    res.status(500).json({ message: "Move Failed" });
   }
 };
 
@@ -358,18 +358,21 @@ export const getAllAllocations = async (req, res) => {
   try {
     const { month, year } = req.query;
 
-    const allocations = await Allocation.find({
-      month: Number(month),
-      year: Number(year),
-    })
-      .populate("employeeId", "name employeeCode")
-      .populate("projectId", "name");
+    const query = {};
+
+    if (year) query.year = Number(year);
+    if (month) query.month = Number(month);
+
+    const allocations = await Allocation.find(query)
+      .populate("employeeId", "name employeeCode primaryWorkCategoryId location")
+      .populate("projectId", "name billingModel type");
 
     res.json({
       success: true,
       data: allocations,
     });
   } catch (err) {
+    console.error("Getting Allocation Failed:", err);
     res.status(500).json({ message: err.message });
   }
 };
