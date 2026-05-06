@@ -1,289 +1,271 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  Plus, Clock, DollarSign, Users, Building2, Briefcase,
-  TrendingUp, UserX, MapPin, ChevronRight,
-  Zap, Search, Filter, ArrowUpRight, Target, Globe, 
-  Award, Activity, LayoutGrid, ChevronDown, MoreHorizontal,
-  ArrowDownRight
-} from "lucide-react";
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  AreaChart,
+  Area,
+  CartesianGrid,
+  Legend,
+} from "recharts";
 
-import { useResourceData } from "../../hooks/useResourceData";
-import { useAnalytics } from "../../hooks/useAnalytics";
-import { CreateEmployeeModal } from "../components/Employees";
-import { cn } from "../components/ui/utils";
+/* ================= TYPES ================= */
 
-/* ================= TYPES & UTILS ================= */
-type Employee = any;
-type FeatureMap = Record<string, Employee[]>;
-
-const groupBy = (list: any[], keyFn: (e: any) => string): FeatureMap => {
-  return list.reduce((acc: FeatureMap, item) => {
-    const key = keyFn(item);
-    acc[key] = acc[key] || [];
-    acc[key].push(item);
-    return acc;
-  }, {});
+type KPI = {
+  totalEmployees: number;
+  billableEmployees: number;
+  nonBillableEmployees: number;
+  utilizationPct: number;
+  revenue: number;
 };
 
-/* ================= MAIN COMPONENT ================= */
+type ChartItem = {
+  name?: string;
+  value?: number;
+  project?: string;
+  hours?: number;
+};
 
-export default function EmployeesPage() {
-  const { employees, departments, projects, loading, refetchEmployees } = useResourceData(0, 0);
-  const { utilization, bench, revenue } = useAnalytics(0, 0);
-  const [showCreate, setShowCreate] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+type RevenueTrend = {
+  period: string;
+  billableHours: number;
+};
 
-  /* ================= DATA INTELLIGENCE ================= */
-  const enrichedData = useMemo(() => {
-    const processed = employees.map((emp: Employee) => {
-      const totalHours = (emp.allocations || []).reduce((sum: number, a: any) => sum + (a.allocatedHours || 0), 0);
-      const util = Math.round((totalHours / 160) * 100);
-      let bucket = "Stable";
-      if (util > 100) bucket = "Overloaded";
-      else if (util < 60) bucket = "High Availability";
+type BenchForecast = {
+  current: number;
+  riskLevel: "LOW" | "MEDIUM" | "HIGH";
+};
 
-      return {
-        ...emp,
-        utilization: util,
-        utilizationBucket: bucket,
-        experienceYears: emp.joiningDate ? Math.floor((Date.now() - new Date(emp.joiningDate).getTime()) / 31536000000) : 0,
-      };
-    });
-
-    const filtered = processed.filter((e: Employee) => 
-      e.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    return {
-      all: filtered,
-      byDept: groupBy(filtered, e => departments.find((d: any) => d._id === e.departmentId)?.name || "External"),
-      byLoc: groupBy(filtered, e => e.location || "Remote"),
-      byUtil: groupBy(filtered, e => e.utilizationBucket),
-      bySkill: filtered.reduce((acc: any, e: Employee) => {
-        (e.skills || []).forEach((s: any) => {
-          const key = s.name || s;
-          if (!acc[key]) acc[key] = [];
-          acc[key].push(e);
-        });
-        return acc;
-      }, {})
-    };
-  }, [employees, departments, searchQuery]);
-
-  const metrics = useMemo(() => {
-    const avgUtil = utilization.length > 0
-      ? Math.round(utilization.reduce((sum: number, u: any) => sum + (u.utilization || 0), 0) / utilization.length)
-      : 0;
-    const totalRev = revenue.reduce((sum: number, r: any) => sum + (r.revenue || 0), 0);
-    const benchHrs = bench.reduce((sum: number, b: any) => sum + (b.benchHours || 0), 0);
-
-    return {
-      avgUtil,
-      totalRev,
-      benchHrs,
-      total: employees.length,
-      active: employees.filter((e: Employee) => e.status === "Active").length
-    };
-  }, [employees, utilization, revenue, bench]);
-
-  if (loading) return <LoadingSkeleton />;
-
-  return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans selection:bg-violet-100">
-      {/* GLASSMORPHISM NAV */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 px-8 py-3">
-        <div className="max-w-[1600px] mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="bg-slate-900 p-2.5 rounded-xl shadow-lg shadow-slate-200">
-              <LayoutGrid className="text-white" size={18} />
-            </div>
-            <div>
-              <h1 className="text-md font-bold tracking-tight text-slate-800">Workforce Intelligence</h1>
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">v4.2.0 • Live</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="relative group hidden md:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-violet-500 transition-colors" size={14} />
-              <input 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search talent or skills..." 
-                className="pl-9 pr-4 py-2 bg-slate-100 border-transparent border focus:bg-white focus:border-violet-200 rounded-xl text-sm w-72 transition-all outline-none"
-              />
-            </div>
-            <button
-              onClick={() => setShowCreate(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-violet-200 active:scale-95"
-            >
-              <Plus size={16} strokeWidth={3} />
-              Add Talent
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      <main className="max-w-[1600px] mx-auto px-8 py-10 space-y-8">
-        
-        {/* KPI SECTION */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <KpiBox label="Utilization" value={`${metrics.avgUtil}%`} sub="Global Average" icon={<TrendingUp size={18} />} color="violet" trend="+2.4%" />
-          <KpiBox label="Bench Loss" value={`₹${(metrics.benchHrs * 800 / 100000).toFixed(1)}L`} sub="Optimizable" icon={<UserX size={18} />} color="rose" trend="-0.8%" isNegative />
-          <KpiBox label="Revenue" value={`₹${(metrics.totalRev / 100000).toFixed(1)}L`} sub="Forecasted" icon={<DollarSign size={18} />} color="emerald" trend="+5.1%" />
-          <KpiBox label="Resources" value={metrics.total} sub={`${metrics.active} Active Seats`} icon={<Users size={18} />} color="blue" />
-        </section>
-
-        {/* DATA EXPLORER GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <FeatureAccordion title="Departments" data={enrichedData.byDept} icon={<Building2 size={16}/>} />
-          <FeatureAccordion title="Global Network" data={enrichedData.byLoc} icon={<Globe size={16}/>} />
-          <FeatureAccordion title="Utilization Heatmap" data={enrichedData.byUtil} icon={<Activity size={16}/>} accent="rose" />
-          <FeatureAccordion title="Skill Repository" data={enrichedData.bySkill} icon={<Award size={16}/>} />
-          <FeatureAccordion title="Workforce Health" data={enrichedData.byUtil} icon={<Zap size={16}/>} />
-          <FeatureAccordion title="Portfolio Mix" data={enrichedData.byDept} icon={<Briefcase size={16}/>} />
-        </div>
-      </main>
-
-      {showCreate && (
-        <CreateEmployeeModal
-          departments={departments}
-          onClose={() => setShowCreate(false)}
-          onSuccess={async () => { await refetchEmployees(); setShowCreate(false); }}
-        />
-      )}
-    </div>
-  );
-}
-
-/* ================= UPGRADED COMPONENTS ================= */
-
-function KpiBox({ label, value, sub, icon, color, trend, isNegative }: any) {
-  const colors: any = {
-    violet: "bg-violet-600 shadow-violet-100",
-    rose: "bg-rose-500 shadow-rose-100",
-    emerald: "bg-emerald-500 shadow-emerald-100",
-    blue: "bg-blue-500 shadow-blue-100",
+type DashboardResponse = {
+  kpis: KPI;
+  charts: {
+    billableVsNonBillable: ChartItem[];
+    projectAllocation: ChartItem[];
+    revenueTrend: RevenueTrend[];
   };
+  forecasts: {
+    benchForecast: BenchForecast;
+  };
+  revenueByProject: {
+    project: string;
+    revenue: number;
+    cost: number;
+    margin: number;
+  }[];
+};
+
+/* ================= CONFIG ================= */
+
+const COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444"];
+
+/* ================= COMPONENT ================= */
+
+export default function Dashboard() {
+  const [data, setData] = useState<DashboardResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [month, setMonth] = useState(new Date().getMonth() + 1);
+  const [year, setYear] = useState(new Date().getFullYear());
+
+  useEffect(() => {
+    fetch(`http://localhost:5000/api/analytics/dashboard?month=${month}&year=${year}`)
+      .then((res) => res.json())
+      .then((res) => {
+        setData(res.data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [month, year]);
+
+  /* ================= SAFE DERIVED DATA ================= */
+
+  const kpis = data?.kpis;
+  const charts = data?.charts;
+  const revenueByProject = data?.revenueByProject || [];
+
+  const allocationData = useMemo(
+    () =>
+      charts?.projectAllocation?.map((p) => ({
+        project: p.project ?? "Unknown",
+        hours: p.hours ?? 0,
+      })) || [],
+    [charts]
+  );
+
+  const billableVsNon = useMemo(
+    () => charts?.billableVsNonBillable || [],
+    [charts]
+  );
+
+  const revenueTrend = useMemo(
+    () => charts?.revenueTrend || [],
+    [charts]
+  );
+
+  /* ================= LOADING ================= */
+
+  if (loading) {
+    return (
+      <div className="p-10 text-gray-500 text-lg">Loading Enterprise BI...</div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="p-10 text-red-500 text-lg">Failed to load dashboard</div>
+    );
+  }
 
   return (
-    <div className="bg-white border border-slate-200 p-6 rounded-2xl hover:border-violet-300 hover:shadow-xl transition-all duration-300 group">
-      <div className="flex justify-between items-start mb-4">
-        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</span>
-        <div className={cn("p-2.5 rounded-xl text-white shadow-lg", colors[color])}>{icon}</div>
+    <div className="p-6 bg-gray-50 min-h-screen space-y-6">
+
+<div className="flex gap-4 items-center mb-4">
+
+  <select
+    value={month}
+    onChange={(e) => setMonth(Number(e.target.value))}
+    className="border p-2 rounded"
+  >
+    {[1,2,3,4,5,6,7,8,9,10,11,12].map((m) => (
+      <option key={m} value={m}>
+        Month {m}
+      </option>
+    ))}
+  </select>
+
+  <select
+    value={year}
+    onChange={(e) => setYear(Number(e.target.value))}
+    className="border p-2 rounded"
+  >
+    {[2024, 2025, 2026].map((y) => (
+      <option key={y} value={y}>
+        {y}
+      </option>
+    ))}
+  </select>
+
+</div>
+      {/* ================= KPI CARDS ================= */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+        <Card title="Total Employees" value={kpis?.totalEmployees} />
+        <Card title="Billable" value={kpis?.billableEmployees} />
+        <Card title="Non-Billable" value={kpis?.nonBillableEmployees} />
+        <Card title="Utilization %" value={`${kpis?.utilizationPct}%`} />
       </div>
-      <div className="space-y-1">
-        <h2 className="text-3xl font-black tracking-tight text-slate-800">{value}</h2>
-        <div className="flex items-center gap-2">
-          {trend && (
-            <span className={cn(
-              "flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded",
-              isNegative ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600"
-            )}>
-              {isNegative ? <ArrowDownRight size={10} /> : <ArrowUpRight size={10} />} {trend}
-            </span>
-          )}
-          <span className="text-xs text-slate-400 font-medium">{sub}</span>
+
+      {/* ================= GRAPHS ================= */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        {/* BILLABLE VS NON BILLABLE */}
+        <div className="bg-white p-4 rounded-xl shadow">
+          <h2 className="font-semibold mb-3">Billable vs Non-Billable</h2>
+          <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+              <Pie
+                data={billableVsNon}
+                dataKey="value"
+                nameKey="name"
+                outerRadius={90}
+              >
+                {billableVsNon.map((_, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* PROJECT ALLOCATION */}
+        <div className="bg-white p-4 rounded-xl shadow">
+          <h2 className="font-semibold mb-3">Project Allocation</h2>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={allocationData}>
+              <XAxis dataKey="project" hide />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="hours" fill="#6366f1" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* REVENUE TREND */}
+        <div className="bg-white p-4 rounded-xl shadow col-span-2">
+          <h2 className="font-semibold mb-3">Revenue Trend</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={revenueTrend}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="period" />
+              <YAxis />
+              <Tooltip />
+              <Area type="monotone" dataKey="billableHours" fill="#6366f1" />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
       </div>
+
+      {/* ================= REVENUE BY PROJECT ================= */}
+      <div className="bg-white p-4 rounded-xl shadow">
+        <h2 className="font-semibold mb-3">Revenue by Project</h2>
+
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-gray-500">
+              <th>Project</th>
+              <th>Revenue</th>
+              <th>Cost</th>
+              <th>Margin</th>
+            </tr>
+          </thead>
+          <tbody>
+            {revenueByProject.map((p, i: number) => (
+              <tr key={i} className="border-t">
+                <td>{p.project}</td>
+                <td>₹{p.revenue}</td>
+                <td>₹{p.cost}</td>
+                <td className={p.margin < 0 ? "text-red-500" : "text-green-600"}>
+                  ₹{p.margin}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ================= BENCH ALERT ================= */}
+      <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-xl">
+        <h2 className="font-semibold">Bench Forecast</h2>
+        <p>
+          Current Bench: <b>{data.forecasts.benchForecast.current}</b> employees
+        </p>
+        <p>Risk Level: <b>{data.forecasts.benchForecast.riskLevel}</b></p>
+      </div>
+
     </div>
   );
 }
 
-function FeatureAccordion({ title, data, icon, accent = "violet" }: any) {
-  const [isOpen, setIsOpen] = useState(true);
-  const sortedEntries = Object.entries(data).sort((a: any, b: any) => b[1].length - a[1].length);
-  const totalCount = Object.values(data).reduce((acc: number, list: any) => acc + list.length, 0);
+/* ================= CARD COMPONENT ================= */
 
+function Card({
+  title,
+  value,
+}: {
+  title: string;
+  value: React.ReactNode;
+}) {
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-6 py-5 hover:bg-slate-50/50 transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <div className="text-slate-400 p-2 bg-slate-50 rounded-lg group-hover:text-violet-500 transition-colors">{icon}</div>
-          <span className="text-sm font-bold text-slate-700">{title}</span>
-          <span className="ml-2 px-2 py-0.5 bg-slate-100 text-[10px] font-black text-slate-500 rounded-full">{totalCount}</span>
-        </div>
-        <ChevronDown className={cn("text-slate-300 transition-transform duration-300", !isOpen && "-rotate-90")} size={18} />
-      </button>
-
-      {isOpen && (
-        <div className="px-3 pb-4 space-y-1 animate-in fade-in slide-in-from-top-2 duration-300">
-          {sortedEntries.length > 0 ? (
-            sortedEntries.map(([key, list]: any) => (
-              <AccordionItem key={key} label={key} list={list} accent={accent} />
-            ))
-          ) : (
-            <div className="py-8 text-center text-slate-400 text-xs font-medium italic">No matches found</div>
-          )}
-        </div>
-      )}
+    <div className="bg-white p-4 rounded-xl shadow">
+      <p className="text-gray-500 text-sm">{title}</p>
+      <h3 className="text-2xl font-bold">{value}</h3>
     </div>
   );
 }
-
-function AccordionItem({ label, list, accent }: any) {
-  const [expanded, setExpanded] = useState(false);
-  
-  return (
-    <div className="rounded-xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100">
-      <div 
-        className="flex items-center justify-between p-3.5 cursor-pointer group"
-        onClick={() => setExpanded(!expanded)}
-      >
-        <div className="flex items-center gap-3">
-          <div className={cn(
-            "h-2 w-2 rounded-full shadow-sm", 
-            accent === "rose" ? "bg-rose-500 shadow-rose-200" : "bg-violet-500 shadow-violet-200"
-          )} />
-          <span className="text-[13px] font-semibold text-slate-600 group-hover:text-slate-900 transition-colors">{label}</span>
-        </div>
-        <div className="flex items-center gap-3">
-            <span className="text-[11px] font-black text-slate-300 group-hover:text-slate-500 transition-colors">{list.length}</span>
-            <ChevronRight size={14} className={cn("text-slate-300 transition-transform duration-300", expanded && "rotate-90")} />
-        </div>
-      </div>
-
-      {expanded && (
-        <div className="px-4 pb-4 pt-1 flex flex-wrap gap-2 animate-in fade-in zoom-in-95 duration-200">
-          {list.map((emp: any) => (
-            <div 
-              key={emp._id}
-              className="group/tag px-3 py-1.5 bg-white border border-slate-200 text-[11px] font-bold text-slate-500 rounded-lg hover:border-violet-300 hover:text-violet-600 hover:shadow-sm transition-all cursor-default flex items-center gap-2"
-            >
-              <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 group-hover/tag:animate-pulse" />
-              {emp.name}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function LoadingSkeleton() {
-  return (
-    <div className="min-h-screen bg-slate-50 p-8 space-y-8">
-      <div className="h-12 bg-white rounded-2xl w-full animate-pulse border border-slate-100" />
-      <div className="grid grid-cols-4 gap-6">
-        {[1, 2, 3, 4].map(i => (
-          <div key={i} className="h-32 bg-white rounded-2xl animate-pulse border border-slate-100" />
-        ))}
-      </div>
-      <div className="grid grid-cols-3 gap-6">
-        {[1, 2, 3, 4, 5, 6].map(i => (
-          <div key={i} className="h-64 bg-white rounded-2xl animate-pulse border border-slate-100" />
-        ))}
-      </div>
-    </div>
-  );
-}
-

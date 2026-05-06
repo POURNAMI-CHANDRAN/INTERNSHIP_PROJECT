@@ -80,11 +80,15 @@ export default function AIInsights() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [kpi, setKpi] = useState<DashboardSummary | null>(null);
+  const [loadingAI, setLoadingAI] = useState(false);
 
   const loadDashboard = useCallback(async () => {
     try {
-      const res = await api.post("/ai/ask", { question: "dashboard summary" });
+      setLoadingAI(true);
+
+      const res = await api.post("/ai/ask", { question: "Dashboard Summary" });
       const d = res.data?.data ?? {};
+
       setKpi({
         totalEmployees: toNumber(d.totalEmployees),
         benchCount: toNumber(d.benchCount),
@@ -94,12 +98,13 @@ export default function AIInsights() {
         totalRevenue: toNumber(d.totalRevenue),
         totalMargin: toNumber(d.totalMargin),
       });
+
     } catch (err) {
       console.error("Dashboard Load Failed", err);
+    } finally {
+      setLoadingAI(false);
     }
-  }, []);
-
-  useEffect(() => { loadDashboard(); }, [loadDashboard]);
+  }, [api, setKpi]);
 
   const askAI = useCallback(async () => {
     if (!question.trim()) return;
@@ -115,7 +120,7 @@ export default function AIInsights() {
       });
       setQuestion("");
     } catch (err) {
-      setError("I encountered an issue processing that request.");
+      setError("I Encountered an Issue Processing that Request.");
     } finally {
       setLoading(false);
     }
@@ -125,7 +130,7 @@ export default function AIInsights() {
     if (!kpi) return null;
     return [
       { icon: <Users size={20} />, 
-        title: "Headcount", 
+        title: "Head Count", 
         value: kpi.totalEmployees, 
         color: "text-blue-600" },
 

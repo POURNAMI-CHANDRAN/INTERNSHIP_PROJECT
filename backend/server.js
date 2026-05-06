@@ -50,7 +50,7 @@ app.use("/api/payroll", payrollRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/workcategories", workcategoryRoutes);
 app.use("/api/ai", aiRoutes);
-app.use("/api", analyticsRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 app.use("/uploads", express.static("uploads"));
 

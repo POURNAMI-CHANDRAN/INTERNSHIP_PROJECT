@@ -16,12 +16,6 @@ function applyLifecycleFlags(doc) {
 
 /* ================= BILLING DATA FIX ================= */
 function normalizeBilling(doc) {
-  /**
-   * OLD DATA ISSUE:
-   * billingModel stored as Billable / Non-Billable
-   * should actually be type
-   */
-
   if (
     doc.billingModel === "Billable" ||
     doc.billingModel === "Non-Billable"
@@ -77,6 +71,12 @@ const projectSchema = new mongoose.Schema(
       default: 0,
     },
 
+    targetFTE: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    
     fixedMonthlyRevenue: {
       type: Number,
       min: 0,
@@ -129,5 +129,11 @@ projectSchema.pre("findOneAndUpdate", function () {
 
   this.setUpdate(update);
 });
+
+
+projectSchema.virtual("targetHours").get(function () {
+  return (this.targetFTE || 0) * 160;
+});
+
 
 export default mongoose.model("Project", projectSchema);

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   Plus, Search, Edit3, Trash2, Layers, Calendar, 
   Building2, Activity, Archive, CheckCircle2, Clock, 
-  Ban, DollarSign, X, ChevronRight, Filter, Briefcase
+  Ban, DollarSign, X, ChevronRight, Filter, Briefcase,
 } from "lucide-react";
 
 
@@ -33,6 +33,7 @@ export interface Project {
   allowAllocations: boolean;
   allowMoves: boolean;
 
+  targetFTE?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -68,23 +69,28 @@ export default function Projects() {
   const [filters, setFilters] = useState({ status: "All", billing: "All", client: "All", search: "" });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [allocations, setAllocations] = useState<any[]>([]);
+  const [localFTE, setLocalFTE] = useState<Record<string, string>>({});
 
   const loadData = async () => {
     setLoading(true);
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const [p, c, e] = await Promise.all([
+      const [p, c, e, a] = await Promise.all([
         fetch(`${API_BASE}/api/projects`, { headers }),
         fetch(`${API_BASE}/api/clients`, { headers }),
         fetch(`${API_BASE}/api/employees`, { headers }),
+        fetch(`${API_BASE}/api/allocations`, { headers }),
       ]);
       const pd = await p.json();
       const cd = await c.json();
       const ed = await e.json();
+      const ad = await a.json();
 
       setProjects(pd.data || pd || []);
       setClients(cd.data || cd || []);
       setEmployees(ed.data || ed || []);
+      setAllocations(ad.data || ad || []);
     } finally {
       setLoading(false);
     }
@@ -111,6 +117,34 @@ export default function Projects() {
       return matchStatus && matchBilling && matchClient && matchSearch;
     });
   }, [projects, filters]);
+
+  const updateTargetFTE = async (projectId: string, value: number) => {
+  try {
+    await fetch(`${API_BASE}/api/projects/${projectId}/target_fte`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ targetFTE: value }),
+    });
+
+    loadData(); // refresh
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+const projectUsage = useMemo(() => {
+  const map: Record<string, number> = {};
+
+  allocations.forEach((a) => {
+    const pid = a.projectId || a.project_id; 
+    map[pid] = (map[pid] || 0) + (a.allocatedHours || 0);
+  });
+
+  return map;
+}, [allocations]);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-8 text-slate-900">
@@ -173,6 +207,31 @@ export default function Projects() {
         />
       </div>
 
+      <div className="max-w-7xl mx-auto grid grid-cols-3 gap-4 mb-6">
+
+        {/* TOTAL CAPACITY */}
+        <SummaryCard
+          title="Planned Capacity"
+          value={`${projects.reduce((s, p) => s + (p.targetFTE || 0), 0)} FTE`}
+        />
+
+        {/* ALLOCATED */}
+        <SummaryCard
+          title="Allocated Hours"
+          value={`${Object.values(projectUsage).reduce((s: any, v: any) => s + v, 0)}h`}
+        />
+
+        {/* UTILIZATION */}
+        <SummaryCard
+          title="Avg Utilization"
+          value={`${Math.round(
+            (Object.values(projectUsage).reduce((s: any, v: any) => s + v, 0) /
+              (projects.reduce((s, p) => s + (p.targetFTE || 0) * 160, 0) || 1)) * 100
+          )}%`}
+        />
+
+      </div>
+
       {/* ================= TABLE ================= */}
       <div className="max-w-7xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
@@ -189,6 +248,9 @@ export default function Projects() {
                   Timeline
                 </th>
                 <th className="px-6 py-4 text-[14px] font-bold uppercase tracking-wider text-indigo-500 text-center">
+                  Capacity
+                </th>
+                <th className="px-6 py-4 text-[14px] font-bold uppercase tracking-wider text-indigo-500 text-center">
                   Status
                 </th>
                 <th className="px-6 py-4 text-[14px] font-bold uppercase tracking-wider text-indigo-500 text-center">
@@ -201,7 +263,7 @@ export default function Projects() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="py-20 text-center text-slate-400 animate-pulse"
                   >
                     Syncing Environment...
@@ -338,6 +400,89 @@ export default function Projects() {
                   </div>
                 </td>
 
+                <td className="px-6 py-4 text-center align-middle">
+                  <div className="flex flex-col items-center gap-2">
+
+                    {/* FTE INPUT */}
+                    {(userRole === "Finance" || userRole === "Admin") ? (
+                    <input
+                      type="number"
+                      step="0.25"
+                      value={localFTE[p._id] ?? (p.targetFTE || "")}
+                      onChange={(e) =>
+                        setLocalFTE({
+                          ...localFTE,
+                          [p._id]: e.target.value,
+                        })
+                      }
+                      onBlur={(e) => {
+                        const val = Math.max(0, Number(e.target.value));
+                        updateTargetFTE(p._id, val);
+                      }}
+                      className="w-20 text-center border rounded-md text-sm font-semibold py-1"
+                    />
+                    ) : (
+                      <span className="text-sm font-bold text-slate-700">
+                        {p.targetFTE || 0} FTE
+                      </span>
+                    )}
+
+                    {/* CAPACITY vs USED */}
+                    {(() => {
+                      const capacity = (p.targetFTE || 0) * 160;
+                      const used = projectUsage[p._id] || 0;
+
+                      const percent =
+                        capacity > 0 ? Math.min((used / capacity) * 100, 100) : 0;
+
+                      const isOver = used > capacity;
+
+                      return (
+                        <>
+                          {/* TEXT */}
+                          <span className="text-xs text-slate-800">
+                            {used.toLocaleString()}h / {capacity.toLocaleString()}h
+                          </span>
+
+                          <span className="text-[10px] text-slate-800">
+                            ({(p.targetFTE || 0)} FTE × 160)
+                          </span>
+
+                          {/* BAR */}
+                          <div className="w-28 h-2 bg-slate-200 rounded-full">
+                            <div
+                              className={`h-2 rounded-full ${
+                                isOver
+                                  ? "bg-red-500"
+                                  : percent > 80
+                                  ? "bg-amber-500"
+                                  : "bg-indigo-500"
+                              }`}
+                              style={{ width: `${percent}%` }}
+                            />
+                          </div>
+
+                          {/* STATUS */}
+                          {isOver ? (
+                            <span className="text-[10px] text-red-600 font-bold">
+                              OVER CAPACITY
+                            </span>
+                          ) : percent < 50 ? (
+                            <span className="text-[10px] text-slate-400">
+                              UNDER UTILIZED
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-emerald-600">
+                              BALANCED
+                            </span>
+                          )}
+                        </>
+                      );
+                    })()}
+
+                  </div>
+                </td>
+
                 {/* Status */}
                 <td className="px-6 py-4 text-center align-middle">
                   <div className="flex flex-col items-center justify-center gap-1">
@@ -426,6 +571,7 @@ function FilterDropdown({ icon, label, value, options, onChange }: any) {
   );
 }
 
+
 function ActionButton({ icon, onClick, disabled, variant }: any) {
   const styles = {
     blue: "hover:bg-sky-50 hover:text-sky-600 text-slate-400",
@@ -442,6 +588,22 @@ function ActionButton({ icon, onClick, disabled, variant }: any) {
   );
 }
 
+function SummaryCard({
+  title,
+  value,
+  color = "text-slate-800"
+}: {
+  title: string;
+  value: string;
+  color?: string;
+}) {
+  return (
+    <div className="bg-white border rounded-xl p-4 text-center">
+      <p className="text-xs text-slate-500">{title}</p>
+      <p className={`text-lg font-bold ${color}`}>{value}</p>
+    </div>
+  );
+}
 /* ================= MODAL COMPONENT ================= */
 
 function ProjectModal({ project, clients, employees, API_BASE, token, onClose, onSaved }: any) {

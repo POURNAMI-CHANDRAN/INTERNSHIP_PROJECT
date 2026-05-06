@@ -5,6 +5,7 @@ import {
   updateProject,
   changeProjectStatus,
   archiveProject,
+  updateTargetFTE
 } from "../controllers/projectController.js";
 import { protect, authorize } from "../middleware/authMiddleware.js";
 
@@ -38,6 +39,14 @@ router.delete(
   protect,
   authorize("Admin"),
   archiveProject
+);
+
+/* ================= UPDATE TARGET FTE ================= */
+router.put(
+  "/:id/target_fte",
+  protect,
+  authorize("Admin", "Finance"),
+  updateTargetFTE
 );
 
 export default router;

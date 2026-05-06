@@ -18,6 +18,14 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { AllocateModal } from "./AllocateModal";
+import {
+ Area,  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  AreaChart,
+} from "recharts";
 
 const API = import.meta.env.VITE_API_BASE_URL;
 const CAPACITY = 160;
@@ -107,6 +115,7 @@ export default function EmployeeDrawer({
     });
   }, [employee]);
 
+  
   /* ===================== DERIVED VALUES ===================== */
 
   const allocations = employee?.allocations || [];
@@ -122,9 +131,10 @@ export default function EmployeeDrawer({
   const totalFTE = getFTE(bookedHours);
 
   const getUtilColor = (pct: number) => {
-    if (pct > 100) return "text-red-600";
-    if (pct > 80) return "text-green-800";
-    return "text-emerald-600";
+    if (pct > 100) return "text-red-600";       // 🔴 Overloaded
+    if (pct > 90) return "text-green-600";      // 🟡 Risk
+    if (pct > 60) return "text-sky-600";       //      Healthy
+    return "text-amber-500";                   
   };
 
   const experience = useMemo(() => {
@@ -181,6 +191,22 @@ export default function EmployeeDrawer({
     }
   };
 
+const trendData = useMemo(() => {
+  const map: Record<string, number> = {};
+
+  allocations.forEach((a: any) => {
+    if (!a.month || !a.year) return;
+
+    const key = `${a.month}/${a.year}`;
+    map[key] = (map[key] || 0) + (a.allocatedHours || 0);
+  });
+
+  return Object.entries(map).map(([period, hours]) => ({
+    period,
+    hours,
+  }));
+}, [allocations]); 
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-100 flex flex-col overflow-hidden font-sans">
       {/* HEADER */}
@@ -223,6 +249,19 @@ export default function EmployeeDrawer({
         <aside className="col-span-12 lg:col-span-4 xl:col-span-3 bg-white border-r border-slate-200 h-full p-5 flex flex-col justify-between overflow-hidden">
           {/* TOP */}
           <div>
+            {/* INSIGHTS */}
+            {utilizationPct > 100 && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-700">
+                Overallocated — Consider Moving Hours
+              </div>
+            )}
+
+            {utilizationPct < 50 && (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs font-semibold text-amber-700">
+                Underutilized — Can Take More Work
+              </div>
+            )}
+            
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-[10px] font-black uppercase tracking-[0.18em] text-sky-900">
                 Personnel Details
@@ -441,6 +480,11 @@ export default function EmployeeDrawer({
                 <div className="text-sm text-slate-500">
                   {bookedHours}h / {CAPACITY}h
                 </div>
+
+                <div className="text-[10px] text-slate-400">
+                  (1 FTE = 160h capacity)
+                </div>
+
               </div>
               <span
                 className={`text-lg font-bold ${getUtilColor(
@@ -452,18 +496,20 @@ export default function EmployeeDrawer({
             </div>
 
             <div className="h-2 rounded-full bg-slate-200 overflow-hidden mb-4">
-              <div
-                className={`h-full ${
-                  utilizationPct > 100
-                    ? "bg-green-500"
-                    : utilizationPct > 80
-                    ? "bg-green-500"
-                    : "bg-indigo-600"
-                }`}
-                style={{
-                  width: `${Math.min(utilizationPct, 100)}%`,
-                }}
-              />
+            <div
+              className={`h-full ${
+                utilizationPct > 100
+                  ? "bg-red-800"
+                  : utilizationPct > 90
+                  ? "bg-green-800"
+                  : utilizationPct > 60
+                  ? "bg-sky-800"
+                  : "bg-amber-600"
+              }`}
+              style={{
+                width: `${Math.min(utilizationPct, 100)}%`,
+              }}
+            />
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
@@ -504,19 +550,17 @@ export default function EmployeeDrawer({
 
         {/* RIGHT SIDE */}
         <section className="col-span-12 lg:col-span-8 xl:col-span-9 p-6 overflow-y-auto">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="font-bold text-slate-800 flex items-center gap-2">
-              <TrendingUp
-                size={17}
-                className="text-indigo-500"
-              />
-              Project Allocations
-            </h3>
+        {/* ALLOCATIONS HEADER */}
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2">
+            <TrendingUp size={17} className="text-indigo-500" />
+            Project Allocations
+          </h3>
 
-            <span className="text-xs font-semibold bg-white border border-slate-200 px-2 py-1 rounded-lg text-slate-500">
-              {allocations.length} Active
-            </span>
-          </div>
+          <span className="text-xs font-semibold bg-white border border-slate-200 px-2 py-1 rounded-lg text-slate-500">
+            {allocations.length} Active
+          </span>
+        </div>
 
           {allocations.length === 0 ? (
             <div className="h-52 bg-white rounded-2xl border border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400">
