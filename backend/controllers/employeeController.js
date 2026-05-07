@@ -1,9 +1,11 @@
+import mongoose from "mongoose";
 import Employee from "../models/Employee.js";
 import User from "../models/User.js";
 import { getNextEmployeeCode } from "../utils/Next.js";
 import Allocation from "../models/Allocation.js";
 import Project from "../models/Project.js";
 import WorkCategory from "../models/WorkCategory.js";
+import Skill from "../models/Skill.js";
 
 /* ================= CREATE ================= */
 export const createEmployee = async (req, res) => {
@@ -267,6 +269,213 @@ export const getMyProfile = async (req, res) => {
     res.status(500).json({
       success: false,
       message: err.message
+    });
+  }
+};
+
+// ---------------------------------------------------------------
+export const getFullEmployeeDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    /* =========================
+       VALIDATE ID
+    ========================= */
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid Employee ID",
+      });
+    }
+
+    /* =========================
+       EMPLOYEE DETAILS
+    ========================= */
+    const employee = await Employee.findById(id).lean();
+
+    if (!employee) {
+      return res.status(404).json({
+        message: "Employee NOT Found",
+      });
+    }
+
+    /* =========================
+       SKILLS (FIX ✅)
+    ========================= */
+    let skills = [];
+
+    if (employee.skills && employee.skills.length > 0) {
+      const skillDocs = await Skill.find({
+        _id: { $in: employee.skills },
+      });
+
+      skills = skillDocs.map((s) => s.name);
+    }
+
+    /* =========================
+       ALLOCATIONS
+    ========================= */
+    const allocations = await Allocation.find({
+      employeeId: id,
+    }).populate("projectId");
+
+    /* =========================
+       FORMAT + CALCULATE (FIX ✅)
+    ========================= */
+    const formattedAllocations = allocations.map((a) => {
+      const revenue =
+        a.isBillable && a.rateSnapshot
+          ? a.allocatedHours * a.rateSnapshot
+          : 0;
+
+      const cost = employee.hourlyCost
+        ? a.allocatedHours * employee.hourlyCost
+        : a.cost || 0;
+
+      return {
+        project_name: a.projectId?.name || "N/A",
+        month: a.month,
+        year: a.year,
+        allocated_hours: a.allocatedHours,
+        fte: a.allocationFTE,
+        billable: a.isBillable,
+        billing_type: a.billingType,
+        rate: a.rateSnapshot,
+        revenue,
+        cost,
+      };
+    });
+
+    /* =========================
+       FINANCIAL SUMMARY (FIX ✅)
+    ========================= */
+    let totalRevenue = 0;
+    let totalCost = 0;
+    let totalHours = 0;
+
+    formattedAllocations.forEach((a) => {
+      totalRevenue += a.revenue;
+      totalCost += a.cost;
+      totalHours += a.allocated_hours;
+    });
+
+    const profit = totalRevenue - totalCost;
+
+    /* =========================
+       RESPONSE
+    ========================= */
+    res.json({
+      employee: {
+        name: employee.name,
+        email: employee.email,
+        employeeCode: employee.employeeCode,
+        departmentId: employee.departmentId,
+        location: employee.location,
+        joiningDate: employee.joiningDate,
+        status: employee.status,
+        monthlySalary: employee.monthlySalary,
+        hourlyCost: employee.hourlyCost,
+      },
+
+      skills,
+
+      allocations: formattedAllocations,
+
+      financial_summary: {
+        total_hours: totalHours,
+        total_revenue: totalRevenue,
+        total_cost: totalCost,
+        profit,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      message: "Error Fetching Employee Report",
+    });
+  }
+};
+
+// ---------------------------------------------------------------
+export const getAllEmployeesReport = async (req, res) => {
+  try {
+    const employees = await Employee.find().lean();
+
+    const result = [];
+
+    for (const emp of employees) {
+      /* =========================
+         SKILLS
+      ========================= */
+      let skills = [];
+
+      if (emp.skills?.length) {
+        const skillDocs = await Skill.find({
+          _id: { $in: emp.skills },
+        });
+
+        skills = skillDocs.map((s) => s.name);
+      }
+
+      /* =========================
+         ALLOCATIONS
+      ========================= */
+      const allocations = await Allocation.find({
+        employeeId: emp._id,
+      }).populate("projectId");
+
+      let totalRevenue = 0;
+      let totalCost = 0;
+      let totalHours = 0;
+
+      const detailedAllocations = allocations.map((a) => {
+        const revenue =
+          a.isBillable && a.rateSnapshot
+            ? a.allocatedHours * a.rateSnapshot
+            : 0;
+
+        const cost = emp.hourlyCost
+          ? a.allocatedHours * emp.hourlyCost
+          : a.cost || 0;
+
+        totalRevenue += revenue;
+        totalCost += cost;
+        totalHours += a.allocatedHours;
+
+        return {
+          project_name: a.projectId?.name || "N/A",
+          month: a.month,
+          year: a.year,
+          hours: a.allocatedHours,
+          fte: a.allocationFTE,
+          billable: a.isBillable,
+          rate: a.rateSnapshot,
+          revenue,
+          cost,
+        };
+      });
+
+      /* =========================
+         FINAL STRUCTURE ✅
+      ========================= */
+      result.push({
+        name: emp.name,
+        email: emp.email,
+        skills,
+        allocations: detailedAllocations, // ✅ NOW INCLUDED
+        summary: {
+          total_hours: totalHours,
+          total_revenue: totalRevenue,
+          total_cost: totalCost,
+          profit: totalRevenue - totalCost,
+        },
+      });
+    }
+
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      message: "Error Exporting Data",
     });
   }
 };

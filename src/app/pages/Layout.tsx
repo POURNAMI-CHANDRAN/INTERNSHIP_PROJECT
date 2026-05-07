@@ -19,9 +19,9 @@ export default function Layout() {
   };
 
   const notifications = [
-    { id: 1, message: "New employee onboarding pending." },
-    { id: 2, message: "Department report submitted." },
-    { id: 3, message: "Payroll generated successfully." },
+    { id: 1, message: "New Employee Onboarding Pending." },
+    { id: 2, message: "Department Report Submitted." },
+    { id: 3, message: "Payroll Generated Successfully." },
   ];
 
   // Close dropdown when clicking outside

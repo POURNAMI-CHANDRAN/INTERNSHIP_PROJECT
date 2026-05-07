@@ -6,6 +6,8 @@ import {
   updateEmployee,
   deleteEmployee,
   getMyProfile,
+  getFullEmployeeDetails,
+  getAllEmployeesReport
 } from "../controllers/employeeController.js";
 import { protect, authorize } from "../middleware/authMiddleware.js";
 
@@ -19,6 +21,20 @@ router.post(
 );
 
 router.get("/me", protect, getMyProfile);
+
+router.get(
+  "/reports",
+  protect,
+  authorize("Admin", "Finance"),
+  getAllEmployeesReport
+);
+
+router.get(
+  "/:id/full-details",
+  protect,
+  authorize("Admin", "Finance"),
+  getFullEmployeeDetails
+);
 
 router.get(
   "/",
@@ -47,5 +63,6 @@ router.delete(
   authorize("Admin", "Finance"),
   deleteEmployee
 );
+
 
 export default router;

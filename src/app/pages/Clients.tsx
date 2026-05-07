@@ -113,7 +113,7 @@ export default function Clients() {
       {/* GLASSMORPHIC HEADER */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-indigo-600 rounded-xl text-white shadow-lg shadow-indigo-200">
+          <div className="p-3 bg-sky-600 rounded-xl text-white shadow-lg shadow-blue-200">
             <Building2 size={28} />
           </div>
           <div>

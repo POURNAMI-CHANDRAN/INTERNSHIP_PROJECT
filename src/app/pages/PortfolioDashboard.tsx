@@ -131,9 +131,9 @@ export function PortfolioDashboard() {
             </select>
           </div>
 
-          <button className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg border">
+          {/* <button className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg border">
             <Download size={18} />
-          </button>
+          </button> */}
 
           {canEdit && (
             <button

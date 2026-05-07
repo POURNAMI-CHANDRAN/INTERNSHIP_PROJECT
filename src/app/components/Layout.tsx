@@ -166,6 +166,7 @@ import {
   FolderKanban,
   FileText,
   Clock,
+  BookOpen,
   DollarSign,
   Brain,
   UserCog,
@@ -232,9 +233,10 @@ export default function Layout() {
     {
       group: "Operations",
       items: [
-        { path: "/Equivalent", label: "Equivalents", icon: FileText, roles: ["Admin", "Finance", "Employee"] },
-        { path: "/timesheets", label: "Timesheets", icon: Clock, roles: ["Admin", "Finance", "Employee"] },
+        // { path: "/timesheets", label: "Timesheets", icon: Clock, roles: ["Admin", "Finance", "Employee"] },
+        { path: "/reports", label: "Reports", icon: FileText, roles: ["Admin", "Finance", "Employee"] },
         { path: "/billing", label: "Billing", icon: DollarSign, roles: ["Admin"] },
+        { path: "/Equivalent", label: "Equivalents", icon: BookOpen, roles: ["Admin", "Finance", "Employee"] },
       ],
     },
     {

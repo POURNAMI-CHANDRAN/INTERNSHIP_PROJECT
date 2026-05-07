@@ -11,7 +11,7 @@ import Clients from "./pages/Clients";
 import Projects from "./pages/Projects";
 import Equivalents from "./pages/Equivalent";
 import ResourceAllocation from "./pages/ResourceAllocation";
-import Timesheets from "./pages/Timesheets";
+// import Timesheets from "./pages/Timesheets";
 import Billing from "./pages/Billing";
 import Reports from "./pages/Reports";
 import AIInsights from "./pages/AIInsights";
@@ -60,7 +60,7 @@ export default function App() {
 
           {/* ===== OPERATIONS ===== */}
           <Route path="/resource-allocation" element={<ResourceAllocation />} />
-          <Route path="/timesheets" element={<Timesheets />} />
+          {/* <Route path="/timesheets" element={<Timesheets />} /> */}
           <Route path="/billing" element={<Billing />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/ai-insights" element={<AIInsights />} />
