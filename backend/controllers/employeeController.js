@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Employee from "../models/Employee.js";
 import User from "../models/User.js";
+import Department from "../models/Department.js";
 import { getNextEmployeeCode } from "../utils/Next.js";
 import Allocation from "../models/Allocation.js";
 import Project from "../models/Project.js";
@@ -53,7 +54,8 @@ export const getEmployees = async (req, res) => {
 
     const employees = await Employee.find()
       .populate("primaryWorkCategoryId")
-      .populate("skills");
+      .populate("skills")
+      .populate("departmentId", "name");
 
     const employeeIds = employees.map(e => e._id);
 
@@ -215,60 +217,40 @@ export const deleteEmployee = async (req, res) => {
 // ---------------------------------------------------------------
 export const getMyProfile = async (req, res) => {
   try {
-    const userId =
-      req.user?._id ||
-      req.user?.id ||
-      req.user?.userId;
+    const employee = await Employee.findOne({
+      userId: req.user.userId,
+    })
+      .populate("departmentId")
+      .populate("primaryWorkCategoryId")
+      .populate("skills");
 
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid Token Payload"
+    // USER HAS NO EMPLOYEE PROFILE
+    if (!employee) {
+      return res.json({
+        data: {
+          name: req.user.name,
+          role: req.user.role,
+          skills: [],
+          allocations: [],
+        },
       });
     }
 
-    const user = await User.findById(userId);
+    const allocations = await Allocation.find({
+      employeeId: employee._id,
+    }).populate("projectId");
 
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User Not Found"
-      });
-    }
-
-    // linked employee profile
-    if (user.employeeId) {
-      const employee = await Employee.findById(user.employeeId)
-        .populate("primaryWorkCategoryId")
-        .populate("skills");
-
-      if (employee) {
-        return res.json({
-          success: true,
-          data: {
-            ...employee.toObject(),
-            role: user.role
-          }
-        });
-      }
-    }
-
-    // admin / finance / manager
-    return res.json({
-      success: true,
+    res.json({
       data: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        status: user.status
-      }
+        ...employee.toObject(),
+        allocations,
+      },
     });
-
   } catch (err) {
+    console.log(err);
+
     res.status(500).json({
-      success: false,
-      message: err.message
+      message: err.message,
     });
   }
 };

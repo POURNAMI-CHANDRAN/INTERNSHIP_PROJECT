@@ -147,7 +147,7 @@ const handleSubmitAssignment = async (data: {
             Resource Planner
           </h1>
           <p className="text-sm text-gray-500">
-            Managing allocations for {year}
+            Managing Allocations for {year}
           </p>
         </div>
 
@@ -179,10 +179,10 @@ const handleSubmitAssignment = async (data: {
       <div className="flex-1 overflow-auto">
         <div className="relative min-w-full">
           <div
-            className="sticky top-0 z-20 grid border-b bg-gray-50"
+            className="sticky top-0 z-20 grid border-b bg-sky-50"
             style={{ gridTemplateColumns: "280px repeat(12, 120px)" }}
           >
-            <div className="sticky left-0 z-30 border-r bg-gray-50 p-4 text-xs font-bold uppercase">
+            <div className="sticky top-0 z-30 border-r bg-sky-50 p-4 text-center text-md font-bold uppercase">
               Resource Name
             </div>
 

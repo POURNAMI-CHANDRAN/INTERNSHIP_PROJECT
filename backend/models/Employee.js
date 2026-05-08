@@ -21,6 +21,12 @@ const employeeSchema = new mongoose.Schema(
       lowercase: true,
     },
 
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
     departmentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Department",
@@ -91,4 +97,5 @@ employeeSchema.pre("findOneAndUpdate", function () {
     this.setUpdate(update);
   }
 });
+
 export default mongoose.model("Employee", employeeSchema);

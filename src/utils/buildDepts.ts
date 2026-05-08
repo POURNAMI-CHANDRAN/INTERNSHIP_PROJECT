@@ -1,13 +1,13 @@
-interface Employee {
-  _id: string;
-  name: string;
-  departmentId?: { _id: string; name: string };
-}
+// interface Employee {
+//   _id: string;
+//   name: string;
+//   departmentId?: { _id: string; name: string };
+// }
 
-interface Department {
-  _id: string;
-  name: string;
-}
+// interface Department {
+//   _id: string;
+//   name: string;
+// }
 
 interface SidebarDepartment {
   _id: string;
@@ -30,4 +30,41 @@ export function buildDepartments(
       return empDeptId === dept._id;
     }),
   }));
+}
+
+/* =========================================================
+ TYPES
+========================================================= */
+
+interface Employee {
+  _id: string;
+  name: string;
+  role?: string;
+
+  departmentId?: {
+    _id: string;
+    name: string;
+  };
+}
+
+interface Allocation {
+  _id: string;
+  employeeId: string;
+  allocatedHours: number;
+  month: number;
+  year: number;
+}
+
+interface Department {
+  _id: string;
+  name: string;
+}
+
+interface HeatmapState {
+  employees: Employee[];
+  allocations: Allocation[];
+  departments: Department[];
+  loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
 }

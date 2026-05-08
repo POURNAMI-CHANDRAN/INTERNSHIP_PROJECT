@@ -1,156 +1,3 @@
-// // src/components/Layout.tsx
-// import React, { ReactNode, useState } from "react";
-// import { Link, useLocation } from "react-router-dom";
-// import { useAuth } from "../../auth/authContext";
-// import Chatbot from "./Chatbot";
-
-// import {
-//   LayoutDashboard,
-//   Users,
-//   Building2,
-//   Sparkles,
-//   Briefcase,
-//   FolderKanban,
-//   FileText,
-//   Calendar,
-//   Clock,
-//   DollarSign,
-//   BarChart3,
-//   Brain,
-//   UserCog,
-//   Bell,
-//   User,
-//   LogOut,
-//   ChevronRight,
-//   ChevronLeft,
-// } from "lucide-react";
-
-// interface LayoutProps {
-//   children?: ReactNode;
-// }
-
-// export default function Layout({ children }: LayoutProps) {
-//   const { user, logout } = useAuth();
-//   const location = useLocation();
-
-//   // ✅ ICON‑ONLY DEFAULT
-//   const [expanded, setExpanded] = useState(false);
-
-//   if (!user) return <div className="h-screen bg-neutral-50" />;
-
-//   const navItems = [
-//     { path: "/my-profile", label: "My Profile", icon: User, roles: ["Employee"] },
-//     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["Admin", "Finance"] },
-//     { path: "/segmentations", label: "Segmentations", icon: Building2, roles: ["Admin"] },
-//     { path: "/resources", label: "Resources", icon: Users, roles: ["Admin", "Finance"] },
-//     { path: "/skills", label: "Skills", icon: Sparkles, roles: ["Admin", "Finance"] },
-//     { path: "/clients", label: "Clients", icon: Briefcase, roles: ["Admin"] },
-//     { path: "/projects", label: "Projects", icon: FolderKanban, roles: ["Admin", "Finance"] },
-//     { path: "/Equivalent", label: "Equivalent", icon: FileText, roles: ["Admin", "Finance", "Employee"] },
-//     { path: "/resource-allocation", label: "Resource Allocation", icon: Calendar, roles: ["Admin", "Finance"] },
-//     { path: "/timesheets", label: "Timesheets", icon: Clock, roles: ["Admin", "Finance", "Employee"] },
-//     { path: "/billing", label: "Billing", icon: DollarSign, roles: ["Admin"] },
-//     { path: "/reports", label: "Reports", icon: BarChart3, roles: ["Admin"] },
-//     { path: "/ai-insights", label: "AI Insights", icon: Brain, roles: ["Admin"] },
-//     { path: "/user-management", label: "User Management", icon: UserCog, roles: ["Admin"] },
-//   ];
-
-//   const allowedNavItems = navItems.filter(n => n.roles.includes(user.role));
-
-//   return (
-//     <>
-//       <div className="flex h-screen bg-neutral-50 overflow-hidden">
-
-//       {/* SIDEBAR (ICON RAIL) */}
-//       <aside
-//         className={`
-//           ${expanded ? "w-60" : "w-16"}
-//           bg-sky-200 text-sky-900
-//           flex flex-col
-//           transition-all duration-300
-//           shadow-xl
-//         `}
-//       >
-//         {/* TOGGLE */}
-//         <button
-//           onClick={() => setExpanded(!expanded)}
-//           className="mx-auto mt-4 mb-4
-//             w-8 h-8 bg-white rounded-full
-//             flex items-center justify-center
-//             shadow hover:scale-105 transition"
-//         >
-//           {expanded ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
-//         </button>
-
-//         {/* NAV (FIXED: scroll enabled) */}
-//         <nav className="flex-1 overflow-y-auto flex flex-col gap-2 px-1">
-//           {allowedNavItems.map(item => {
-//             const Icon = item.icon;
-//             const active = location.pathname.startsWith(item.path);
-
-//             return (
-//               <Link
-//                 key={item.path}
-//                 to={item.path}
-//                 className={`
-//                   w-full flex items-center
-//                   h-12 rounded-lg
-//                   ${expanded ? "px-4" : "justify-center"}
-//                   transition-colors
-//                   ${active ? "bg-white shadow-md" : "hover:bg-white/70"}
-//                 `}
-//               >
-//                 <Icon
-//                   size={22}
-//                   className={`${active ? "text-sky-900" : "text-sky-700"}`}
-//                 />
-
-//                 {expanded && (
-//                   <span className="ml-3 text-sm font-medium text-sky-900">
-//                     {item.label}
-//                   </span>
-//                 )}
-//               </Link>
-//             );
-//           })}
-//         </nav>
-//       </aside>
-
-//         {/* MAIN */}
-//         <div className="flex-1 flex flex-col overflow-hidden">
-
-//           {/* HEADER */}
-//           <header className="h-16 bg-white border-b border-neutral-200 flex items-center justify-between px-6">
-//             <img src="/LOGO_COPY.png" className="h-10 object-contain" />
-
-//             <div className="flex items-center gap-4">
-//               <button className="p-2 bg-neutral-100 rounded-full hover:bg-neutral-200 transition">
-//                 <Bell className="w-5 h-5" />
-//               </button>
-
-//               <button className="p-2 bg-neutral-100 rounded-full hover:bg-neutral-200 transition">
-//                 <User className="w-5 h-5" />
-//               </button>
-
-//               <button
-//                 onClick={logout}
-//                 className="flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm"
-//               >
-//                 <LogOut size={16} />
-//                 Logout
-//               </button>
-//             </div>
-//           </header>
-
-//           {/* CONTENT */}
-//           <main className="flex-1 overflow-auto p-6">{children}</main>
-//         </div>
-//       </div>
-
-//       <Chatbot />
-//     </>
-//   );
-// }
 import React, { useState, useEffect } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../auth/authContext";
@@ -166,6 +13,7 @@ import {
   FolderKanban,
   FileText,
   Clock,
+  ChevronDown,
   BookOpen,
   DollarSign,
   Brain,
@@ -374,104 +222,140 @@ export default function Layout() {
             </h1>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* NOTIFICATIONS */}
-            <div className="relative" onClick={(e) => e.stopPropagation()}>
-              <button
-                onClick={() => {
-                  setShowNotifications(!showNotifications);
-                  setShowProfileMenu(false);
-                }}
-                className={cn(
-                  "w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center relative transition-all hover:bg-slate-50",
-                  showNotifications && "bg-slate-50 ring-2 ring-sky-100"
-                )}
-              >
-                <Bell size={18} className="text-slate-600" />
-                <span className="absolute top-2.5 right-2.5 h-2 w-2 bg-sky-500 border-2 border-white rounded-full" />
-              </button>
+<div className="flex items-center gap-4">
+  {/* NOTIFICATIONS */}
+  <div className="relative" onClick={(e) => e.stopPropagation()}>
+    <button
+      onClick={() => {
+        setShowNotifications(!showNotifications);
+        setShowProfileMenu(false);
+      }}
+      className={cn(
+        "group w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center relative transition-all duration-300",
+        showNotifications 
+          ? "bg-sky-900 border-sky-900 shadow-lg shadow-sky-200 scale-95" 
+          : "bg-white hover:bg-slate-50 hover:border-sky-300"
+      )}
+    >
+      <Bell 
+        size={18} 
+        className={cn(
+          "transition-colors", 
+          showNotifications ? "text-white" : "text-slate-800 group-hover:text-slate-900"
+        )} 
+      />
+      <span className={cn(
+        "absolute top-2 right-2 h-2 w-2 rounded-full border-2 border-white",
+        "bg-sky-500 ring-4 ring-sky-500/10 animate-pulse"
+      )} />
+    </button>
 
-              {showNotifications && (
-                <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
-                  <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
-                    <span className="font-bold text-slate-800">Notifications</span>
-                    <span className="text-[10px] bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full font-bold">NEW</span>
-                  </div>
-                  <div className="p-8 text-center">
-                    <div className="bg-slate-50 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <Bell size={20} className="text-slate-300" />
-                    </div>
-                    <p className="text-sm text-slate-500">No new alerts today.</p>
-                  </div>
-                </div>
-              )}
+    {showNotifications && (
+      <div className="absolute right-0 mt-4 w-80 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-200 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+        <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+          <span className="font-bold text-slate-800 text-sm tracking-tight">Notifications</span>
+          <span className="text-[10px] bg-sky-200 text-slate-800 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">
+            3 New
+          </span>
+        </div>
+        
+        {/* Empty State with Premium Styling */}
+        <div className="py-12 flex flex-col items-center justify-center">
+          <div className="bg-slate-100 w-14 h-14 rounded-2xl flex items-center justify-center mb-4 rotate-3 group-hover:rotate-0 transition-transform">
+            <Bell size={24} className="text-slate-300" />
+          </div>
+          <p className="text-sm font-semibold text-slate-800">All Caught Up!</p>
+          <p className="text-xs text-slate-400 mt-1">No new alerts to show.</p>
+        </div>
+        
+        <button className="w-full py-3 text-xs font-bold text-slate-500 hover:text-slate-900 border-t border-slate-100 transition-colors">
+          View All Activity
+        </button>
+      </div>
+    )}
+  </div>
+
+  {/* PROFILE MENU */}
+  <div className="relative" onClick={(e) => e.stopPropagation()}>
+    <button
+      onClick={() => {
+        setShowProfileMenu(!showProfileMenu);
+        setShowNotifications(false);
+      }}
+      className={cn(
+        "flex items-center gap-3 p-1.5 pr-4 rounded-xl border transition-all duration-300",
+        showProfileMenu 
+          ? "bg-white border-slate-300 shadow-sm" 
+          : "bg-slate-50/50 border-slate-200 hover:border-slate-300"
+      )}
+    >
+      <div className="h-8 w-8 rounded-lg bg-sky-200 from-slate-800 to-slate-950 flex items-center justify-center text-slate-900 text-md font-bold shadow-md">
+        {user?.email?.charAt(0)?.toUpperCase() || "U"}
+      </div>
+      <div className="hidden lg:block text-left">
+        <p className="text-xs font-bold text-slate-900 leading-tight">
+          {user?.email?.split("@")[0] || "User"}
+        </p>
+        <div className="flex items-center gap-1.5">
+          <div className="h-1 w-1 rounded-full bg-emerald-500" />
+          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+            {user.role}
+          </p>
+        </div>
+      </div>
+      <ChevronDown size={14} className={cn("text-slate-400 transition-transform", showProfileMenu && "rotate-180")} />
+    </button>
+
+    {showProfileMenu && (
+      <div className="absolute right-0 mt-4 w-72 bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-200 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+        {/* Header Section */}
+        <div className="p-6 bg-sky-200 text-slate-900 relative overflow-hidden">
+          {/* Subtle background pattern/glow */}
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-sky-500/20 rounded-full blur-3xl" />
+          
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="h-12 w-12 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center">
+              <User size={24} className="text-indigo-400" />
             </div>
-
-            {/* PROFILE MENU */}
-            <div className="relative" onClick={(e) => e.stopPropagation()}>
-              <button
-                onClick={() => {
-                  setShowProfileMenu(!showProfileMenu);
-                  setShowNotifications(false);
-                }}
-                className="flex items-center gap-3 p-1 pr-3 rounded-full bg-slate-50 border border-slate-200 hover:border-sky-200 transition-all"
-              >
-                <div className="h-8 w-8 rounded-full bg-sky-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
-                  {user?.email?.charAt(0)?.toUpperCase() || "U"}
-                </div>
-                <div className="hidden lg:block text-left">
-                  <p className="text-xs font-bold text-slate-800 leading-tight">
-                    {user?.email?.split("@")[0] || "User"}
-                  </p>
-                  <p className="text-[10px] text-sky-600 font-bold uppercase tracking-tighter">
-                    {user.role}
-                  </p>
-                </div>
-              </button>
-
-              {showProfileMenu && (
-                <div className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2">
-                  <div className="p-5 bg-gradient-to-br from-sky-200 to-sky-200 text-fuchsia-950">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="h-10 w-10 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center">
-                             <Mail size={18} />
-                        </div>
-                        <div className="overflow-hidden">
-                            <p className="text-xs font-bold opacity-80 text-emerald-900 uppercase tracking-wider">Account</p>
-                            <p className="text-sm font-bold truncate text-emerald-900">{user?.email || "No Email"}</p>
-                        </div>
-                    </div>
-                    <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-white/20 text-[10px] font-bold uppercase">
-                        {user.role}
-                    </div>
-                  </div>
-
-                  <div className="p-2">
-                    <Link
-                      to="/my-profile"
-                      className="flex items-center gap-3 h-10 px-3 rounded-lg hover:bg-slate-50 text-slate-700 text-sm font-medium transition-colors"
-                    >
-                      <User size={16} className="text-slate-700" />
-                      My Profile
-                    </Link>
-                    <button className="w-full flex items-center gap-3 h-10 px-3 rounded-lg hover:bg-slate-50 text-slate-700 text-sm font-medium transition-colors">
-                        <Settings size={16} className="text-slate-700" />
-                        Account Settings
-                    </button>
-                    <div className="my-1 border-t border-slate-100" />
-                    <button
-                      onClick={logout}
-                      className="w-full flex items-center gap-3 h-10 px-3 rounded-lg hover:bg-indigo-50 text-indigo-900 text-sm font-medium transition-colors"
-                    >
-                      <LogOut size={16} />
-                      Logout
-                    </button>
-                  </div>
-                </div>
-              )}
+            <div className="overflow-hidden">
+              <p className="text-[10px] font-black text-green-800 uppercase tracking-widest mb-0.5">Verified Account</p>
+              <p className="text-sm font-bold truncate text-blue-900">{user?.email || "No Email"}</p>
             </div>
           </div>
-        </header>
+        </div>
+
+        {/* Links Section */}
+        <div className="p-2">
+          <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            Settings
+          </div>
+          <Link
+            to="/my-profile"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sky-50 text-slate-600 hover:text-slate-900 text-sm font-semibold transition-all group"
+          >
+            <User size={18} className="text-slate-400 group-hover:text-slate-900 transition-colors" />
+            Personal Profile
+          </Link>
+          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sky-50 text-slate-600 hover:text-slate-900 text-sm font-semibold transition-all group text-left">
+            <Settings size={18} className="text-slate-400 group-hover:text-slate-900 transition-colors" />
+            Preferences
+          </button>
+          
+          <div className="my-2 border-t border-slate-100" />
+          
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-3 px-3 py-3 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-sm font-bold transition-all"
+          >
+            <LogOut size={18} />
+            Sign Out
+          </button>
+        </div>
+      </div>
+    )}
+  </div>
+</div>            
+</header>
 
         {/* PAGE CONTENT */}
         <main className="flex-1 overflow-y-auto bg-[#F8FAFC]">

@@ -1,23 +1,34 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { 
-  User, Mail, MapPin, Calendar, Upload, DollarSign, 
-  Briefcase, Award, FileText, ChevronRight, ExternalLink 
+import {
+  User,
+  Mail,
+  MapPin,
+  Calendar,
+  DollarSign,
+  Briefcase,
+  Award,
+  FileText,
+  ExternalLink,
+  Clock3,
+  Building2,
+  Sparkles,
+  ShieldCheck,
+  TrendingUp,
 } from "lucide-react";
-import { useDropzone } from "react-dropzone";
+
 import { motion, AnimatePresence } from "framer-motion";
 
 type AnyObj = Record<string, any>;
 
 export default function MyProfile() {
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+  const API_BASE =
+    import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
-  /* ===================================================
-      AUTH & STATE
-  =================================================== */
   const savedUser = JSON.parse(localStorage.getItem("user") || "{}");
   const token = localStorage.getItem("token") || savedUser?.token || "";
 
   const [profile, setProfile] = useState<AnyObj | null>(null);
+
   const [data, setData] = useState({
     skills: [] as any[],
     allocations: [] as any[],
@@ -26,258 +37,441 @@ export default function MyProfile() {
     payroll: null as any,
   });
 
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const authHeaders = useMemo(() => ({
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
-  }), [token]);
+  const authHeaders = useMemo(
+    () => ({
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    }),
+    [token]
+  );
 
-  /* ===================================================
-      HELPERS
-  =================================================== */
   const fetcher = async (url: string) => {
-    const res = await fetch(url, { headers: authHeaders });
+    const res = await fetch(url, {
+      headers: authHeaders,
+    });
+
     if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || "Request failed");
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || "Request Failed");
     }
+
     const json = await res.json();
+
     return json?.data ?? json;
   };
 
-  const isEmployee = useMemo(() => (
-    profile?.employeeCode || profile?.hourlyCost || profile?.joiningDate
-  ), [profile]);
+ useEffect(() => {
+  const init = async () => {
+    try {
+      setLoading(true);
 
-  /* ===================================================
-      LOADER LOGIC
-  =================================================== */
-  useEffect(() => {
-    const init = async () => {
-      if (!token) { setError("Session expired. Please login again."); setLoading(false); return; }
-      try {
-        setLoading(true);
-        const me = await fetcher(`${API_BASE}/api/employees/me`);
-        setProfile(me);
+      const me = await fetcher(
+        `${API_BASE}/api/employees/me`
+      );
 
-        // Batch secondary requests
-        if (me?._id) {
-          const [skills, allocations, timesheets, payroll, docs] = await Promise.allSettled([
-            fetcher(`${API_BASE}/api/employee-skills/${me._id}`),
-            fetcher(`${API_BASE}/api/employees/me/allocations`),
-            fetcher(`${API_BASE}/api/timesheets/employee/${me._id}`),
-            fetcher(`${API_BASE}/api/payroll/${me._id}`),
-            fetcher(`${API_BASE}/api/documents/${me._id}`),
-          ]);
+      setProfile(me);
 
-          setData({
-            skills: skills.status === 'fulfilled' ? (Array.isArray(skills.value) ? skills.value : []) : [],
-            allocations: allocations.status === 'fulfilled' ? (Array.isArray(allocations.value) ? allocations.value : []) : [],
-            timesheets: timesheets.status === 'fulfilled' ? (Array.isArray(timesheets.value) ? timesheets.value : []) : [],
-            payroll: payroll.status === 'fulfilled' ? payroll.value : null,
-            documents: docs.status === 'fulfilled' ? (Array.isArray(docs.value) ? docs.value : []) : [],
-          });
-        }
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+      // OPTIONAL extra APIs
+      if (me?._id) {
+        const [
+          allocations,
+          timesheets,
+          payroll,
+          docs,
+        ] = await Promise.allSettled([
+          fetcher(
+            `${API_BASE}/api/employees/me/allocations`
+          ),
+
+          fetcher(
+            `${API_BASE}/api/timesheets/employee/${me._id}`
+          ),
+
+          fetcher(
+            `${API_BASE}/api/payroll/${me._id}`
+          ),
+
+          fetcher(
+            `${API_BASE}/api/documents/${me._id}`
+          ),
+        ]);
+
+        setData({
+          skills: me.skills || [],
+
+          allocations:
+            allocations.status === "fulfilled"
+              ? allocations.value
+              : [],
+
+          timesheets:
+            timesheets.status === "fulfilled"
+              ? timesheets.value
+              : [],
+
+          payroll:
+            payroll.status === "fulfilled"
+              ? payroll.value
+              : null,
+
+          documents:
+            docs.status === "fulfilled"
+              ? docs.value
+              : [],
+        });
       }
-    };
-    init();
-  }, [token]);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  /* ===================================================
-      RENDER HELPERS
-  =================================================== */
+  init();
+}, [token]);
+
   const tabs = [
-    { id: "profile", label: "Overview", icon: <User size={18}/> },
-    ...(isEmployee ? [
-      { id: "skills", label: "Skills", icon: <Award size={18}/> },
-      { id: "projects", label: "Projects", icon: <Briefcase size={18}/> },
-      { id: "attendance", label: "Timesheets", icon: <Calendar size={18}/> },
-      { id: "payroll", label: "Payroll", icon: <DollarSign size={18}/> },
-      { id: "documents", label: "Documents", icon: <FileText size={18}/> },
-    ] : []),
+    {
+      id: "overview",
+      label: "Overview",
+      icon: <User size={18} />,
+    },
+
+    {
+      id: "skills",
+      label: "Skills",
+      icon: <Award size={18} />,
+    },
+
+    {
+      id: "projects",
+      label: "Projects",
+      icon: <Briefcase size={18} />,
+    },
+
+    {
+      id: "timesheets",
+      label: "Timesheets",
+      icon: <Clock3 size={18} />,
+    },
+
+    {
+      id: "payroll",
+      label: "Payroll",
+      icon: <DollarSign size={18} />,
+    },
+
+    {
+      id: "documents",
+      label: "Documents",
+      icon: <FileText size={18} />,
+    },
   ];
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-50">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-14 w-14 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin" />
+          <p className="text-slate-500 font-medium">
+            Loading your Workspace...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-  if (error) return (
-    <div className="p-8 text-center">
-      <div className="bg-red-50 text-red-600 p-4 rounded-lg inline-block">{error}</div>
-    </div>
-  );
+  if (error) {
+    return (
+      <div className="p-10">
+        <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-2xl">
+          {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-12 font-sans text-slate-900">
-      {/* PREMIUM HEADER */}
-      <div className="h-48 bg-gradient-to-r from-blue-600 to-indigo-700 w-full relative">
-        <div className="max-w-6xl mx-auto px-6 relative h-full">
-          <div className="absolute -bottom-16 left-6 flex items-end gap-6">
-            <div className="w-32 h-32 rounded-3xl bg-white p-1 shadow-2xl ring-4 ring-white/20 overflow-hidden">
-              {profile?.avatarPreview ? (
-                <img src={profile.avatarPreview} className="w-full h-full object-cover rounded-[1.2rem]" alt="Profile" />
-              ) : (
-                <div className="w-full h-full bg-slate-100 flex items-center justify-center text-blue-600">
-                  <User size={60} />
+    <div className="min-h-screen bg-[#F6F8FC] text-slate-900">
+      {/* HERO */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-700 via-indigo-700 to-sky-600" />
+
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-10 left-10 w-72 h-72 bg-white rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-cyan-300 rounded-full blur-3xl" />
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-6 py-14">
+          <div className="flex flex-col lg:flex-row lg:items-end gap-8">
+            {/* AVATAR */}
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="relative"
+            >
+              <div className="w-36 h-36 rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-2 shadow-2xl">
+                {profile?.avatarPreview ? (
+                  <img
+                    src={profile.avatarPreview}
+                    className="w-full h-full rounded-[1.5rem] object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full rounded-[1.5rem] bg-white flex items-center justify-center">
+                    <User size={60} className="text-blue-600" />
+                  </div>
+                )}
+              </div>
+
+              <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white rounded-full p-2 shadow-lg">
+                <ShieldCheck size={16} />
+              </div>
+            </motion.div>
+
+            {/* INFO */}
+            <div className="flex-1">
+              <div className="flex items-center gap-2 text-blue-100 mb-2">
+                <Sparkles size={16} />
+                <span className="text-sm font-semibold tracking-wide uppercase">
+                  Employee Workspace
+                </span>
+              </div>
+
+              <h1 className="text-5xl font-black tracking-tight text-white">
+                {profile?.name}
+              </h1>
+
+              <div className="flex flex-wrap items-center gap-5 mt-4 text-blue-100">
+                <div className="flex items-center gap-2">
+                  <Briefcase size={16} />
+                  {profile?.role || "Employee"}
                 </div>
-              )}
+
+                <div className="flex items-center gap-2">
+                  <Building2 size={16} />
+                  {profile?.departmentId?.name || "Organization"}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Mail size={16} />
+                  {profile?.email}
+                </div>
+              </div>
             </div>
-            <div className="mb-2">
-              <h1 className="text-3xl font-bold text-amber-800 tracking-tight">{profile?.name}</h1>
-              <p className="text-amber-800 flex items-center gap-2">
-                <Briefcase size={16}/> {profile?.role || "Team Member"} • {profile?.employeeCode}
-              </p>
+
+            {/* KPI */}
+            <div className="grid grid-cols-2 gap-4 min-w-[280px]">
+              <KPI
+                label="Skills"
+                value={data.skills.length}
+                icon={<Award size={18} />}
+              />
+
+              <KPI
+                label="Projects"
+                value={data.allocations.length}
+                icon={<Briefcase size={18} />}
+              />
+
+              <KPI
+                label="Documents"
+                value={data.documents.length}
+                icon={<FileText size={18} />}
+              />
+
+              <KPI
+                label="Timesheets"
+                value={data.timesheets.length}
+                icon={<Clock3 size={18} />}
+              />
             </div>
           </div>
         </div>
       </div>
 
-      {/* MAIN CONTENT */}
-      <div className="max-w-6xl mx-auto px-6 mt-24 grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* SIDEBAR NAVIGATION */}
-        <div className="lg:col-span-3">
-          <nav className="space-y-1">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-                  activeTab === tab.id 
-                  ? "bg-white text-blue-600 shadow-sm font-semibold" 
-                  : "text-slate-500 hover:bg-slate-100"
-                }`}
+      {/* BODY */}
+      <div className="max-w-7xl mx-auto px-6 py-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* SIDEBAR */}
+          <div className="lg:col-span-3">
+            <div className="sticky top-6 bg-white border border-slate-200 rounded-3xl p-3 shadow-sm">
+              <div className="space-y-2">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 text-sm font-semibold
+                    ${
+                      activeTab === tab.id
+                        ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg"
+                        : "text-slate-500 hover:bg-slate-100"
+                    }`}
+                  >
+                    {tab.icon}
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* CONTENT */}
+          <div className="lg:col-span-9">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
               >
-                <span className={`${activeTab === tab.id ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600"}`}>
-                  {tab.icon}
-                </span>
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
+                {/* OVERVIEW */}
+                {activeTab === "overview" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card title="Personal Information">
+                      <DetailRow
+                        icon={<Mail size={16} />}
+                        label="Email"
+                        value={profile?.email}
+                      />
 
-        {/* CONTENT AREA */}
-        <div className="lg:col-span-9">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              {/* PROFILE TAB */}
-              {activeTab === "profile" && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                    <h3 className="text-lg font-bold mb-6 text-slate-800">Contact Details</h3>
-                    <div className="space-y-4">
-                      <DetailRow icon={<Mail size={18}/>} label="Email" value={profile?.email} />
-                      <DetailRow icon={<MapPin size={18}/>} label="Work Location" value={profile?.location} />
-                      <DetailRow icon={<Calendar size={18}/>} label="Joined Date" value={profile?.joiningDate} isDate />
-                    </div>
-                  </div>
-                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                    <h3 className="text-lg font-bold mb-6 text-slate-800">Professional Identity</h3>
-                    <div className="space-y-4">
-                      <DetailRow label="Employee ID" value={profile?.employeeCode} />
-                      <DetailRow label="Status" value={profile?.status || "Active"} isStatus />
-                      {isEmployee && <DetailRow label="Hourly Rate" value={`₹${profile?.hourlyCost}`} />}
-                    </div>
-                  </div>
-                </div>
-              )}
+                      <DetailRow
+                        icon={<MapPin size={16} />}
+                        label="Location"
+                        value={profile?.location}
+                      />
 
-              {/* SKILLS TAB */}
-              {activeTab === "skills" && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {data.skills.map((item, i) => (
-                    <div key={i} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
-                      <span className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Skill</span>
-                      <h4 className="text-lg font-bold text-slate-800 mb-3">{item.skillId?.name}</h4>
-                      <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                        <div className="bg-blue-600 h-full rounded-full" style={{ width: `${(item.proficiency/5)*100}%` }} />
-                      </div>
-                      <span className="text-sm mt-2 text-slate-600 font-medium">Level {item.proficiency} / 5</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+                      <DetailRow
+                        icon={<Calendar size={16} />}
+                        label="Joining Date"
+                        value={profile?.joiningDate}
+                        isDate
+                      />
+                    </Card>
 
-              {/* PAYROLL TAB */}
-              {activeTab === "payroll" && (
-                <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 overflow-hidden relative">
-                   <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
-                    <DollarSign size={200} />
+                    <Card title="Professional Details">
+                      <DetailRow
+                        label="Employee Code"
+                        value={profile?.employeeCode}
+                      />
+
+                      <DetailRow
+                        label="Status"
+                        value={profile?.status || "Active"}
+                        isStatus
+                      />
+
+                      <DetailRow
+                        label="Hourly Cost"
+                        value={`₹${profile?.hourlyCost || 0}`}
+                      />
+                    </Card>
                   </div>
-                  <div className="relative">
-                    <h3 className="text-xl font-bold mb-6">Financial Overview</h3>
-                    {data.payroll ? (
-                      <div className="bg-slate-900 rounded-2xl p-8 text-white flex justify-between items-center">
-                        <div>
-                          <p className="text-slate-400 font-medium mb-1">Monthly Gross Salary</p>
-                          <h2 className="text-4xl font-black">₹{Number(data.payroll.monthlySalary).toLocaleString('en-IN')}</h2>
+                )}
+
+                {/* SKILLS */}
+                {activeTab === "skills" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                    {data.skills.map((item, i) => (
+                      <motion.div
+                        key={i}
+                        whileHover={{ y: -4 }}
+                        className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm"
+                      >
+                        <div className="flex items-center justify-between mb-5">
+                          <span className="text-xs uppercase tracking-widest font-bold text-slate-400">
+                            Skill
+                          </span>
                         </div>
-                        <div className="h-16 w-16 bg-white/10 rounded-2xl flex items-center justify-center">
-                          <DollarSign className="text-blue-400" size={32} />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-12 text-slate-400">No payroll records found for the current period.</div>
-                    )}
-                  </div>
-                </div>
-              )}
 
-              {/* DOCUMENTS TAB */}
-              {activeTab === "documents" && (
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {data.documents.map((doc, i) => (
-                      <a key={i} href={doc.fileUrl} target="_blank" className="flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-blue-50 transition-colors group">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-white rounded-lg shadow-sm text-blue-600">
-                            <FileText size={20}/>
-                          </div>
-                          <span className="font-semibold text-slate-700">{doc.name || "Untitled Document"}</span>
-                        </div>
-                        <ExternalLink size={16} className="text-slate-300 group-hover:text-blue-600 transition-colors"/>
-                      </a>
+                        <h3 className="text-xl font-black text-slate-800 mb-5">
+                           {item.name}
+                        </h3>
+
+                      </motion.div>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* TIMESHEET TAB */}
-              {activeTab === "attendance" && (
-                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                    <table className="w-full text-left">
+                {/* PROJECTS */}
+                {activeTab === "projects" && (
+                  <div className="space-y-4">
+                    {data.allocations.map((a, i) => (
+                      <div
+                        key={i}
+                        className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex items-center justify-between"
+                      >
+                        <div>
+                          <h3 className="text-lg font-bold text-slate-800">
+                            {a.projectId?.name || "Unnamed Project"}
+                          </h3>
+
+                          <p className="text-sm text-slate-500 mt-1">
+                            {a.role || "Contributor"}
+                          </p>
+                        </div>
+
+                        <div className="text-right">
+                          <div className="text-2xl font-black text-blue-600">
+                            {a.allocatedHours || 0}h
+                          </div>
+
+                          <div className="text-xs uppercase tracking-widest text-slate-400 font-bold">
+                            Allocated
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* TIMESHEETS */}
+                {activeTab === "timesheets" && (
+                  <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+                    <table className="w-full">
                       <thead className="bg-slate-50 border-b border-slate-100">
                         <tr>
-                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Project</th>
-                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Date</th>
-                          <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Status</th>
+                          <th className="text-left px-6 py-4 text-xs uppercase tracking-widest text-slate-400">
+                            Project
+                          </th>
+
+                          <th className="text-left px-6 py-4 text-xs uppercase tracking-widest text-slate-400">
+                            Date
+                          </th>
+
+                          <th className="text-left px-6 py-4 text-xs uppercase tracking-widest text-slate-400">
+                            Status
+                          </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+
+                      <tbody>
                         {data.timesheets.map((ts, i) => (
-                          <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="px-6 py-4 font-semibold text-slate-700">{ts.project_id?.name || "General"}</td>
-                            <td className="px-6 py-4 text-slate-500">{ts.work_date?.split('T')[0]}</td>
-                            <td className="px-6 py-4">
-                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                ts.status === 'Approved' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-                              }`}>
+                          <tr
+                            key={i}
+                            className="border-b border-slate-100 hover:bg-slate-50"
+                          >
+                            <td className="px-6 py-5 font-semibold">
+                              {ts.project_id?.name || "General"}
+                            </td>
+
+                            <td className="px-6 py-5 text-slate-500">
+                              {ts.work_date?.split("T")[0]}
+                            </td>
+
+                            <td className="px-6 py-5">
+                              <span
+                                className={`px-3 py-1 rounded-full text-xs font-black
+                                ${
+                                  ts.status === "Approved"
+                                    ? "bg-emerald-100 text-emerald-700"
+                                    : "bg-amber-100 text-amber-700"
+                                }`}
+                              >
                                 {ts.status}
                               </span>
                             </td>
@@ -285,32 +479,142 @@ export default function MyProfile() {
                         ))}
                       </tbody>
                     </table>
-                 </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
+                  </div>
+                )}
+
+                {/* PAYROLL */}
+                {activeTab === "payroll" && (
+                  <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-[2rem] p-10 text-white overflow-hidden relative">
+                    <div className="absolute top-0 right-0 opacity-10">
+                      <DollarSign size={260} />
+                    </div>
+
+                    <div className="relative">
+                      <div className="flex items-center gap-2 text-slate-400 mb-3">
+                        <TrendingUp size={18} />
+                        Financial Overview
+                      </div>
+
+                      <h2 className="text-5xl font-black mb-3">
+                        ₹
+                        {Number(
+                          data.payroll?.monthlySalary || 0
+                        ).toLocaleString("en-IN")}
+                      </h2>
+
+                      <p className="text-slate-400">
+                        Monthly Gross Salary
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* DOCUMENTS */}
+                {activeTab === "documents" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {data.documents.map((doc, i) => (
+                      <a
+                        key={i}
+                        href={doc.fileUrl}
+                        target="_blank"
+                        className="bg-white border border-slate-200 rounded-3xl p-5 flex items-center justify-between hover:border-blue-200 hover:shadow-md transition-all"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">
+                            <FileText size={22} />
+                          </div>
+
+                          <div>
+                            <h3 className="font-bold text-slate-800">
+                              {doc.name || "Untitled"}
+                            </h3>
+
+                            <p className="text-xs text-slate-400 mt-1">
+                              Click to open
+                            </p>
+                          </div>
+                        </div>
+
+                        <ExternalLink
+                          size={18}
+                          className="text-slate-400"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-/* ===================================================
-    COMPONENTS
-=================================================== */
-function DetailRow({ icon, label, value, isDate, isStatus }: any) {
-  const displayValue = isDate && value ? new Date(value).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric'}) : (value || "-");
-  
+/* =========================================================
+   COMPONENTS
+========================================================= */
+
+function KPI({ label, value, icon }: any) {
+  return (
+    <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-2xl p-4 text-white">
+      <div className="flex items-center justify-between mb-2 opacity-80">
+        <span>{icon}</span>
+
+        <span className="text-[10px] uppercase tracking-widest font-bold">
+          {label}
+        </span>
+      </div>
+
+      <div className="text-3xl font-black">{value}</div>
+    </div>
+  );
+}
+
+function Card({ title, children }: any) {
+  return (
+    <div className="bg-white border border-slate-200 rounded-[2rem] p-7 shadow-sm">
+      <h3 className="text-xl font-black mb-7 text-slate-800">
+        {title}
+      </h3>
+
+      <div className="space-y-5">{children}</div>
+    </div>
+  );
+}
+
+function DetailRow({
+  icon,
+  label,
+  value,
+  isDate,
+  isStatus,
+}: any) {
+  const displayValue =
+    isDate && value
+      ? new Date(value).toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
+      : value || "-";
+
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3 text-slate-500">
-        {icon && <span className="text-slate-400">{icon}</span>}
-        <span className="text-sm font-medium">{label}</span>
+        {icon}
+        <span className="text-sm font-semibold">{label}</span>
       </div>
+
       {isStatus ? (
-        <span className="bg-emerald-50 text-emerald-600 px-3 py-0.5 rounded-full text-xs font-bold ring-1 ring-emerald-100">{displayValue}</span>
+        <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-xs font-black">
+          {displayValue}
+        </span>
       ) : (
-        <span className="text-sm font-bold text-slate-700">{displayValue}</span>
+        <span className="text-sm font-bold text-slate-800">
+          {displayValue}
+        </span>
       )}
     </div>
   );

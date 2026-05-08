@@ -4,6 +4,7 @@ import {
   createUser,
   updateUser,
   deleteUser,
+  acceptInvite,
 } from "../controllers/userController.js";
 
 import { inviteUser } from "../controllers/inviteController.js";
@@ -16,6 +17,6 @@ router.patch("/:id", updateUser);
 router.delete("/:id", deleteUser);
 
 // INVITE FLOW
-router.post("/invite", inviteUser);
+router.post("/accept_invite", acceptInvite);
 
 export default router;
