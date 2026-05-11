@@ -542,25 +542,25 @@ return (
               <ClipboardList size={28} />
             </div>
             <div>
-              <h1 className="text-3xl font-extrabold tracking-tight text-slate-800">Operational & Financial Analytics</h1>
-              <p className="text-slate-500 font-medium">Analyze operations, utilization, and financial trends</p>
+                      <h1 className="text-2xl font-bold tracking-tight">Operational & Financial <span className="text-sky-600">Analytics</span></h1>
+              <p className="text-slate-600 font-medium">Analyze operations, utilization, and financial trends</p>
             </div>
           </div>
 
         <div className="flex gap-4">
           <button
             onClick={exportExcel}
-            className="flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-800 text-white px-6 py-3 rounded-xl transition-all active:scale-95 shadow-md font-semibold"
+            className="flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-800 text-white px-6 py-3 rounded-xl transition-all active:scale-95 shadow-md text-[16px] font-semibold"
           >
-            <Download size={18} />
+            <Download size={20} />
             Export Data
           </button>
 
           <button
           onClick={exportPDF}
-          className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl transition-all active:scale-95 shadow-md font-semibold"
+          className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl transition-all active:scale-95 shadow-md text-[16px] font-semibold"
           >
-          <Download size={18} />
+          <Download size={20} />
           Download PDF
         </button>
         </div>

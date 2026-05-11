@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const equivalentSchema = new mongoose.Schema(
+const Benchchema = new mongoose.Schema(
   {
     project_id: {
       type: mongoose.Schema.Types.ObjectId,
@@ -52,7 +52,7 @@ const equivalentSchema = new mongoose.Schema(
 );
 
 /* ✅ Auto‑calculate hours */
-equivalentSchema.pre("save", function () {
+Benchchema.pre("save", function () {
   if (this.effort_type === "FTE") {
     this.hours_required = this.effort_value * 160;
   } else {
@@ -60,4 +60,4 @@ equivalentSchema.pre("save", function () {
   }
 });
 
-export default mongoose.model("Equivalent", equivalentSchema);
+export default mongoose.model("Bench", Benchchema);

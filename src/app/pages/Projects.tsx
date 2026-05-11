@@ -151,14 +151,20 @@ const projectUsage = useMemo(() => {
       {/* HEADER */}
       <div className="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-sky-600 rounded-2xl flex items-center justify-center shadow-lg shadow-sky-100">
-            <Layers className="text-white" size={24} />
+          {/* ICON BOX */}
+          <div className="bg-sky-600 p-2.5 rounded-xl shadow-lg shadow-sky-200">
+            <Layers className="text-white" size={28} />
           </div>
+
+          {/* TEXT BLOCK */}
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-800">Project Portfolio</h1>
-            <p className="text-sm text-slate-500 font-medium">Manage allocations and economics</p>
+            <h1 className="text-2xl font-bold tracking-tight">
+            Project<span className="text-sky-600"> Portfolio</span>
+            </h1>
+
+            <p className="text-slate-600 font-medium">Manage allocations and economics</p>
           </div>
-        </div>
+        </div>      
 
         {(userRole === "Admin" || userRole === "Finance") && (
           <button

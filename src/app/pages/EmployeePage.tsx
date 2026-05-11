@@ -28,10 +28,51 @@ const groupBy = (list: any[], keyFn: (e: any) => string): FeatureMap => {
   }, {});
 };
 
+const getDepartmentName = (employee: any, departments: any[]) => {
+  // populated department object
+  if (
+    employee.departmentId &&
+    typeof employee.departmentId === "object" &&
+    employee.departmentId.name
+  ) {
+    return employee.departmentId.name;
+  }
+
+  // raw ObjectId/string match
+  const dept = departments.find(
+    (d: any) =>
+      String(d._id) === String(employee.departmentId)
+  );
+
+  return dept?.name || "Unassigned";
+};
+
+const getWorkCategoryName = (
+  employee: any,
+  workCategories: any[]
+) => {
+  // populated work category object
+  if (
+    employee.primaryWorkCategoryId &&
+    typeof employee.primaryWorkCategoryId === "object" &&
+    employee.primaryWorkCategoryId.name
+  ) {
+    return employee.primaryWorkCategoryId.name;
+  }
+
+  // raw ObjectId/string match
+  const wc = workCategories.find(
+    (w: any) =>
+      String(w._id) === String(employee.primaryWorkCategoryId)
+  );
+
+  return wc?.name || "Unassigned";
+};
+
 /* ================= MAIN COMPONENT ================= */
 
 export default function EmployeesPage() {
-  const { employees, departments, projects, loading, refetchEmployees } = useResourceData(0, 0);
+  const { employees, departments, workCategories, projects, loading, refetchEmployees } = useResourceData(0, 0);
   const [showCreate, setShowCreate] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -40,14 +81,23 @@ export default function EmployeesPage() {
     const processed = employees.map((emp: Employee) => {
       const totalHours = (emp.allocations || []).reduce((sum: number, a: any) => sum + (a.allocatedHours || 0), 0);
       const util = Math.round((totalHours / 160) * 100);
-      let bucket = "Stable";
-      if (util > 100) bucket = "Overloaded";
-      else if (util < 60) bucket = "High Availability";
+      let utilizationBucket = "Optimal";
+
+      if (util >= 100) utilizationBucket = "Overloaded";
+      else if (util >= 80) utilizationBucket = "Fully Utilized";
+      else if (util >= 60) utilizationBucket = "Balanced";
+      else utilizationBucket = "Available";
+
+      let healthBucket = "Healthy";
+
+      if (util >= 120) healthBucket = "Burnout Risk";
+      else if (util >= 100) healthBucket = "Stressed";
+      else if (util < 40) healthBucket = "Underutilized";
 
       return {
         ...emp,
         utilization: util,
-        utilizationBucket: bucket,
+        utilizationBucket, healthBucket,
         experienceYears: emp.joiningDate ? Math.floor((Date.now() - new Date(emp.joiningDate).getTime()) / 31536000000) : 0,
       };
     });
@@ -55,12 +105,14 @@ export default function EmployeesPage() {
     const filtered = processed.filter((e: Employee) => 
       e.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
-
+    
     return {
       all: filtered,
-      byDept: groupBy(filtered, e => departments.find((d: any) => d._id === e.departmentId)?.name || "External"),
+      byDept: groupBy(filtered, (e) => getDepartmentName(e, departments)),     
+      byWC: groupBy(filtered, (e) => getWorkCategoryName(e, workCategories)),
       byLoc: groupBy(filtered, e => e.location || "Remote"),
       byUtil: groupBy(filtered, e => e.utilizationBucket),
+      byHealth: groupBy(filtered, e => e.healthBucket),
       bySkill: filtered.reduce((acc: any, e: Employee) => {
         (e.skills || []).forEach((s: any) => {
           const key = s.name || s;
@@ -70,7 +122,7 @@ export default function EmployeesPage() {
         return acc;
       }, {})
     };
-  }, [employees, departments, searchQuery]);
+  }, [employees, departments, workCategories, searchQuery]);
 
   /* ================= CALCULATIONS ================= */
   const metrics = useMemo(() => ({
@@ -143,8 +195,8 @@ export default function EmployeesPage() {
           <FeatureAccordion title="Global Network" data={enrichedData.byLoc} icon={<Globe size={16}/>} />
           <FeatureAccordion title="Utilization Heatmap" data={enrichedData.byUtil} icon={<Activity size={16}/>} accent="rose" />
           <FeatureAccordion title="Skill Repository" data={enrichedData.bySkill} icon={<Award size={16}/>} />
-          <FeatureAccordion title="Workforce Health" data={enrichedData.byUtil} icon={<Zap size={16}/>} />
-          <FeatureAccordion title="Portfolio Mix" data={enrichedData.byDept} icon={<Briefcase size={16}/>} />
+          <FeatureAccordion title="Workforce Health" data={enrichedData.byHealth} icon={<Zap size={16}/>} accent="amber"/>          
+          <FeatureAccordion title="Portfolio Mix" data={enrichedData.byWC} icon={<Briefcase size={16}/>} />
         </div>
       </main>
 

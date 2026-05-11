@@ -1,48 +1,54 @@
 import express from "express";
-import Skill from "../models/Skill.js";
+import {
+  createSkill,
+  getSkills,
+  // updateSkill,
+  deleteSkill,
+  restoreSkill,
+} from "../controllers/SkillController.js";
+
 import { protect, authorize } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-/* ---------------- GET ALL ---------------- */
-router.get("/", protect, authorize("Admin", "Finance", "Manager"), async (req, res) => {
-  const data = await Skill.find();
-  res.json(data);
-});
+/* ---------------- GET ---------------- */
+router.get(
+  "/",
+  protect,
+  authorize("Admin", "Finance", "Manager"),
+  getSkills
+);
 
 /* ---------------- CREATE ---------------- */
-router.post("/", protect, authorize("Admin", "Finance"), async (req, res) => {
-  const skill = new Skill(req.body);
-  await skill.save();
-  res.status(201).json(skill);
-});
+router.post(
+  "/",
+  protect,
+  authorize("Admin", "Finance"),
+  createSkill
+);
 
-/* ---------------- UPDATE (EDIT) ---------------- */
-router.patch("/:id", protect, authorize("Admin", "Finance"), async (req, res) => {
-  try {
-    const updatedSkill = await Skill.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      {
-        new: true,        // return updated document
-        runValidators: true
-      }
-    );
-
-    if (!updatedSkill) {
-      return res.status(404).json({ message: "Skill NOT Found" });
-    }
-
-    res.json(updatedSkill);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+// /* ---------------- UPDATE ---------------- */
+// router.patch(
+//   "/:id",
+//   protect,
+//   authorize("Admin", "Finance"),
+//   updateSkill
+// );
 
 /* ---------------- DELETE ---------------- */
-router.delete("/:id", protect, authorize("Admin", "Finance"), async (req, res) => {
-  await Skill.findByIdAndDelete(req.params.id);
-  res.json({ message: "Deleted" });
-});
+router.delete(
+  "/:id",
+  protect,
+  authorize("Admin", "Finance"),
+  deleteSkill
+);
+
+/* ---------------- RESTORE ---------------- */
+router.patch(
+  "/restore/:id",
+  protect,
+  authorize("Admin", "Finance"),
+  restoreSkill
+);
 
 export default router;

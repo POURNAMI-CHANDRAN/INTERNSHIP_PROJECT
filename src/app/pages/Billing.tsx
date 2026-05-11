@@ -140,9 +140,18 @@ export default function PremiumBillingDashboard() {
     <div className="min-h-screen bg-slate-50 p-8 font-sans text-slate-900">
       {/* HEADER */}
       <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+       <div className="flex items-center gap-3">
+        <div className="bg-sky-600 p-2.5 rounded-xl shadow-lg shadow-sky-200">
+          <DollarSign className="text-white" size={28} />
+        </div>
+
+        {/* TEXT BLOCK */}
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Financial Overview</h1>
-          <p className="text-slate-500">Monitor your project billing and employee performance.</p>
+          <h1 className="text-2xl font-bold tracking-tight">Financial<span className="text-sky-600"> Overview</span>
+          </h1>
+
+          <p className="text-slate-500 font-medium">Monitor your project billing and employee performance.</p>
+        </div>
         </div>
         
         <div className="flex items-center gap-3">

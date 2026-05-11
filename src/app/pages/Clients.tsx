@@ -117,8 +117,8 @@ export default function Clients() {
             <Building2 size={28} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Client Directory</h1>
-            <p className="text-slate-500 text-sm">Manage corporate relationships and global partners</p>
+            <h1 className="text-2xl font-bold tracking-tight">Client <span className="text-sky-600">Directory</span></h1>
+            <p className="text-slate-600 font-medium">Manage corporate relationships and global partners</p>
           </div>
         </div>
 
@@ -136,7 +136,7 @@ export default function Clients() {
           {(userRole === "Admin" || userRole === "Finance") && (
             <button 
               onClick={() => setShowAdd(true)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition font-medium"
+              className="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition font-medium"
             >
               <Plus size={18} /> <span className="hidden sm:inline">Add Client</span>
             </button>

@@ -133,20 +133,22 @@ const loadData = useCallback(async () => {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           
           {/* LEFT: Title */}
-          <div>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-sky-50 rounded-lg text-sky-600">
-                <Settings2 size={22} />
-              </div>
-              <h1 className="ext-3xl font-extrabold tracking-tight text-[#025e8f]">
-                Organization Architecture
-              </h1>
+          <div className="flex items-center gap-4">
+            {/* ICON BOX */}
+            <div className="bg-sky-600 p-2.5 rounded-xl shadow-lg shadow-sky-200">
+              <Settings2 className="text-white" size={28} />
             </div>
-            <p className="text-sm text-[#584141] mt-2">
-              Manage global classification systems and billing logic.
-            </p>
-          </div>
 
+            {/* TEXT BLOCK */}
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">
+                Organization<span className="text-sky-600"> Architecture</span>
+              </h1>
+
+              <p className="text-slate-600 font-medium"> Manage global classification systems and billing logic.</p>
+            </div>
+          </div>
+          
           {/* RIGHT: Controls */}
           <div className="w-full lg:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             

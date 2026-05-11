@@ -23,7 +23,7 @@ interface Project {
   assignedTo?: string;
 }
 
-interface EquivalentItem {
+interface BenchItem {
   _id: string;
   title: string;
   story_points: number;
@@ -37,7 +37,7 @@ interface TimesheetEntry {
   _id: string;
   employee_id: string | EmployeeRef | null;
   project_id: Project;
-  story_id: EquivalentItem;
+  story_id: BenchItem;
   story_points_completed: number;
   work_date: string;
   status: "Pending" | "Approved" | "Rejected";
@@ -59,7 +59,7 @@ export default function Timesheets() {
 
   const [employees, setEmployees] = useState<EmployeeRef[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [equivalents, setEquivalents] = useState<EquivalentItem[]>([]);
+  const [Bench, setBench] = useState<BenchItem[]>([]);
   const [timesheets, setTimesheets] = useState<TimesheetEntry[]>([]);
 
   const [search, setSearch] = useState("");
@@ -154,19 +154,19 @@ export default function Timesheets() {
 
   useEffect(() => {
     if (!form.project_id) {
-      setEquivalents([]);
+      setBench([]);
       return;
     }
 
     fetch(
-      `${API_BASE}/api/equivalents?project_id=${form.project_id}`,
+      `${API_BASE}/bench?project_id=${form.project_id}`,
       {
         headers: { Authorization: `Bearer ${token}` },
       }
     )
       .then((r) => r.json())
       .then((json) => {
-        setEquivalents(json.data || []);
+        setBench(json.data || []);
       });
   }, [form.project_id]);
 
@@ -319,7 +319,7 @@ export default function Timesheets() {
             >
               <option value="">Story</option>
 
-              {equivalents.map((s) => (
+              {Bench.map((s) => (
                 <option key={s._id} value={s._id}>
                   {s.title} ({s.story_points})
                 </option>

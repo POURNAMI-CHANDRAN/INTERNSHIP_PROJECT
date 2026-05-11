@@ -331,7 +331,7 @@ return (
         <div className="flex items-center gap-3">
           {}
           <div className="bg-white w-12 h-12 rounded-lg flex items-center justify-center shadow-md border">
-            <Layers size={26} className="text-sky-700" />
+            <Layers size={28} className="text-sky-700" />
           </div>
         </div>
 

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../auth/authContext";
-import Chatbot from "./Chatbot";
 import { cn } from "./ui/utils";
 
 import {
@@ -84,7 +83,7 @@ export default function Layout() {
         // { path: "/timesheets", label: "Timesheets", icon: Clock, roles: ["Admin", "Finance", "Employee"] },
         { path: "/reports", label: "Reports", icon: FileText, roles: ["Admin", "Finance", "Employee"] },
         { path: "/billing", label: "Billing", icon: DollarSign, roles: ["Admin"] },
-        { path: "/Equivalent", label: "Equivalents", icon: BookOpen, roles: ["Admin", "Finance", "Employee"] },
+        { path: "bench", label: "Bench", icon: BookOpen, roles: ["Admin", "Finance", "Employee"] },
       ],
     },
     {
@@ -364,8 +363,6 @@ export default function Layout() {
           </div>
         </main>
       </div>
-
-      <Chatbot />
     </div>
   );
 }

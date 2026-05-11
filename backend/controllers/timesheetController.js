@@ -1,7 +1,7 @@
 import Timesheet from "../models/Timesheet.js";
 import Employee from "../models/Employee.js";
 import Project from "../models/Project.js";
-import Equivalent from "../models/Equivalent.js";
+import Bench from "../models/Bench.js";
 import { validateTimesheetDate } from "../utils/dateValidator.js";
 
 //
@@ -45,9 +45,9 @@ export const submitTimesheet = async (req, res) => {
     const proj = await Project.findById(project_id);
     if (!proj) return res.status(404).json({ message: "Project NOT Found" });
 
-    // Check equivalent
-    const equivalent = await Equivalent.findById(story_id);
-    if (!equivalent) return res.status(404).json({ message: "Equivalent NOT Found" });
+    // Check Bench
+    const Bench = await Bench.findById(story_id);
+    if (!Bench) return res.status(404).json({ message: "Bench NOT Found" });
 
     // Create timesheet
     const sheet = await Timesheet.create({

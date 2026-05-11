@@ -1,29 +1,33 @@
 import mongoose from "mongoose";
 
+/* ================= EMPLOYEE SKILL SCHEMA ================= */
+
 const employeeSkillSchema = new mongoose.Schema(
   {
     employeeId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Employee",
       required: true,
+      index: true,
     },
 
     skillId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Skill",
       required: true,
-    },
-
-    proficiency: {
-      type: String,
-      enum: ["Beginner", "Intermediate", "Advanced", "Expert"],
-      default: "Intermediate",
+      index: true,
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
-// Prevent duplicate mapping
-employeeSkillSchema.index({ employeeId: 1, skillId: 1 }, { unique: true });
+/* ================= UNIQUE COMPOUND INDEX ================= */
+employeeSkillSchema.index(
+  { employeeId: 1, skillId: 1 },
+  { unique: true }
+);
 
+/* ================= EXPORT ================= */
 export default mongoose.model("EmployeeSkill", employeeSkillSchema);

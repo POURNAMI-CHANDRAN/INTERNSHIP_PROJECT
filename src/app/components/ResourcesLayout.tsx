@@ -35,14 +35,14 @@ export default function ResourcesLayout() {
           
           {/* Brand Section */}
           <div className="flex items-center gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-500 text-white shadow-md shadow-sky-200">
-              <Briefcase size={22} />
+            <div className="bg-sky-600 p-2.5 rounded-xl shadow-lg shadow-sky-200">
+              <Briefcase className="text-white" size={28} />
             </div>
             <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight text-slate-800">Resource Hub</h1>
-              </div>
-              <p className="text-xs text-slate-500 font-medium">Enterprise Resource Planning</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight">Resource<span className="text-sky-600"> Hub</span></h1>
+            </div>
+            <p className="text-xs text-slate-600 font-medium">Enterprise Resource Planning</p>
             </div>
           </div>
 
@@ -60,10 +60,10 @@ export default function ResourcesLayout() {
                     "flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200",
                     active 
                       ? "bg-white text-sky-600 shadow-sm ring-1 ring-sky-100" 
-                      : "text-slate-500 hover:text-sky-600 hover:bg-white/50"
+                      : "text-slate-800 hover:text-sky-600 hover:bg-white/50"
                   )}
                 >
-                  <Icon size={16} className={active ? "text-sky-500" : "text-slate-400"} />
+                  <Icon size={16} className={active ? "text-sky-500" : "text-slate-800"} />
                   {item.label}
                 </Link>
               );

@@ -146,7 +146,7 @@ export default function Dashboard() {
 
           {/* ICON BOX */}
           <div className="bg-sky-600 p-2.5 rounded-xl shadow-lg shadow-sky-200">
-            <LayoutDashboard className="text-white" size={26} />
+            <LayoutDashboard className="text-white" size={28} />
           </div>
 
           {/* TEXT BLOCK */}
@@ -155,7 +155,7 @@ export default function Dashboard() {
               Executive<span className="text-sky-600">Insights</span>
             </h1>
 
-          <p className="text-gray-800 font-medium">Real-time resource and revenue performance</p>
+          <p className="text-slate-600 font-medium">Real-time resource and revenue performance</p>
           </div>
         </div>
 
@@ -374,19 +374,19 @@ export default function Dashboard() {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50/50 text-sky-800 uppercase text-[14px] font-extrabold tracking-widest">
-                  <th className="px-6 py-4">Project Name</th>
-                  <th className="px-6 py-4">Revenue</th>
-                  <th className="px-6 py-4">Direct Cost</th>
-                  <th className="px-6 py-4 text-right">Net Margin</th>
+                  <th className="px-6 py-4 text-center">Project Name</th>
+                  <th className="px-6 py-4 text-center">Revenue</th>
+                  <th className="px-6 py-4 text-center">Direct Cost</th>
+                  <th className="px-6 py-4 text-center">Net Margin</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {revenueByProject.map((p, i) => (
                   <tr key={i} className="hover:bg-slate-50/80 transition-colors">
                     <td className="px-6 py-4 font-semibold text-slate-700">{p.project}</td>
-                    <td className="px-6 py-4 text-slate-600">₹{p.revenue.toLocaleString()}</td>
-                    <td className="px-6 py-4 text-slate-600">₹{p.cost.toLocaleString()}</td>
-                    <td className={`px-6 py-4 text-right font-bold ${p.margin < 0 ? "text-rose-500" : "text-emerald-600"}`}>
+                    <td className="px-6 py-4 text-slate-600 text-center">₹{p.revenue.toLocaleString()}</td>
+                    <td className="px-6 py-4 text-slate-600 text-center">₹{p.cost.toLocaleString()}</td>
+                    <td className={`px-6 py-4 text-center font-bold ${p.margin < 0 ? "text-rose-500" : "text-emerald-600"}`}>
                       {p.margin < 0 ? '-' : '+'}₹{Math.abs(p.margin).toLocaleString()}
                     </td>
                   </tr>

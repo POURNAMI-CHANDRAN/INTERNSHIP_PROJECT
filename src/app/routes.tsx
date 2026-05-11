@@ -14,7 +14,7 @@ import Segmentations from "./pages/Segmentations";
 import Skills from "./pages/Skills";
 import Clients from "./pages/Clients";
 import Projects from "./pages/Projects";
-import Equivalent from "./pages/Equivalent";
+import Bench from "./pages/Bench";
 import ResourceAllocation from "./pages/ResourceAllocation";
 import Timesheets from "./pages/Timesheets";
 import Billing from "./pages/Billing";
@@ -52,7 +52,7 @@ export const router = createBrowserRouter([
       { path: "skills", element: <Skills /> },
       { path: "clients", element: <Clients /> },
       { path: "projects", element: <Projects /> },
-      { path: "Equivalent", element: <Equivalent /> },
+      { path: "Bench", element: <Bench /> },
       { path: "resource-allocation", element: <ResourceAllocation /> },
       { path: "timesheets", element: <Timesheets /> },
       { path: "billing", element: <Billing /> },

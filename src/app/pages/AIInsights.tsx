@@ -161,10 +161,12 @@ export default function AIInsights() {
             <div className="bg-sky-600 p-2 rounded-xl shadow-lg shadow-sky-200">
               <Brain className="text-white" size={28} />
             </div>
+
             <div>
               <h1 className="text-2xl font-bold tracking-tight">AllocAI <span className="text-sky-600">Insights</span></h1>
-              <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Enterprise Intelligence</p>
+              <p className=" text-slate-600 font-medium tracking-wider">Enterprise Intelligence</p>
             </div>
+
           </div>
           <button onClick={loadDashboard} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
             <LayoutDashboard size={20} className="text-slate-600" />

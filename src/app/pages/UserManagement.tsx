@@ -70,7 +70,7 @@ export default function PremiumUserManagement() {
 
       setUsers(res.data?.data || []);
     } catch {
-      toast.error("Failed to load users");
+      toast.error("Failed to Load Users");
     } finally {
       setLoading(false);
     }
@@ -106,16 +106,16 @@ useEffect(() => {
 
       if (editingUser) {
         await axios.patch(`${API}/${editingUser._id}`, formData);
-        toast.success("User updated");
+        toast.success("User Updated");
       } else {
         await axios.post(API, formData);
-        toast.success("User created");
+        toast.success("User Created");
       }
 
       closeModal();
       fetchUsers(search, roleFilter);
     } catch {
-      toast.error("Operation failed");
+      toast.error("Operation Failed");
     } finally {
       setIsSubmitting(false);
     }
@@ -126,14 +126,14 @@ useEffect(() => {
   ===================================================== */
 
   const deleteUser = async (id: string) => {
-    if (!window.confirm("Delete this user?")) return;
+    if (!window.confirm("Delete this User?")) return;
 
     try {
       await axios.delete(`${API}/${id}`);
       toast.success("Deleted");
       setUsers((prev) => prev.filter((u) => u._id !== id));
     } catch {
-      toast.error("Delete failed");
+      toast.error("Delete Failed");
     }
   };
 
@@ -179,18 +179,25 @@ useEffect(() => {
       <div className="max-w-7xl mx-auto space-y-8">
         {/* HEADER */}
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">
-              Team Directory
-            </h1>
-            <p className="text-slate-500 mt-1">
-              Manage organization members and permissions
-            </p>
+        <div className="flex items-center gap-4">
+            {/* ICON BOX */}
+            <div className="bg-sky-600 p-2.5 rounded-xl shadow-lg shadow-sky-200">
+              <UserIcon className="text-white" size={28} />
+            </div>
+
+            {/* TEXT BLOCK */}
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">
+                Team<span className="text-sky-600"> Directory</span>
+              </h1>
+
+              <p className="text-slate-600 font-medium">Manage organization members and permissions</p>
+            </div>
           </div>
 
           <button
             onClick={() => openModal()}
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow"
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-semibold shadow"
           >
             <Plus size={18} />
             Invite Member
@@ -361,7 +368,7 @@ useEffect(() => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl bg-sky-600 hover:bg-sk-700 text-white font-semibold flex items-center justify-center gap-2"
                 >
                   {isSubmitting && (
                     <Loader2 className="w-4 h-4 animate-spin" />
