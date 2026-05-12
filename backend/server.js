@@ -2,6 +2,9 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
+import http from "http";
+
+import { Server } from "socket.io";
 
 import userRoutes from "./routes/userRoutes.js";
 import employeeRoutes from "./routes/employeeRoutes.js";
@@ -21,15 +24,42 @@ import documentRoutes from "./routes/documentRoutes.js";
 import workcategoryRoutes from "./routes/workcategoryRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
-import Bench from "./models/Bench.js";
+import notificationRoutes from "./routes/notifyRoutes.js";
 
 dotenv.config();
+
 connectDB();
 
 const app = express();
 
+/* ---------------- SOCKET SERVER ---------------- */
+
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173",
+    credentials: true,
+  },
+});
+
+app.set("io", io);
+
+io.on("connection", (socket) => {
+  console.log("✅ User Connected : ", socket.id);
+
+  socket.on("disconnect", () => {
+    console.log("❌ User Disconnected");
+  });
+});
+
+/* ---------------- MIDDLEWARE ---------------- */
+
 app.use(cors());
+
 app.use(express.json());
+
+/* ---------------- ROUTES ---------------- */
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
@@ -50,12 +80,16 @@ app.use("/api/workcategories", workcategoryRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
+/* ---------------- STATIC ---------------- */
 app.use("/uploads", express.static("uploads"));
 
-app.get("/", (req, res) => {
-  res.send("API is Running 🚀");
-});
+/* ---------------- NOTIFICATIONS ---------------- */
+app.use("/api/notify", notificationRoutes);
 
+/* ---------------- ROOT ---------------- */
+app.get("/", (req, res) => {res.send("API is Running 🚀");});
+
+/* ---------------- START SERVER ---------------- */
 app.listen(5000, () => console.log("🚀 Server Port 5000"));
 
 console.log("JWT SECRET : ", process.env.JWT_SECRET);

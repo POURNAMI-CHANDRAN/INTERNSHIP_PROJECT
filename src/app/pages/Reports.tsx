@@ -60,6 +60,7 @@ export default function EmployeeReports() {
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
   const [skillFilter, setSkillFilter] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(true);
 
   const loadReports = async () => {
     try {
@@ -74,50 +75,6 @@ export default function EmployeeReports() {
   };
 
   useEffect(() => { loadReports(); }, []);
-
-  // const filtered = data
-  //   .filter((e) =>
-  //     e.name.toLowerCase().includes(search.toLowerCase())
-  //   )
-
-  //   /* PROFIT FILTER */
-  //   .filter((e) => {
-  //     if (profitFilter === "All") return true;
-  //     if (profitFilter === "Profit") return e.summary.profit > 0;
-  //     if (profitFilter === "Loss") return e.summary.profit < 0;
-  //   })
-
-  //   /* UTILIZATION */
-  //   .filter((e) => {
-  //     if (utilFilter === "All") return true;
-  //     if (utilFilter === "Idle") return e.summary.total_hours === 0;
-  //     if (utilFilter === "Underutilized")
-  //       return e.summary.total_hours < 80;
-  //     if (utilFilter === "Overallocated")
-  //       return e.summary.total_hours > 160;
-  //   })
-
-  //   /* SKILL */
-  //   .filter((e) => {
-  //     if (!skillFilter) return true;
-  //     return e.skills.includes(skillFilter);
-  //   })
-
-  //   /* PROJECT */
-  //   .filter((e) => {
-  //     if (!projectFilter) return true;
-  //     return e.allocations.some(
-  //       (a) => a.project_name === projectFilter
-  //     );
-  //   })
-
-  //   /* MONTH */
-  //   .filter((e) => {
-  //     if (!month) return true;
-  //     return e.allocations.some(
-  //       (a) => a.month === Number(month)
-  //     );
-  //   });
 
   const filteredData = useMemo(() => {
     return data.filter((emp) => {
@@ -571,31 +528,58 @@ return (
 <div className="bg-white/80 backdrop-blur-lg border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
 
   {/* TOP BAR */}
-  <div className="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-slate-50 to-white">
-    <div className="flex items-center gap-3">
-      <div className="p-2 bg-blue-100 text-blue-600 rounded-xl shadow-sm">
-        <Filter size={16} />
-      </div>
-      <div>
-        <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
-          Filters & Insights
-        </h2>
-        <p className="text-xs text-slate-500">
-          Refine Employee Analytics
-        </p>
-      </div>
+<div className="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-slate-50 to-white">
+  
+  <div className="flex items-center gap-3">
+    <div className="p-2 bg-blue-100 text-blue-600 rounded-xl shadow-sm">
+      <Filter size={16} />
     </div>
+
+    <div>
+      <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+        Filters & Insights
+      </h2>
+
+      <p className="text-xs text-slate-500">
+        Refine Employee Analytics
+      </p>
+    </div>
+  </div>
+
+  <div className="flex items-center gap-3">
 
     <button
       onClick={resetFilters}
       className="flex items-center gap-1.5 text-xs font-semibold text-indigo-400 hover:text-green-500 transition group"
     >
-      <RotateCcw size={14} className="group-hover:-rotate-45 transition" />
-      Reset
+      <RotateCcw
+        size={20}
+        className="group-hover:-rotate-45 transition"
+      />
+    </button>
+
+    {/* EXPAND / COLLAPSE BUTTON */}
+    <button
+      onClick={() => setFiltersOpen(!filtersOpen)}
+      className="h-9 w-9 flex items-center justify-center rounded-xl border hover:bg-indigo-100 transition"
+    >
+      {filtersOpen ? (
+        <ChevronUp size={20} className="text-indigo-400 group-hover:-rotate-45 transition" />
+      ) : (
+        <ChevronDown size={20} className="text-indigo-400 group-hover:-rotate-45 transition" />
+      )}
     </button>
   </div>
+</div>
 
-  <div className="p-6 space-y-6">
+    <div
+      className={`transition-all duration-500 ease-in-out overflow-hidden ${
+        filtersOpen
+          ? "max-h-[1200px] opacity-100"
+          : "max-h-0 opacity-0"
+      }`}
+    >
+      <div className="p-6 space-y-6">
 
     {/* ================= PRIMARY FILTERS ================= */}
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -717,8 +701,8 @@ return (
         displayNames={["All Skills", ...uniqueSkills]}
       />
 
+      </div>
     </div>
-
   </div>
 </div>
 

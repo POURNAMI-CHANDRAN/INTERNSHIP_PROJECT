@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../auth/authContext";
 import { cn } from "./ui/utils";
+import axios from "axios";
+import { socket } from "../../Socket";
 
 import {
   LayoutDashboard,
@@ -33,6 +35,9 @@ export default function Layout() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
   useEffect(() => {
     const closeMenus = () => {
       setShowNotifications(false);
@@ -41,6 +46,59 @@ export default function Layout() {
     window.addEventListener("click", closeMenus);
     return () => window.removeEventListener("click", closeMenus);
   }, []);
+
+  useEffect(() => {
+  loadNotifications();
+
+  socket.on("new_notification", (data) => {
+    console.log("LIVE NOTIFICATION : ", data);
+
+    setNotifications((prev) => [
+      data,
+      ...prev,
+    ]);
+
+    setUnreadCount((prev) => prev + 1);
+  });
+
+  return () => {
+    socket.off("new_notification");
+  };
+}, []);
+
+  const loadNotifications = async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/api/notify");
+
+      setNotifications(res.data.data);
+
+      const unread = res.data.data.filter((n: any) => !n.read).length;
+
+      setUnreadCount(unread);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const markAsRead = async (id: string) => {
+    try {
+      await axios.put(`http://localhost:5000/api/notify/${id}/read`);
+
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n._id === id
+            ? { ...n, read: true }
+            : n
+        )
+      );
+
+      setUnreadCount((prev) =>
+        prev > 0 ? prev - 1 : 0
+      );
+    } catch (err) {
+      console.log(err);
+    }
+  };
 
   if (loading) {
     return (
@@ -83,7 +141,7 @@ export default function Layout() {
         // { path: "/timesheets", label: "Timesheets", icon: Clock, roles: ["Admin", "Finance", "Employee"] },
         { path: "/reports", label: "Reports", icon: FileText, roles: ["Admin", "Finance", "Employee"] },
         { path: "/billing", label: "Billing", icon: DollarSign, roles: ["Admin"] },
-        { path: "bench", label: "Bench", icon: BookOpen, roles: ["Admin", "Finance", "Employee"] },
+        { path: "/bench", label: "Bench", icon: BookOpen, roles: ["Admin", "Finance", "Employee"] },
       ],
     },
     {
@@ -99,7 +157,7 @@ export default function Layout() {
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + "/");
 
   return (
-<div className="flex h-screen bg-[#F8FAFC] overflow-hidden text-slate-900 font-sans">
+  <div className="flex h-screen bg-[#F8FAFC] overflow-hidden text-slate-900 font-sans">
   {/* ================= SIDEBAR ================= */}
   <aside
     className={cn(
@@ -110,7 +168,7 @@ export default function Layout() {
     {/* TOGGLE BUTTON */}
     <button
       onClick={() => setExpanded(!expanded)}
-      className="absolute -right-3 top-10 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center border border-slate-200 hover:bg-slate-50 transition-all z-50"
+      className="absolute -right-3 top-4 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center border border-slate-200 hover:bg-slate-50 transition-all z-50"
     >
       <ChevronRight 
         size={14} 
@@ -212,7 +270,7 @@ export default function Layout() {
           <div className="flex items-center gap-4">
             <img src="/LOGO_COPY.png" alt="Logo" className="h-20 w-auto object-contain" />
             <div className="h-6 w-px bg-slate-200 mx-2 hidden md:block" />
-            <h1 className="text-sky-900 font-medium text-sm hidden md:block capitalize">
+            <h1 className="text-sky-900 font-medium text-[16px] hidden md:block capitalize">
               {location.pathname
               .split("/")
               .pop()
@@ -254,17 +312,57 @@ export default function Layout() {
         <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
           <span className="font-bold text-slate-800 text-sm tracking-tight">Notifications</span>
           <span className="text-[10px] bg-sky-200 text-slate-800 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">
-            3 New
+            {unreadCount} New
           </span>
         </div>
         
         {/* Empty State with Premium Styling */}
-        <div className="py-12 flex flex-col items-center justify-center">
-          <div className="bg-slate-100 w-14 h-14 rounded-2xl flex items-center justify-center mb-4 rotate-3 group-hover:rotate-0 transition-transform">
-            <Bell size={24} className="text-slate-300" />
-          </div>
-          <p className="text-sm font-semibold text-slate-800">All Caught Up!</p>
-          <p className="text-xs text-slate-400 mt-1">No new alerts to show.</p>
+        <div className="max-h-96 overflow-y-auto">
+          {notifications.length === 0 ? (
+            <div className="py-12 flex flex-col items-center justify-center">
+              <div className="bg-slate-100 w-14 h-14 rounded-2xl flex items-center justify-center mb-4">
+                <Bell size={24} className="text-slate-300" />
+              </div>
+
+              <p className="text-sm font-semibold text-slate-800">
+                All Caught Up!
+              </p>
+
+              <p className="text-xs text-slate-400 mt-1">
+                No NEW ALERTS to Show.
+              </p>
+            </div>
+          ) : (
+            notifications.map((n) => (
+              <div
+                key={n._id}
+                onClick={() => markAsRead(n._id)}
+                className={`px-5 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer ${
+                  n.read
+                    ? "opacity-60"
+                    : "bg-sky-100/40"
+                }`}              
+                >
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 rounded-full bg-sky-500 mt-2" />
+
+                  <div className="flex-1">
+                    <p className="text-md font-semibold text-sky-800">
+                      {n.title}
+                    </p>
+
+                    <p className="text-sm text-slate-700 mt-1">
+                      {n.message}
+                    </p>
+
+                    <p className="text-[10px] text-slate-500 mt-2">
+                      {new Date(n.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
         
         <button className="w-full py-3 text-xs font-bold text-slate-500 hover:text-slate-900 border-t border-slate-100 transition-colors">

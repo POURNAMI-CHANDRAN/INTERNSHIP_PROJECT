@@ -128,7 +128,7 @@ export default function PremiumBenchManagement() {
   return (
     <div className="min-h-screen bg-[#F1F5F9] text-slate-900 font-sans">
       {/* Top Navigation Bar */}
-      <nav className="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-slate-200 px-8 py-4">
+      <nav className="top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-slate-200 px-8 py-4">
         <div className="max-w-[1800px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-sky-600 p-2.5 rounded-xl shadow-lg shadow-sky-200">
@@ -254,9 +254,9 @@ export default function PremiumBenchManagement() {
                 <table className="w-full">
                   <thead>
                     <tr className="text-left bg-slate-50/50">
-                      <th className="px-6 py-4 text-[10px] text-center font-black text-sky-800 uppercase tracking-widest">Resource</th>
-                      <th className="px-6 py-4 text-[10px] text-center font-black text-sky-800 uppercase tracking-widest">Entity</th>
-                      <th className="px-6 py-4 text-[10px] text-center font-black text-sky-800 uppercase tracking-widest">Utilization</th>
+                      <th className="px-6 py-4 text-[12px] text-center font-black text-sky-800 uppercase tracking-widest">Resource</th>
+                      <th className="px-6 py-4 text-[12px] text-center font-black text-sky-800 uppercase tracking-widest">Entity</th>
+                      <th className="px-6 py-4 text-[12px] text-center font-black text-sky-800 uppercase tracking-widest">Utilization</th>
                       <th className="px-6 py-4 text-right"></th>
                     </tr>
                   </thead>
@@ -269,18 +269,18 @@ export default function PremiumBenchManagement() {
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="h-9 w-9 rounded-lg bg-slate-100 flex items-center justify-center font-bold text-slate-500 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                            <div className="h-9 w-9 rounded-lg bg-sky-100 flex items-center justify-center font-bold text-sky-800 group-hover:bg-sky-600 group-hover:text-white transition-all">
                               {item.employee.name.charAt(0)}
                             </div>
                             <div>
                               <div className="text-sm font-bold text-slate-800">{item.employee.name}</div>
-                              <div className="text-[10px] text-slate-400 font-bold uppercase">{item.employee.employeeCode}</div>
+                              <div className="text-[10px] text-amber-600 font-bold uppercase">{item.employee.employeeCode}</div>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 uppercase">
-                            <Building2 size={12} className="text-slate-300" />
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase">
+                            <Building2 size={14} className="text-slate-500" />
                             {item.employee.departmentId?.name || "Global"}
                           </div>
                         </td>
@@ -442,16 +442,16 @@ export default function PremiumBenchManagement() {
               <div className="space-y-6">
                 <div>
                   <h2 className="text-3xl font-black text-slate-900 mb-1">{selectedEmployee.employee.name}</h2>
-                  <p className="text-sm font-bold text-indigo-600 tracking-widest uppercase">{selectedEmployee.employee.employeeCode}</p>
+                  <p className="text-md font-bold text-indigo-600 tracking-widest uppercase">{selectedEmployee.employee.employeeCode}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-6">
-                   <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                      <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Status</p>
+                   <div className="bg-sky-50 p-4 rounded-2xl border border-slate-100">
+                      <p className="text-[10px] font-black text-slate-500 uppercase mb-1">Status</p>
                       <StatusBadge status={selectedEmployee.status} />
                    </div>
-                   <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                      <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Utilization</p>
+                   <div className="bg-sky-50 p-4 rounded-2xl border border-slate-100">
+                      <p className="text-[10px] font-black text-slate-500 uppercase mb-1">Utilization</p>
                       <p className="text-xl font-black text-slate-800">{selectedEmployee.utilization}%</p>
                    </div>
                 </div>
@@ -463,7 +463,7 @@ export default function PremiumBenchManagement() {
                 </div>
 
                 <div>
-                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Competency Stack</p>
+                  <p className="text-md font-bold text-amber-800 uppercase tracking-widest mb-4">Competency Stack</p>
                   <div className="flex flex-wrap gap-2">
                     {selectedEmployee.employee.skills?.map((s: any) => (
                       <span key={s._id} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 shadow-sm">
@@ -473,7 +473,7 @@ export default function PremiumBenchManagement() {
                   </div>
                 </div>
 
-                <button className="w-full py-4 bg-sky-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-sm hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-slate-200">
+                <button className="w-full py-4 bg-sky-500 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-sm hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-slate-200">
                    Manage Assignments
                 </button>
               </div>
@@ -518,7 +518,7 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg ${theme.bg} ${theme.text}`}>
       <div className={`h-1.5 w-1.5 rounded-full ${theme.dot}`} />
-      <span className="text-[10px] font-black uppercase tracking-wider">{status}</span>
+      <span className="text-[12px] font-black uppercase tracking-wider">{status}</span>
     </div>
   );
 }

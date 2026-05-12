@@ -152,7 +152,7 @@ export default function Dashboard() {
           {/* TEXT BLOCK */}
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
-              Executive<span className="text-sky-600">Insights</span>
+              Executive <span className="text-sky-600">Insights</span>
             </h1>
 
           <p className="text-slate-600 font-medium">Real-time resource and revenue performance</p>

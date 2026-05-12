@@ -298,7 +298,7 @@ export default function MyProfile() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* SIDEBAR */}
           <div className="lg:col-span-3">
-            <div className="sticky top-6 bg-white border border-slate-200 rounded-3xl p-3 shadow-sm">
+            <div className="top-6 bg-white border border-slate-200 rounded-3xl p-3 shadow-sm">
               <div className="space-y-2">
                 {tabs.map((tab) => (
                   <button

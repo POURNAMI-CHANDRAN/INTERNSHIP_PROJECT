@@ -217,7 +217,7 @@ export function WorkloadManager() {
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         
         {/* PREMIUM HEADER */}
-        <header className="px-10 pt-10 pb-6 border-b border-slate-100 bg-white/80 backdrop-blur-md sticky top-0 z-20">
+        <header className="px-10 pt-10 pb-6 border-b border-slate-100 bg-white/80 backdrop-blur-md top-0 z-20">
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
 
               <div className="flex items-center gap-2 mb-1">

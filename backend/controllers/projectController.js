@@ -1,4 +1,5 @@
 import Project from "../models/Project.js";
+import Notification from "../models/Notification.js";
 
 /* ================= GET ================= */
 export const getProjects = async (req, res) => {
@@ -36,9 +37,40 @@ export const getProjects = async (req, res) => {
 export const createProject = async (req, res) => {
   try {
     const project = await Project.create(req.body);
-    res.status(201).json({ success: true, data: project });
+        /* ---------------- SOCKET IO ---------------- */
+
+    const io = req.app.get("io");
+
+    /* ---------------- CREATE NOTIFICATION ---------------- */
+
+    const notification =
+      await Notification.create({
+        title: "New Project Created",
+        message: `${project.project_name || project.name} was Created Successfully 🚀`,
+        type: "project",
+      });
+
+    /* ---------------- EMIT LIVE EVENT ---------------- */
+
+    io.emit(
+      "new_notification",
+      notification
+    );
+
+    /* ---------------- RESPONSE ---------------- */
+
+    res.status(201).json({
+      success: true,
+      data: project,
+    });
+
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    console.log(err);
+
+    res.status(400).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
 
