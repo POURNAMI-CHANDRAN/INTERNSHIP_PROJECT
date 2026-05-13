@@ -844,41 +844,41 @@ return (
                                       <div className="grid grid-cols-2 gap-y-2 text-sm">
 
                                         <div>Period</div>
-                                        <div className="text-right">
+                                        <div className="text-right font-bold">
                                           {a.month}/{a.year}
                                         </div>
 
                                         <div>Hours / FTE</div>
-                                        <div className="text-right">
+                                        <div className="text-right font-bold">
                                           {a.hours}h ({a.fte})
                                         </div>
 
                                         <div>Rate</div>
-                                        <div className="text-right">INR {a.rate}</div>
+                                        <div className="text-right font-bold">INR {a.rate}</div>
 
                                         <div>Revenue</div>
-                                        <div className="text-right text-green-600">
+                                        <div className="text-right font-bold text-green-600">
                                           INR {a.revenue}
                                         </div>
 
                                         <div>Cost</div>
-                                        <div className="text-right text-red-500">
+                                        <div className="text-right font-bold text-red-500">
                                           INR {a.cost}
                                         </div>
 
                                         <div>Profit</div>
                                         <div
-                                          className={`text-right ${
+                                          className={`text-right font-bold${
                                             a.revenue - a.cost >= 0
-                                              ? "text-green-600"
-                                              : "text-red-600"
+                                              ? "text-green-600 font-bold"
+                                              : "text-red-600 font-bold"
                                           }`}
                                         >
                                           INR {a.revenue - a.cost}
                                         </div>
 
                                       </div>
-                                    </div>
+                                    </div> 
                                   ))
                                 ) : (
                                   <div className="col-span-full text-center py-10 text-gray-400">
