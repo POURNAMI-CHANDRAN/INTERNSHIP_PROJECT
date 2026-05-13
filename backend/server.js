@@ -39,9 +39,9 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: "http://localhost:5173",
-    credentials: true,
+    methods: ["GET", "POST"],
   },
-});
+})
 
 app.set("io", io);
 
@@ -90,6 +90,6 @@ app.use("/api/notify", notificationRoutes);
 app.get("/", (req, res) => {res.send("API is Running 🚀");});
 
 /* ---------------- START SERVER ---------------- */
-app.listen(5000, () => console.log("🚀 Server Port 5000"));
+server.listen(5000, () => console.log("🚀 Server + Socket.IO Running on Port 5000"));
 
 console.log("JWT SECRET : ", process.env.JWT_SECRET);

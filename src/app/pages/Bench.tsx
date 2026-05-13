@@ -1,13 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Users, Briefcase, Search, Building2, TrendingUp,
-  Sparkles, Filter, Clock3, MapPin, BarChart3,
-  Layers, TrendingUpDown, Target, ArrowUpRight, MoreHorizontal,
-  ChevronDown, Download, BrainCircuit
+  Users, Briefcase, Search, Building2, 
+  Sparkles, Filter, MapPin, BarChart3,
+  Layers, TrendingUpDown, Target, ArrowUpRight, Download, BrainCircuit
 } from "lucide-react";
 import {
-  ResponsiveContainer, PieChart, Pie, Cell, Tooltip, AreaChart,
-  Area, XAxis, YAxis, CartesianGrid,
+  ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
 } from "recharts";
 import { motion, AnimatePresence } from "framer-motion";
 import jsPDF from "jspdf";
@@ -16,6 +14,7 @@ import autoTable from "jspdf-autotable";
 /* ======================================================
    THEMES & UTILS
 ====================================================== */
+const MONTHLY_CAPACITY = 160;
 
 const STATUS_THEMES: any = {
   Billable: { color: "#068a9e", text: "text-cyan-600", dot: "bg-cyan-500", bg: "bg-cyan-50" },
@@ -26,8 +25,8 @@ const STATUS_THEMES: any = {
 
 const getEmployeeStatus = (utilization: number) => {
   if (utilization === 0) return "Fully Bench";
-  if (utilization > 0 && utilization < 70) return "Partial Bench";
-  if (utilization >= 70 && utilization <= 100) return "Billable";
+  if (utilization < 70) return "Partial Bench";
+  if (utilization <= 100) return "Billable";
   return "Overallocated";
 };
 
@@ -44,6 +43,13 @@ export default function PremiumBenchManagement() {
   const [sortBy, setSortBy] = useState("utilization");
   const [selectedEmployee, setSelectedEmployee] = useState<any | null>(null);
   const [showStrategy, setShowStrategy] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignmentEmployee, setAssignmentEmployee] = useState<any | null>(null);
+
+  const [projects, setProjects] = useState<any[]>([]);
+  const [selectedProject, setSelectedProject] = useState("");
+  const [allocation, setAllocation] = useState(50);
+  const [assignLoading, setAssignLoading] = useState(false);
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
@@ -51,15 +57,39 @@ export default function PremiumBenchManagement() {
     const fetchBench = async () => {
       try {
         setLoading(true);
+
         const res = await fetch(`${API_BASE}/api/bench`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
+
         const data = await res.json();
-        const formatted = data.map((item: any) => ({
-          ...item,
-          bench: 100 - item.utilization,
-          status: getEmployeeStatus(item.utilization),
-        }));
+
+        const formatted = data.map((item: any) => {
+          const billableAllocation = item.billableAllocation || 0;
+
+          // ✅ FIX: Dynamic total allocation
+          const totalAllocation =
+            (item.billableAllocation || 0) +
+            (item.nonBillableAllocation || 0) ||
+            MONTHLY_CAPACITY;
+
+          // ✅ FIX: Correct utilization formula
+          const utilization =
+            totalAllocation > 0
+              ? Number(
+                  ((billableAllocation / totalAllocation) * 100).toFixed(1)
+                )
+              : 0;
+
+          return {
+            ...item,
+            totalAllocation,
+            utilization,
+            bench: Math.max(0, 100 - utilization),
+            status: getEmployeeStatus(utilization),
+          };
+        });
+
         setBenchData(formatted);
       } catch (err) {
         console.error(err);
@@ -67,18 +97,50 @@ export default function PremiumBenchManagement() {
         setLoading(false);
       }
     };
+
     fetchBench();
   }, []);
+
+useEffect(() => {
+  const fetchProjects = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/projects`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      const data = await res.json();
+
+      console.log("PROJECT API RESPONSE =>", data);
+
+      if (Array.isArray(data)) {
+        setProjects(data);
+      } else if (Array.isArray(data.projects)) {
+        setProjects(data.projects);
+      } else if (Array.isArray(data.data)) {
+        setProjects(data.data);
+      } else {
+        setProjects([]);
+      }
+    } catch (err) {
+      console.error(err);
+      setProjects([]);
+    }
+  };
+
+  fetchProjects();
+}, []);
 
   const stats = useMemo(() => ({
     total: benchData.length,
     billable: benchData.filter(e => e.status === "Billable").length,
     bench: benchData.filter(e => e.status === "Fully Bench").length,
     partial: benchData.filter(e => e.status === "Partial Bench").length,
-    utilization: benchData.length > 0 
-      ? Math.round((benchData.reduce((acc, curr) => acc + curr.utilization, 0) / (benchData.length * 100)) * 100) 
-      : 0
-  }), [benchData]);
+    utilization:
+      benchData.length > 0 ? Math.round(
+        benchData.reduce((acc, curr) => acc + curr.utilization, 0) / benchData.length): 0,
+    }), [benchData]);
 
   const filteredData = useMemo(() => {
     let data = benchData.filter((item) => {
@@ -121,6 +183,88 @@ export default function PremiumBenchManagement() {
   });
 
   doc.save("BENCH REPORT.pdf");
+};
+
+const handleAssignProject = async () => {
+  if (!assignmentEmployee || !selectedProject) return;
+
+  try {
+    setAssignLoading(true);
+
+    const currentBillable = assignmentEmployee.billableAllocation || 0;
+
+    const allocatedHours = (allocation / 100) * MONTHLY_CAPACITY;
+
+    if (currentBillable + allocatedHours > MONTHLY_CAPACITY) {
+      alert("Allocation exceeds monthly capacity");
+      setAssignLoading(false);
+      return;
+    }
+
+    const payload = {
+      employeeId: assignmentEmployee.employee._id,
+      projectId: selectedProject,
+      allocatedHours,
+      allocationFTE: allocatedHours / MONTHLY_CAPACITY,
+      month: new Date().getMonth() + 1,
+      year: new Date().getFullYear(),
+    };
+
+    const res = await fetch(`${API_BASE}/api/allocations`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      throw new Error("Assignment Failed");
+    }
+
+    // optimistic refresh
+    setBenchData((prev) =>
+      prev.map((emp) => {
+        if (emp.employee._id === assignmentEmployee.employee._id) {
+          const updatedBillable =
+            (emp.billableAllocation || 0) + allocatedHours;
+
+          // ✅ recompute total allocation
+          const updatedTotal =
+            updatedBillable +
+            (emp.nonBillableAllocation || 0) ||
+            MONTHLY_CAPACITY;
+
+          // ✅ correct utilization formula
+          const updatedUtil =
+            updatedTotal > 0
+              ? Math.round((updatedBillable / updatedTotal) * 100)
+              : 0;
+
+          return {
+            ...emp,
+            billableAllocation: updatedBillable,
+            totalAllocation: updatedTotal,
+            utilization: updatedUtil,
+            bench: Math.max(0, 100 - updatedUtil),
+            status: getEmployeeStatus(updatedUtil),
+          };
+        }
+
+        return emp;
+      })
+    );
+
+    setShowAssignModal(false);
+    setSelectedProject("");
+    setAllocation(50);
+  } catch (err) {
+    console.error(err);
+    alert("Unable to Assign Project");
+  } finally {
+    setAssignLoading(false);
+  }
 };
 
   if (loading) return <LoadingScreen />;
@@ -184,7 +328,7 @@ export default function PremiumBenchManagement() {
             <div className="space-y-1">
               <p className="text-[10px] font-bold text-slate-400 uppercase ml-2 mb-1">Current Status</p>
               <div className="flex flex-col gap-1">
-                {["All", "Billable", "Partial Bench", "Fully Bench"].map(status => (
+                {["All", "Billable", "Partial Bench", "Fully Bench", "Overallocated"].map(status => (
                   <button
                     key={status}
                     onClick={() => setStatusFilter(status)}
@@ -361,6 +505,114 @@ export default function PremiumBenchManagement() {
   )}
 </AnimatePresence>
 
+<AnimatePresence>
+  {showAssignModal && assignmentEmployee && (
+    <>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={() => setShowAssignModal(false)}
+        className="fixed inset-0 bg-black/40 z-[80]"
+      />
+
+      <motion.div
+        initial={{ y: 40, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 40, opacity: 0 }}
+        className="fixed inset-0 m-auto h-fit w-full max-w-lg bg-white rounded-[2rem] p-8 z-[90] shadow-2xl"
+      >
+        <div className="flex items-center gap-3 mb-6">
+          <Briefcase className="text-indigo-600" />
+          <div>
+            <h2 className="text-2xl font-black">
+              Assign Project
+            </h2>
+            <p className="text-sm text-slate-500">
+              {assignmentEmployee.employee.name}
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          <div>
+            <label className="text-xs font-black uppercase text-slate-400 mb-2 block">
+              Select Project
+            </label>
+
+            <select
+              value={selectedProject}
+              onChange={(e) => setSelectedProject(e.target.value)}
+              className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none"
+            >
+              <option value="">Choose Project</option>
+
+              {Array.isArray(projects) && projects.map((project) => (
+              <option key={project._id} value={project._id}>
+                {project.projectName || project.name || project.title || "Unnamed Project"}
+              </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-black uppercase text-slate-400">
+                Allocation
+              </label>
+
+              <span className="text-sm font-bold text-indigo-600">
+                {allocation}%
+              </span>
+            </div>
+
+            <input
+              type="range"
+              min={10}
+              max={100}
+              step={10}
+              value={allocation}
+              onChange={(e) => setAllocation(Number(e.target.value))}
+              className="w-full"
+            />
+          </div>
+
+          <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-500 font-medium">
+                Current Utilization
+              </span>
+
+              <span className="font-bold">
+                {assignmentEmployee.utilization}%
+              </span>
+            </div>
+
+            <div className="flex justify-between text-sm mt-2">
+              <span className="text-slate-500 font-medium">
+                After Allocation
+              </span>
+
+              <span className="font-black text-indigo-600">
+                {Math.round((((assignmentEmployee.billableAllocation || 0) + 
+                              (allocation / 100) * MONTHLY_CAPACITY) / MONTHLY_CAPACITY) * 100)}%
+              </span>
+            </div>
+          </div>
+
+          <button
+            disabled={assignLoading}
+            onClick={handleAssignProject}
+            className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black hover:opacity-90 transition-all disabled:opacity-50"
+          >
+            {assignLoading ? "Assigning..." : "Confirm Assignment"}
+          </button>
+        </div>
+      </motion.div>
+    </>
+  )}
+</AnimatePresence>
+
           {/* RIGHT SIDEBAR: MIX & INSIGHTS */}
           <aside className="col-span-12 lg:col-span-3 space-y-6">
             
@@ -453,6 +705,7 @@ export default function PremiumBenchManagement() {
                    <div className="bg-sky-50 p-4 rounded-2xl border border-slate-100">
                       <p className="text-[10px] font-black text-slate-500 uppercase mb-1">Utilization</p>
                       <p className="text-xl font-black text-slate-800">{selectedEmployee.utilization}%</p>
+                      <p className="text-sm text-slate-500 mt-1">Billable: {selectedEmployee.utilization}% </p>
                    </div>
                 </div>
 
@@ -465,7 +718,7 @@ export default function PremiumBenchManagement() {
                 <div>
                   <p className="text-md font-bold text-amber-800 uppercase tracking-widest mb-4">Competency Stack</p>
                   <div className="flex flex-wrap gap-2">
-                    {selectedEmployee.employee.skills?.map((s: any) => (
+                    {selectedEmployee?.employee?.skills?.map((s: any) => (
                       <span key={s._id} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 shadow-sm">
                         {s.name}
                       </span>
@@ -473,9 +726,65 @@ export default function PremiumBenchManagement() {
                   </div>
                 </div>
 
-                <button className="w-full py-4 bg-sky-500 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-sm hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-slate-200">
-                   Manage Assignments
-                </button>
+                <div className="mt-6">
+                  <p className="text-md font-bold uppercase tracking-widest text-amber-800 mb-4">
+                    Monthly Bench
+                  </p>
+
+                  <div className="space-y-3">
+                    {selectedEmployee.monthlyBench?.map((m: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className="p-4 rounded-2xl border border-slate-200 bg-slate-50"
+                      >
+                        <div className="flex justify-between items-center">
+                          <h4 className="font-black text-slate-800">
+                            Month {m.month} / {m.year}
+                          </h4>
+
+                          <StatusBadge status={m.status} />
+                        </div>
+
+                        <div className="mt-3 flex justify-between text-sm">
+                          <span>Utilization</span>
+                          <span className="font-bold">{m.utilization}%</span>
+                        </div>
+
+                        <div className="mt-1 flex justify-between text-sm">
+                          <span>Bench</span>
+                          <span className="font-bold">{m.bench}%</span>
+                        </div>
+
+                        <div className="mt-3">
+                          <p className="text-xs font-bold uppercase text-amber-700 mb-2">
+                            Projects
+                          </p>
+
+                          <div className="flex flex-wrap gap-2">
+                            {m.projects?.map((p: any) => (
+                              <span
+                                key={p._id}
+                                className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold"
+                              >
+                                {p.name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              <button
+                onClick={() => {
+                  setAssignmentEmployee(selectedEmployee);
+                  setShowAssignModal(true);
+                }}
+                className="w-full py-4 bg-sky-500 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-sm hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-slate-200"
+              >
+                Manage Assignments
+              </button>
               </div>
             </motion.div>
           </>

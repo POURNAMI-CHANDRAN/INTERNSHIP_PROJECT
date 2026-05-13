@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const Benchchema = new mongoose.Schema(
+const BenchSchema = new mongoose.Schema(
   {
     project_id: {
       type: mongoose.Schema.Types.ObjectId,
@@ -47,12 +47,43 @@ const Benchchema = new mongoose.Schema(
       ref: "Employee",
       default: null,
     },
+
+    monthlyBench: [
+      {
+        month: {
+          type: String,
+          required: true,
+          match: /^\d{4}-\d{2}$/,
+        },
+
+        utilization: {
+          type: Number,
+          default: 0,
+          min: 0,
+          max: 100,
+        },
+
+        bench: {
+          type: Number,
+          default: 100,
+          min: 0,
+          max: 100,
+        },
+
+        projects: [
+          {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Project",
+          },
+        ],
+      },
+    ],
   },
   { timestamps: true }
 );
 
-/* ✅ Auto‑calculate hours */
-Benchchema.pre("save", function () {
+/* ✅ Auto calculate hours */
+BenchSchema.pre("save", function () {
   if (this.effort_type === "FTE") {
     this.hours_required = this.effort_value * 160;
   } else {
@@ -60,4 +91,4 @@ Benchchema.pre("save", function () {
   }
 });
 
-export default mongoose.model("Bench", Benchchema);
+export default mongoose.model("Bench", BenchSchema);
