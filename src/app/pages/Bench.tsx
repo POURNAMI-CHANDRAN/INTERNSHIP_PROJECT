@@ -68,10 +68,12 @@ export default function PremiumBenchManagement() {
           const billableAllocation = item.billableAllocation || 0;
 
           // ✅ FIX: Dynamic total allocation
-          const totalAllocation =
-            (item.billableAllocation || 0) +
-            (item.nonBillableAllocation || 0) ||
-            MONTHLY_CAPACITY;
+            const rawTotal =
+              (item.billableAllocation || 0) +
+              (item.nonBillableAllocation || 0);
+
+            const totalAllocation =
+              rawTotal > 0 ? rawTotal : 0; // ✅ DO NOT fallback
 
           // ✅ FIX: Correct utilization formula
           const utilization =
