@@ -74,6 +74,19 @@ export default function EmployeeDrawer({
   const [activeAllocation, setActiveAllocation] = useState<any>(null);
   const [allSkills, setAllSkills] = useState<any[]>([]);
 
+  const [showSkillDropdown, setShowSkillDropdown] = useState(false);
+  const [skillSearch, setSkillSearch] = useState("");
+
+  const filteredSkills = useMemo(() => {
+    if (!Array.isArray(allSkills)) return [];
+
+    if (!skillSearch) return allSkills;
+
+    return allSkills.filter((s) =>
+      s.name?.toLowerCase().includes(skillSearch.toLowerCase())
+    );
+  }, [allSkills, skillSearch]);
+
   const getFTE = (hours: number) => hours / CAPACITY;
 
   /* ===================== EFFECTS ===================== */
@@ -86,7 +99,12 @@ export default function EmployeeDrawer({
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
-        setAllSkills(res.data || []);
+        setAllSkills(
+          (res.data?.data || []).map((s: any) => ({
+            id: s._id,
+            name: s.name,
+          }))
+        );
       } catch (err) {
         console.error("Failed to Fetch Skills", err);
       }
@@ -105,15 +123,29 @@ export default function EmployeeDrawer({
     skills: [],
   });
 
-  useEffect(() => {
-    setEditForm({
-      departmentId: employee?.departmentId || "",
-      joiningDate: employee?.joiningDate?.slice(0, 10) || "",
-      location: employee?.location || "",
-      hourlyCost: employee?.hourlyCost?.toString() || "",
-      skills: employee?.skills?.map((s: any) => s._id) || [],
-    });
-  }, [employee]);
+useEffect(() => {
+  if (!employee) return;
+
+  setEditForm({
+    departmentId:
+      typeof employee?.departmentId === "object"
+        ? employee?.departmentId?._id
+        : employee?.departmentId || "",
+
+    joiningDate: employee?.joiningDate?.slice(0, 10) || "",
+
+    location: employee?.location || "",
+
+    hourlyCost: employee?.hourlyCost?.toString() || "",
+
+    skills: Array.isArray(employee?.skills)
+      ? employee.skills
+          .map((s: any) => (typeof s === "object" ? s._id || s.id : s))
+          .filter(Boolean)
+          .map((id: any) => String(id))   // ✅ NORMALIZE TO STRING
+      : [],
+  });
+}, [employee]);
 
   
   /* ===================== DERIVED VALUES ===================== */
@@ -378,66 +410,113 @@ const trendData = useMemo(() => {
                   }
                 />
 
-            <div className="relative">
-              <label className="text-[10px] font-bold uppercase text-slate-400 mb-1 block">
-                Skills
-              </label>
+ <div className="relative">
+  <label className="text-[10px] font-bold uppercase text-slate-400 mb-1 block">
+    Skills
+  </label>
 
-              {/* Selection Trigger Area */}
-              <div 
-                className="min-h-[40px] p-1.5 flex flex-wrap gap-1.5 bg-white border border-slate-200 rounded-lg text-sm transition-all focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 cursor-text"
-                onClick={() => { /* Logic to open dropdown if you want it to toggle on click */ }}
+  {/* Selected Skills Box */}
+  <div
+    onClick={() => setShowSkillDropdown((prev) => !prev)}
+    className="min-h-[40px] p-1.5 flex flex-wrap gap-1.5 bg-white border border-slate-200 rounded-lg cursor-pointer"
+  >
+    {editForm.skills.length > 0 ? (
+      editForm.skills.map((id) => {
+        const skill = allSkills.find((s) =>
+          String(s.id) === String(id) ||
+          s.name?.toLowerCase() === String(id).toLowerCase()
+      );
+
+
+        return (
+          <span
+            key={id}
+            className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[11px] font-bold rounded-md"
+          >
+            {skill?.name || id}
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditForm((prev) => ({
+                  ...prev,
+                  skills: prev.skills.filter((s) => s !== id),
+                }));
+              }}
+              className="hover:bg-indigo-200 rounded-full p-0.5"
+            >
+              <X size={10} />
+            </button>
+          </span>
+        );
+      })
+    ) : (
+      <span className="text-xs text-slate-400">Select skills...</span>
+    )}
+  </div>
+
+  {/* Dropdown */}
+  {showSkillDropdown && (
+    <div className="absolute z-10 mt-2 w-full bg-white border border-slate-200 rounded-lg shadow max-h-56 flex flex-col">
+      
+      {/* Search */}
+      <input
+        placeholder="Search skills..."
+        value={skillSearch}
+        onChange={(e) => setSkillSearch(e.target.value)}
+        className="px-3 py-2 text-xs border-b outline-none"
+      />
+
+      {/* List */}
+      <div className="overflow-y-auto">
+        {filteredSkills.length === 0 ? (
+          <div className="p-3 text-xs text-slate-400 text-center">
+            No skills found
+          </div>
+        ) : (
+          filteredSkills.map((skill) => {
+            const skillId = skill._id || skill.id;
+            const isSelected = editForm.skills.some((id) =>
+              String(id) === String(skillId) ||
+              id.toLowerCase() === skill.name.toLowerCase());
+            const idStr = String(skillId);
+            const nameStr = skill.name.toLowerCase();
+
+            return (
+              <div
+                key={skillId}
+                onClick={() => {
+                  setEditForm((prev) => ({
+                    ...prev,
+                    skills: isSelected
+                  ? prev.skills.filter(
+                      (id) =>
+                        String(id) !== idStr &&
+                        id.toLowerCase() !== nameStr
+                    )
+                  : [...prev.skills, idStr],}));
+                }}
+                className={`px-3 py-2 text-xs flex justify-between cursor-pointer hover:bg-slate-50 ${
+                  isSelected
+                    ? "bg-indigo-50 text-indigo-600"
+                    : "text-slate-600"
+                }`}
               >
-                {editForm.skills.length === 0 && (
-                  <span className="text-slate-400 py-1 px-1">Select Skills...</span>
+                {skill.name}
+
+                {isSelected && (
+                  <div className="w-2 h-2 bg-indigo-600 rounded-full" />
                 )}
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  )}
+</div>
                 
-                {allSkills.filter(s => editForm.skills.includes(s._id)).map((skill) => (
-                  <span 
-                    key={skill._id}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 text-[11px] font-bold rounded-md border border-indigo-100"
-                  >
-                    {skill.name}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const newSkills = editForm.skills.filter(id => id !== skill._id);
-                        setEditForm({ ...editForm, skills: newSkills });
-                      }}
-                      className="hover:bg-indigo-200 rounded-full p-0.5 transition-colors"
-                    >
-                      <X size={10} />
-                    </button>
-                  </span>
-                ))}
-              </div>
-
-              {/* The Dropdown List */}
-              <div className="mt-2 max-h-40 overflow-y-auto border border-slate-200 rounded-lg bg-white shadow-sm">
-                {allSkills.map((skill: any) => {
-                  const isSelected = editForm.skills.includes(skill._id);
-                  return (
-                    <div
-                      key={skill._id}
-                      onClick={() => {
-                        const newSkills = isSelected
-                          ? editForm.skills.filter((id: string) => id !== skill._id)
-                          : [...editForm.skills, skill._id];
-                        setEditForm({ ...editForm, skills: newSkills });
-                      }}
-                      className={`px-3 py-2 text-xs cursor-pointer flex items-center justify-between hover:bg-slate-50 transition-colors ${
-                        isSelected ? "text-indigo-600 bg-indigo-50/30" : "text-slate-600"
-                      }`}
-                    >
-                      {skill.name}
-                      {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
                 <div className="flex gap-2 pt-2">
                   <IconButton
                     icon={<X size={14} />}
