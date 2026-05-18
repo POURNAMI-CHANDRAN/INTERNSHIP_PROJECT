@@ -1,74 +1,72 @@
 import mongoose from "mongoose";
 
-/* ================= LIFECYCLE HELPER ================= */
+/* ================= HELPERS ================= */
+
 function applyLifecycleFlags(doc) {
+
   if (doc.status === "ACTIVE") {
     doc.allowAllocations = true;
     doc.allowMoves = true;
+
   } else if (doc.status === "ON_HOLD") {
     doc.allowAllocations = false;
     doc.allowMoves = true;
+
   } else {
     doc.allowAllocations = false;
     doc.allowMoves = false;
   }
 }
 
-/* ================= BILLING DATA FIX ================= */
 function normalizeBilling(doc) {
-  if (
-    doc.billingModel === "Billable" ||
-    doc.billingModel === "Non-Billable"
-  ) {
-    doc.type = doc.billingModel;
-    doc.billingModel = "Hourly"; // safe default
-  }
 
-  /* Non-Billable should never carry revenue */
   if (doc.type === "Non-Billable") {
     doc.billingRate = 0;
     doc.fixedMonthlyRevenue = 0;
+    return;
   }
 
-  /* Fixed model should not use hourly */
   if (doc.billingModel === "Fixed") {
     doc.billingRate = 0;
   }
 
-  /* Hourly model should not use monthly */
   if (doc.billingModel === "Hourly") {
     doc.fixedMonthlyRevenue = 0;
   }
 }
 
+/* ================= SCHEMA ================= */
+
 const projectSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true, trim: true },
-
-    client_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Client",
+    name: {
+      type: String,
       required: true,
+      trim: true,
     },
 
-    /* BUSINESS TYPE */
     type: {
       type: String,
       enum: ["Billable", "Non-Billable"],
       required: true,
     },
 
-    /* PRICING MODEL */
-    billingModel: {
-      type: String,
-      enum: ["Hourly", "Fixed"],
-      default: "Hourly",
-    },
+  billingModel: {
+    type: String,
+    enum: ["Hourly", "Fixed", null],
+    default: null,
+  },
 
     billingRate: {
       type: Number,
-      min: 0,
       default: 0,
+      min: 0,
+    },
+
+    fixedMonthlyRevenue: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
 
     targetFTE: {
@@ -76,15 +74,16 @@ const projectSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
-    
-    fixedMonthlyRevenue: {
-      type: Number,
-      min: 0,
-      default: 0,
+
+    startMonth: {
+      type: String,
+      required: true,
     },
 
-    startDate: { type: Date, required: true },
-    endDate: Date,
+    startYear: {
+      type: Number,
+      required: true,
+    },
 
     status: {
       type: String,
@@ -108,32 +107,86 @@ const projectSchema = new mongoose.Schema(
       default: false,
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
 );
 
 /* ================= CREATE ================= */
 projectSchema.pre("save", function () {
   normalizeBilling(this);
   applyLifecycleFlags(this);
+
+  if (
+    this.type === "Billable" &&
+    this.billingModel === "Hourly" &&
+    this.billingRate <= 0
+  ) {
+    throw new Error("Hourly projects require billingRate");
+  }
+
+  if (
+    this.type === "Billable" &&
+    this.billingModel === "Fixed" &&
+    this.fixedMonthlyRevenue <= 0
+  ) {
+    throw new Error("Fixed projects require fixedMonthlyRevenue");
+  }
 });
 
 /* ================= UPDATE ================= */
+
 projectSchema.pre("findOneAndUpdate", function () {
   const update = this.getUpdate();
+  const data = update.$set || update;
 
-  normalizeBilling(update);
+  normalizeBilling(data);
 
-  if (update.status) {
-    applyLifecycleFlags(update);
+  if (data.status) {
+    applyLifecycleFlags(data);
+  }
+
+  if (
+    data.type === "Billable" &&
+    data.billingModel === "Hourly" &&
+    Number(data.billingRate || 0) <= 0
+  ) {
+    throw new Error("Hourly Projects require Billing Rate");
+  }
+
+  if (
+    data.type === "Billable" &&
+    data.billingModel === "Fixed" &&
+    Number(data.fixedMonthlyRevenue || 0) <= 0
+  ) {
+    throw new Error("Fixed Projects require Fixed Monthly Revenue");
+  }
+
+  if (update.$set) {
+    update.$set = data;
   }
 
   this.setUpdate(update);
 });
 
 
+projectSchema.path("billingModel").validate(function(value) {
+
+  if (this.type === "Billable" && !value) {
+    return false;
+  }
+
+  return true;
+
+}, "Billable Projects require Billing Model");
+/* ================= VIRTUAL ================= */
+
 projectSchema.virtual("targetHours").get(function () {
   return (this.targetFTE || 0) * 160;
 });
 
+/* ================= EXPORT ================= */
 
 export default mongoose.model("Project", projectSchema);

@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 // --- Types ---
-interface Department {
+interface Role {
   _id: string;
   name: string;
   createdAt: string;
@@ -23,7 +23,6 @@ interface Department {
 interface WorkCategory {
   _id: string;
   name: string;
-  allowedBillingTypes: ("Billable" | "Non-Billable")[];
   status: "Active" | "Inactive";
 }
 
@@ -31,16 +30,13 @@ export default function EnterpriseTaxonomy() {
   const API_BASE = import.meta.env.VITE_API_BASE_URL;
   const token = localStorage.getItem("token");
 
-  const [departments, setDepartments] = useState<Department[]>([]);
+  const [roles, setroles] = useState<Role[]>([]);
   const [workCategories, setWorkCategories] = useState<WorkCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showInactive, setShowInactive] = useState(false);
-  const [modalType, setModalType] = useState<"DEPT" | "WC" | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    billingTypes: [] as string[],
-  });
+  const [modalType, setModalType] = useState<"ROLE" | "WC" | null>(null);
+  const [formData, setFormData] = useState({name: ""});
 
   /* ---------------- Fetch ---------------- */
 const loadData = useCallback(async () => {
@@ -52,15 +48,15 @@ const loadData = useCallback(async () => {
       ? `${API_BASE}/api/workcategories`
       : `${API_BASE}/api/workcategories?status=Active`;
 
-    const [deptRes, wcRes] = await Promise.all([
-      fetch(`${API_BASE}/api/departments`, { headers }),
+    const [roleRes, wcRes] = await Promise.all([
+      fetch(`${API_BASE}/api/roles`, { headers }),
       fetch(wcUrl, { headers }),
     ]);
 
-    const deptJson = await deptRes.json();
+    const roleJson = await roleRes.json();
     const wcJson = await wcRes.json();
 
-    setDepartments(Array.isArray(deptJson) ? deptJson : deptJson.data ?? []);
+    setroles(Array.isArray(roleJson) ? roleJson : roleJson.data ?? []);
     setWorkCategories(Array.isArray(wcJson) ? wcJson : wcJson.data ?? []);
   } catch (err) {
     console.error("API Failure:", err);
@@ -75,12 +71,12 @@ const loadData = useCallback(async () => {
 
   /* ---------------- Filters ---------------- */
 
-  const filteredDepts = useMemo(
+  const filteredroles = useMemo(
     () =>
-      departments.filter((d) =>
+      roles.filter((d) =>
         d.name.toLowerCase().includes(searchQuery.toLowerCase())
       ),
-    [departments, searchQuery]
+    [roles, searchQuery]
   );
 
   const filteredWC = useMemo(() => {
@@ -104,12 +100,11 @@ const loadData = useCallback(async () => {
     const body = isWC
       ? {
           name: formData.name,
-          allowedBillingTypes: formData.billingTypes,
           status: "Active",
         }
       : { name: formData.name };
 
-    await fetch(`${API_BASE}/api/${isWC ? "workcategories" : "departments"}`, {
+    await fetch(`${API_BASE}/api/${isWC ? "workcategories" : "roles"}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -119,7 +114,7 @@ const loadData = useCallback(async () => {
     });
 
     setModalType(null);
-    setFormData({ name: "", billingTypes: [] });
+    setFormData({ name: ""});
     loadData();
   };
 
@@ -145,7 +140,7 @@ const loadData = useCallback(async () => {
                 Organization<span className="text-sky-600"> Architecture</span>
               </h1>
 
-              <p className="text-slate-600 font-medium"> Manage global classification systems and billing logic.</p>
+              <p className="text-slate-600 font-medium"> Manage global classification systems.</p>
             </div>
           </div>
           
@@ -236,15 +231,6 @@ const loadData = useCallback(async () => {
                       </div>
                     </td>
 
-                    {/* Billing Types */}
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        {item.allowedBillingTypes.map((t) => (
-                          <StatusBadge key={t} label={t} />
-                        ))}
-                      </div>
-                    </td>
-
                     {/* Actions */}
                     <td className="px-4 py-3 text-right">
                     <RowActions
@@ -260,19 +246,19 @@ const loadData = useCallback(async () => {
             )}
           </SectionContainer>
 
-          {/* Departments */}
+          {/* roles */}
           <SectionContainer
-            title="Departments"
+            title="Roles"
             icon={<Building2 size={14} />}
-            count={filteredDepts.length}
-            onAdd={() => setModalType("DEPT")}
+            count={filteredroles.length}
+            onAdd={() => setModalType("ROLE")}
           >
             {loading ? (
               <TableSkeleton />
-            ) : filteredDepts.length === 0 ? (
+            ) : filteredroles.length === 0 ? (
               <EmptyState />
             ) : (
-              filteredDepts.map((item) => (
+              filteredroles.map((item) => (
                 <div
                   key={item._id}
                   className="flex justify-between items-center px-4 py-3 hover:bg-[#F5FAFF]"
@@ -285,7 +271,7 @@ const loadData = useCallback(async () => {
                   </div>
                   <RowActions
                     status={item.status === "Archived" ? "Inactive" : "Active"}
-                    onDelete={() => handleDelete("departments", item._id)}
+                    onDelete={() => handleDelete("roles", item._id)}
                     onRestore={() => {}} 
                   />
                 </div>
@@ -323,25 +309,32 @@ const loadData = useCallback(async () => {
               {/* Header + Content */}
               <div className="p-6 space-y-6">
 
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-slate-800 tracking-tight">
-                    Create {modalType === "WC" ? "Category" : "Department"}
-                  </h3>
-                  <button
-                    onClick={() => setModalType(null)}
-                    className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
+       {/* Header */}
+       <div className="px-10 py-8 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-sky-600 rounded-2xl text-white">
+              <Layers size={22} />
+            </div>
+
+            <h2 className="text-xl font-black tracking-tight text-slate-900">
+                Create {modalType === "WC" ? "Category" : "Role"}
+            </h2>
+          </div>
+
+          <button
+            onClick={() => setModalType(null)}
+            className="p-2 hover:bg-slate-200 rounded-full"
+          >
+            <X size={22} />
+          </button>
+        </div>
 
                 {/* Form */}
                 <div className="space-y-5">
 
                   {/* Name Field */}
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-semibold uppercase tracking-wide text-amber-800">
+                    <label className="block text-[14px] font-bold text-sky-800 uppercase tracking-wider mb-1.5 ml-1">
                       Display Name
                     </label>
                     <input
@@ -351,53 +344,10 @@ const loadData = useCallback(async () => {
                         setFormData({ ...formData, name: e.target.value })
                       }
                       placeholder="Enter a descriptive name …"
-                      className="w-full h-11 px-3 rounded-lg
-                                bg-slate-50 border border-slate-200
-                                text-sm text-slate-800
-                                placeholder:text-slate-400
-                                focus:outline-none
-                                focus:ring-2 focus:ring-sky-400/30
-                                focus:border-sky-400
-                                transition"
+                      className="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm focus:ring-2
+                       focus:ring-sky-500/20 outline-none bg-slate-50/50 transition-all font-medium"
                     />
                   </div>
-
-                  {/* Billing Types */}
-                  {modalType === "WC" && (
-                    <div className="space-y-2">
-                      <label className="text-[11px] font-semibold uppercase tracking-wide text-amber-800">
-                        Billing Methods
-                      </label>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        {["Billable", "Non-Billable"].map((type) => {
-                          const active = formData.billingTypes.includes(type);
-                          return (
-                            <button
-                              key={type}
-                              onClick={() =>
-                                setFormData({
-                                  ...formData,
-                                  billingTypes: active
-                                    ? formData.billingTypes.filter((t) => t !== type)
-                                    : [...formData.billingTypes, type],
-                                })
-                              }
-                              className={`h-10 rounded-lg text-xs font-bold
-                                border transition-all
-                                ${
-                                  active
-                                    ? "bg-sky-300/90 border-sky-500 text-black shadow-sm shadow-sky-200"
-                                    : "bg-white border-slate-200 text-black-600 hover:bg-black-50"
-                                }`}
-                            >
-                              {type}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -405,20 +355,13 @@ const loadData = useCallback(async () => {
               <div className="px-6 py-4 bg-slate-50/70 border-t border-slate-200 flex justify-center gap-2">
                 <button
                   onClick={handleSave}
-                  className="px-5 py-2 rounded-lg
-                            bg-sky-500/90 hover:bg-sky-600
-                            text-white text-xs font-bold
-                            transition-all active:scale-95
-                            shadow-sm shadow-sky-200"
-                >
+                  className="px-6 py-2 bg-sky-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-sky-100 disabled:opacity-50">
                   Create Resource
                 </button>
 
                 <button
                   onClick={() => setModalType(null)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700"
-                >
-                Cancel
+                  className="px-5 py-2 text-sm font-bold text-slate-500"> Cancel 
                 </button>
               </div>
             
@@ -508,21 +451,6 @@ function SectionContainer({
   );
 }
 
-function StatusBadge({ label }: { label: string }) {
-  const billable = label === "Billable";
-  return (
-  <span
-    className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${
-      billable
-        ? "bg-green-50 text-green-700 border-green-200"
-        : "bg-yellow-50 text-yellow-700 border-yellow-200"
-    }`}
-  >
-    {label}
-  </span>
-  );
-}
-
 function RowActions({
   status,
   onDelete,
@@ -545,7 +473,7 @@ function RowActions({
       ) : (
         <button
           onClick={onRestore}
-          className="text-slate-400 hover:text-green-600"
+          className="text-slate-400 hover:text-green-800"
           title="Restore"
         >
           <RotateCcw size={14} /> 

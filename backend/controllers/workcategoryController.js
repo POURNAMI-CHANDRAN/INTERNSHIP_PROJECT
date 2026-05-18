@@ -1,51 +1,48 @@
 import WorkCategory from "../models/WorkCategory.js";
 
-/**
- * ✅ Create a new Work Category
- * Admin / Finance only
- */
 export const createWorkCategory = async (req, res) => {
   try {
-    const { name, allowedBillingTypes, status } = req.body;
 
-    if (!name || !allowedBillingTypes?.length) {
+    const { name, status } = req.body;
+
+    if (!name) {
       return res.status(400).json({
         success: false,
-        message: "Name and Billing Types are Required"
+        message: "Work Category Name is Required",
       });
     }
 
-    const existing = await WorkCategory.findOne({ name });
+    const existing = await WorkCategory.findOne({
+      name: name.trim().toUpperCase(),
+    });
+
     if (existing) {
       return res.status(409).json({
         success: false,
-        message: "Work Category already Exists"
+        message: "Work Category already Exists",
       });
     }
 
     const workCategory = await WorkCategory.create({
       name,
-      allowedBillingTypes,
-      status
+      status,
     });
 
     res.status(201).json({
       success: true,
-      data: workCategory
+      data: workCategory,
     });
+
   } catch (error) {
+
     res.status(500).json({
       success: false,
       message: "Failed to Create Work Category",
-      error: error.message
+      error: error.message,
     });
   }
 };
 
-/**
- * ✅ Get all Work Categories
- * Supports Admin / Finance / Read‑only
- */
 export const getAllWorkCategories = async (req, res) => {
   try {
     const { status } = req.query;
@@ -69,9 +66,6 @@ export const getAllWorkCategories = async (req, res) => {
   }
 };
 
-/**
- * ✅ Get single Work Category by ID
- */
 export const getWorkCategoryById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -97,10 +91,6 @@ export const getWorkCategoryById = async (req, res) => {
   }
 };
 
-/**
- * ✅ Update Work Category
- * Admin / Finance only
- */
 export const updateWorkCategory = async (req, res) => {
   try {
     const { id } = req.params;
@@ -133,10 +123,7 @@ export const updateWorkCategory = async (req, res) => {
   }
 };
 
-/**
- * ✅ Soft Delete (Deactivate) Work Category
- * Never hard delete
- */
+
 export const deactivateWorkCategory = async (req, res) => {
   try {
     const { id } = req.params;

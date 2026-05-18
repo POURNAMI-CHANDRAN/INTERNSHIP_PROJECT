@@ -39,7 +39,7 @@ export default function PremiumBenchManagement() {
   const [benchData, setBenchData] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
-  const [departmentFilter, setDepartmentFilter] = useState("All");
+  const [roleFilter, setroleFilter] = useState("All");
   const [sortBy, setSortBy] = useState("utilization");
   const [selectedEmployee, setSelectedEmployee] = useState<any | null>(null);
   const [showStrategy, setShowStrategy] = useState(false);
@@ -151,11 +151,11 @@ useEffect(() => {
         ${employee.name}
         ${employee.email}
         ${employee.employeeCode}
-        ${employee.departmentId?.name}
+        ${employee.roleId?.name}
       `.toLowerCase();
       const matchesSearch = text.includes(search.toLowerCase());
       const matchesStatus = statusFilter === "All" || item.status === statusFilter;
-      const matchesDept = departmentFilter === "All" || (employee.departmentId?.name || "Unassigned") === departmentFilter;
+      const matchesDept = roleFilter === "All" || (employee.roleId?.name || "Unassigned") === roleFilter;
       return matchesSearch && matchesStatus && matchesDept;
     });
 
@@ -165,7 +165,7 @@ useEffect(() => {
       return b.utilization - a.utilization;
     });
     return data;
-  }, [benchData, search, statusFilter, departmentFilter, sortBy]);
+  }, [benchData, search, statusFilter, roleFilter, sortBy]);
 
   const exportReport = () => {
   const doc = new jsPDF();
@@ -175,10 +175,10 @@ useEffect(() => {
 
   autoTable(doc, {
     startY: 30,
-    head: [["Employee", "Department", "Utilization", "Status"]],
+    head: [["Employee", "role", "Utilization", "Status"]],
     body: filteredData.map((item) => [
       item.employee.name,
-      item.employee.departmentId?.name || "N/A",
+      item.employee.roleId?.name || "N/A",
       `${item.utilization}%`,
       item.status,
     ]),
@@ -343,14 +343,14 @@ const handleAssignProject = async () => {
             </div>
 
             <div className="pt-4 border-t border-slate-200">
-              <p className="text-[10px] font-bold text-slate-400 uppercase ml-2 mb-3">Departments</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase ml-2 mb-3">roles</p>
               <select 
-                value={departmentFilter}
-                onChange={(e) => setDepartmentFilter(e.target.value)}
+                value={roleFilter}
+                onChange={(e) => setroleFilter(e.target.value)}
                 className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm font-bold outline-none cursor-pointer"
               >
                 <option value="All">All Entities</option>
-                {[...new Set(benchData.map(e => e.employee.departmentId?.name || "Unassigned"))].map(d => (
+                {[...new Set(benchData.map(e => e.employee.roleId?.name || "Unassigned"))].map(d => (
                   <option key={d} value={d}>{d}</option>
                 ))}
               </select>
@@ -427,7 +427,7 @@ const handleAssignProject = async () => {
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase">
                             <Building2 size={14} className="text-slate-500" />
-                            {item.employee.departmentId?.name || "Global"}
+                            {item.employee.roleId?.name || "Global"}
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -712,7 +712,7 @@ const handleAssignProject = async () => {
                 </div>
 
                 <div className="space-y-2">
-                  <DetailRow icon={<Building2 size={16}/>} label="Department" value={selectedEmployee.employee.departmentId?.name} />
+                  <DetailRow icon={<Building2 size={16}/>} label="role" value={selectedEmployee.employee.roleId?.name} />
                   <DetailRow icon={<MapPin size={16}/>} label="Location" value={selectedEmployee.employee.location} />
                   <DetailRow icon={<Users size={16}/>} label="Email" value={selectedEmployee.employee.email} />
                 </div>

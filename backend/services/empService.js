@@ -8,8 +8,8 @@ export async function searchEmployees(filter = {}) {
       query.utilization = { $lt: 30 };
     }
 
-    if (filter.departmentId) {
-      query.departmentId = filter.departmentId;
+    if (filter.roleId) {
+      query.roleId = filter.roleId;
     }
 
     const employees = await Employee.find(query).lean();

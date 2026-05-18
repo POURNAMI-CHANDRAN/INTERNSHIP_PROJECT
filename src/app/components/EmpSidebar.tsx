@@ -6,20 +6,20 @@ export interface SidebarEmployee {
   name: string;
 }
 
-export interface SidebarDepartment {
+export interface Sidebarrole {
   _id: string;
   name: string;
   employees: SidebarEmployee[];
 }
 
 interface Props {
-  departments: SidebarDepartment[];
+  roles: Sidebarrole[];
   selectedEmployeeId?: string;
   onEmployeeSelect?: (id: string) => void;
 }
 
 export function EmployeeSidebar({
-  departments,
+  roles,
   selectedEmployeeId,
   onEmployeeSelect,
 }: Props) {
@@ -35,13 +35,13 @@ export function EmployeeSidebar({
 
       {/* CONTENT */}
       <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
-        {departments.map((dept) => {
+        {roles.map((dept) => {
           const isOpen = open[dept._id];
 
           return (
             <div key={dept._id}>
               
-              {/* DEPARTMENT */}
+              {/* role */}
               <button
                 onClick={() =>
                   setOpen((prev) => ({

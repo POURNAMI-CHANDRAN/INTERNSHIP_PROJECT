@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-import Department from "../models/Department.js";
+import role from "../models/role.js";
 import WorkCategory from "../models/WorkCategory.js";
 import Client from "../models/Client.js";
 import Employee from "../models/Employee.js";
@@ -18,7 +18,7 @@ const run = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
 
-    const department = await Department.findOneAndUpdate(
+    const role = await role.findOneAndUpdate(
       { name: "Engineering" },
       { $setOnInsert: { description: "Delivery engineering unit" } },
       afterOption
@@ -63,7 +63,7 @@ const run = async () => {
       {
         $set: {
           name: "John",
-          departmentId: department._id,
+          roleId: role._id,
           primaryWorkCategoryId: deliveryCategory._id,
           monthlySalary: 200000,
           hourlyCost: 1250,
@@ -81,7 +81,7 @@ const run = async () => {
       {
         $set: {
           name: "Priya",
-          departmentId: department._id,
+          roleId: role._id,
           primaryWorkCategoryId: deliveryCategory._id,
           monthlySalary: 160000,
           hourlyCost: 1000,
@@ -99,7 +99,7 @@ const run = async () => {
       {
         $set: {
           name: "Rahul",
-          departmentId: department._id,
+          roleId: role._id,
           primaryWorkCategoryId: shadowCategory._id,
           monthlySalary: 140000,
           hourlyCost: 875,

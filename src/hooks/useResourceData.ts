@@ -6,7 +6,7 @@ type ApiResponse<T> = T[] | { data: T[] };
 
 export function useResourceData(month: number, year: number) {
   const [employees, setEmployees] = useState<any[]>([]);
-  const [departments, setDepartments] = useState<any[]>([]);
+  const [roles, setroles] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [workCategories, setWorkCategories] = useState<any[]>([]);
   const [revenues, setRevenues] = useState<any[]>([]);
@@ -29,21 +29,39 @@ export function useResourceData(month: number, year: number) {
   };
 
   const safeFetch = async <T,>(url: string): Promise<T[]> => {
-    const res = await fetch(url, {
-      headers,
-      signal: abortRef.current?.signal,
-    });
+    const token = localStorage.getItem("token"); // ✅ always fresh
 
-    if (!res.ok) {
-      throw new Error(`${res.status} ${res.statusText}`);
+    try {
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`, // ✅ ALWAYS send
+          "Content-Type": "application/json",
+        },
+        signal: abortRef.current?.signal,
+      });
+
+      console.log("➡️ REQUEST:", url);
+      console.log("➡️ TOKEN:", token);
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("❌ API ERROR:", res.status, text);
+        return [];
+      }
+
+      const data = await res.json();
+      console.log("✅ RESPONSE:", data);
+
+      return normalize<T>(data);
+    } catch (err) {
+      console.error("❌ FETCH FAILED:", url, err);
+      return [];
     }
-
-    return normalize<T>(await res.json());
   };
 
   const fetchAll = useCallback(async () => {
     if (!token) {
-      setError("Authentication required");
+      setError("Authentication Required");
       setLoading(false);
       return;
     }
@@ -57,13 +75,13 @@ export function useResourceData(month: number, year: number) {
     try {
       const [
         empData,
-        deptData,
+        roleData,
         projData,
         wcData,
         revData,
       ] = await Promise.all([
         safeFetch<any>(`${API}/api/employees?month=${month}&year=${year}`),
-        safeFetch<any>(`${API}/api/departments`),
+        safeFetch<any>(`${API}/api/roles`),
         safeFetch<any>(`${API}/api/projects`),
         safeFetch<any>(`${API}/api/workcategories`),
         month && year
@@ -72,14 +90,14 @@ export function useResourceData(month: number, year: number) {
       ]);
 
       setEmployees(empData);
-      setDepartments(deptData);
+      setroles(roleData);
       setProjects(projData);
       setWorkCategories(wcData);
       setRevenues(revData);
     } catch (err: any) {
       if (err.name !== "AbortError") {
-        console.error("Resource fetch failed:", err);
-        setError("Failed to load resource data");
+        console.error("Resource Fetch Failed:", err);
+        setError("Failed to Load Resource Data");
       }
     } finally {
       setLoading(false);
@@ -96,7 +114,7 @@ export function useResourceData(month: number, year: number) {
       setEmployees(empData);
     } catch (err) {
       if ((err as any).name !== "AbortError") {
-        console.error("Failed to refetch employees", err);
+        console.error("Failed to Refetch Employees", err);
       }
     }
   }, [API, month, year, token]);
@@ -111,7 +129,7 @@ export function useResourceData(month: number, year: number) {
 
   return {
     employees,
-    departments,
+    roles,
     projects,
     workCategories,
     revenues,

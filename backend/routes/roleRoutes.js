@@ -1,5 +1,5 @@
 import express from "express";
-import Department from "../models/Department.js";
+import Role from "../models/Roles.js";
 import { protect, authorize } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -9,7 +9,7 @@ router.post("/", protect, authorize("Admin"), async (req, res) => {
   try {
     if (!req.body.managerId) req.body.managerId = null;
 
-    const dept = await Department.create(req.body);
+    const dept = await Role.create(req.body);
     res.json(dept);
     
   } catch (err) {
@@ -20,7 +20,7 @@ router.post("/", protect, authorize("Admin"), async (req, res) => {
 // GET ALL
 router.get("/", protect, async (req, res) => {
   try {
-    const depts = await Department.find().populate("managerId", "name email");
+    const depts = await Role.find().populate("managerId", "name email");
     res.json(depts);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -30,13 +30,13 @@ router.get("/", protect, async (req, res) => {
 // DELETE
 const remove = async (req, res) => {
   try {
-    const dept = await Department.findByIdAndDelete(req.params.id);
+    const dept = await Role.findByIdAndDelete(req.params.id);
 
     if (!dept) {
-      return res.status(404).json({ error: "Department not found" });
+      return res.status(404).json({ error: "Role NOT Found" });
     }
 
-    res.json({ message: "Department deleted successfully" });
+    res.json({ message: "Role Deleted Successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

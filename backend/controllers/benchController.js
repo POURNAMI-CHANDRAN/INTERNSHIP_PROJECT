@@ -9,7 +9,7 @@ export const getBenchResources = async (req, res) => {
     const employees = await Employee.find({
       status: "Active",
     })
-      .populate("departmentId")
+      .populate("roleId")
       .populate("skills");
 
     const result = [];

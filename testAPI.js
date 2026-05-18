@@ -16,7 +16,7 @@ const runTests = async () => {
     const empRes = await axios.post(`${BASE_URL}/employees`, {
       name: "John Doe",
       email: "john@test.com",
-      department: "Engineering",
+      role: "Engineering",
       skills: ["React", "Node"],
       billingRate: 50
     });
@@ -91,7 +91,7 @@ const runTests = async () => {
     // 8. UPDATE EMPLOYEE
     // =========================
     await axios.put(`${BASE_URL}/employees/${employeeId}`, {
-      department: "Finance"
+      role: "Finance"
     });
 
     console.log("✏️ Employee Updated");

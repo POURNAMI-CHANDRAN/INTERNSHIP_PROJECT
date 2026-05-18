@@ -4,12 +4,12 @@ export interface Employee {
   id: string;
   name: string;
   role: string;
-  department: string;
+  role: string;
   avatar: string;
   email: string;
 }
 
-export interface Department {
+export interface role {
   id: string;
   name: string;
   employees: Employee[];
@@ -46,7 +46,7 @@ export const employees: Employee[] = [
     id: "emp1",
     name: "Sarah Chen",
     role: "Senior Developer",
-    department: "Developers",
+    role: "Developers",
     avatar: "SC",
     email: "sarah.chen@company.com"
   },
@@ -54,7 +54,7 @@ export const employees: Employee[] = [
     id: "emp2",
     name: "Mike Johnson",
     role: "Full Stack Developer",
-    department: "Developers",
+    role: "Developers",
     avatar: "MJ",
     email: "mike.johnson@company.com"
   },
@@ -62,7 +62,7 @@ export const employees: Employee[] = [
     id: "emp3",
     name: "Emily Rodriguez",
     role: "Backend Developer",
-    department: "Developers",
+    role: "Developers",
     avatar: "ER",
     email: "emily.rodriguez@company.com"
   },
@@ -70,7 +70,7 @@ export const employees: Employee[] = [
     id: "emp4",
     name: "James Park",
     role: "Frontend Developer",
-    department: "Developers",
+    role: "Developers",
     avatar: "JP",
     email: "james.park@company.com"
   },
@@ -78,7 +78,7 @@ export const employees: Employee[] = [
     id: "emp5",
     name: "Lisa Anderson",
     role: "UI Designer",
-    department: "Designers",
+    role: "Designers",
     avatar: "LA",
     email: "lisa.anderson@company.com"
   },
@@ -86,7 +86,7 @@ export const employees: Employee[] = [
     id: "emp6",
     name: "David Kim",
     role: "UX Designer",
-    department: "Designers",
+    role: "Designers",
     avatar: "DK",
     email: "david.kim@company.com"
   },
@@ -94,7 +94,7 @@ export const employees: Employee[] = [
     id: "emp7",
     name: "Rachel Green",
     role: "Product Designer",
-    department: "Designers",
+    role: "Designers",
     avatar: "RG",
     email: "rachel.green@company.com"
   },
@@ -102,27 +102,27 @@ export const employees: Employee[] = [
     id: "emp8",
     name: "Tom Wilson",
     role: "QA Engineer",
-    department: "QA",
+    role: "QA",
     avatar: "TW",
     email: "tom.wilson@company.com"
   }
 ];
 
-export const departments: Department[] = [
+export const roles: role[] = [
   {
     id: "dept1",
     name: "Developers",
-    employees: employees.filter(e => e.department === "Developers")
+    employees: employees.filter(e => e.role === "Developers")
   },
   {
     id: "dept2",
     name: "Designers",
-    employees: employees.filter(e => e.department === "Designers")
+    employees: employees.filter(e => e.role === "Designers")
   },
   {
     id: "dept3",
     name: "QA",
-    employees: employees.filter(e => e.department === "QA")
+    employees: employees.filter(e => e.role === "QA")
   }
 ];
 

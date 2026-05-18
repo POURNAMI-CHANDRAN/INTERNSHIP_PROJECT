@@ -30,7 +30,7 @@ export default function PremiumLayout() {
 
   const notifications = [
     { id: 1, message: "New Employee Onboarding Pending.", time: "2m ago" },
-    { id: 2, message: "Department Report Submitted.", time: "1h ago" },
+    { id: 2, message: "role Report Submitted.", time: "1h ago" },
     { id: 3, message: "Payroll Generated Successfully.", time: "5h ago" },
   ];
 
@@ -81,7 +81,7 @@ export default function PremiumLayout() {
           <p className="px-4 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-4">Main Menu</p>
           <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
           <NavItem to="/employees" icon={Users} label="Employees" />
-          <NavItem to="/departments" icon={Building2} label="Departments" />
+          <NavItem to="/roles" icon={Building2} label="roles" />
         </nav>
 
         <div className="pt-6 border-t border-slate-100">

@@ -32,13 +32,13 @@ const CAPACITY = 160;
 
 /* ===================== TYPES ===================== */
 
-type Department = {
+type role = {
   _id: string;
   name: string;
 };
 
 type EditFormState = {
-  departmentId: string;
+  roleId: string;
   joiningDate: string;
   location: string;
   hourlyCost: string;
@@ -51,7 +51,7 @@ type EmployeeDrawerProps = {
   canEdit: boolean;
   projects: any[];
   workCategories: any[];
-  departments: Department[];
+  roles: role[];
   refetchEmployees: () => void;
 };
 
@@ -63,7 +63,7 @@ export default function EmployeeDrawer({
   canEdit,
   projects,
   workCategories,
-  departments,
+  roles,
   refetchEmployees,
 }: EmployeeDrawerProps) {
   const [editingInfo, setEditingInfo] = useState(false);
@@ -116,7 +116,7 @@ export default function EmployeeDrawer({
   /* ===================== FORM STATE ===================== */
 
   const [editForm, setEditForm] = useState<EditFormState>({
-    departmentId: "",
+    roleId: "",
     joiningDate: "",
     location: "",
     hourlyCost: "",
@@ -127,10 +127,10 @@ useEffect(() => {
   if (!employee) return;
 
   setEditForm({
-    departmentId:
-      typeof employee?.departmentId === "object"
-        ? employee?.departmentId?._id
-        : employee?.departmentId || "",
+    roleId:
+      typeof employee?.roleId === "object"
+        ? employee?.roleId?._id
+        : employee?.roleId || "",
 
     joiningDate: employee?.joiningDate?.slice(0, 10) || "",
 
@@ -153,7 +153,8 @@ useEffect(() => {
   const allocations = employee?.allocations || [];
 
   const bookedHours = allocations.reduce(
-    (sum: number, item: any) => sum + (item?.allocatedHours || 0),
+    (sum: number, item: any) =>
+      sum + Number(item?.allocatedHours || 0),
     0
   );
   
@@ -186,13 +187,13 @@ useEffect(() => {
     return years <= 0 ? `${months}m` : `${years}y ${months}m`;
   }, [employee]);
 
-  const departmentName = useMemo(() => {
-    if (!Array.isArray(departments)) return "Remote";
+  const roleName = useMemo(() => {
+    if (!Array.isArray(roles)) return "NA";
 
     return (
-      departments.find(d => d._id === editForm.departmentId)?.name ?? "Remote"
+      roles.find(d => d._id === editForm.roleId)?.name ?? "NA"
     );
-  }, [departments, editForm.departmentId]);
+  }, [roles, editForm.roleId]);
 
   /* ===================== SAVE ===================== */
 
@@ -205,7 +206,7 @@ useEffect(() => {
         {
           joiningDate: editForm.joiningDate,
           location: editForm.location,
-          departmentId: editForm.departmentId,
+          roleId: editForm.roleId,
           hourlyCost: Number(editForm.hourlyCost),
           skills: editForm.skills,
         },
@@ -317,8 +318,8 @@ const trendData = useMemo(() => {
 
                 <Row
                   icon={<Building2 size={14} />}
-                  label="Department"
-                  value={departmentName}
+                  label="Role"
+                  value={roleName}
                 />
 
                 <Row
@@ -375,6 +376,31 @@ const trendData = useMemo(() => {
               </div>
             ) : (
               <div className="space-y-3">
+              <div>
+                <label className="text-[10px] font-bold uppercase text-slate-400 mb-1 block">
+                  Role
+                </label>
+
+                <select
+                  value={editForm.roleId}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      roleId: e.target.value,
+                    })
+                  }
+                  className="w-full h-9 px-3 rounded-lg border border-slate-200 text-sm outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                >
+                  <option value="">Select Role</option>
+
+                  {roles.map((role) => (
+                    <option key={role._id} value={role._id}>
+                      {role.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
                 <Input
                   label="Joining Date"
                   type="date"
@@ -667,6 +693,10 @@ const trendData = useMemo(() => {
                         <h4 className="font-bold text-slate-900 truncate">
                           {a?.projectId?.name || "Unnamed"}
                         </h4>
+
+                        <p className="text-[11px] text-slate-500 mt-1">
+                          {a?.workCategoryId?.name || "General"}
+                        </p>
                       </div>
 
                       <span

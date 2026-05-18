@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import Employee from "../models/Employee.js";
 import User from "../models/User.js";
-import Department from "../models/Department.js";
+import Role from "../models/Roles.js";
 import { getNextEmployeeCode } from "../utils/Next.js";
 import Allocation from "../models/Allocation.js";
 import Project from "../models/Project.js";
@@ -14,7 +14,7 @@ export const createEmployee = async (req, res) => {
     const {
       name,
       email,
-      departmentId,
+      roleId,
       primaryWorkCategoryId,
       skills,
       hourlyCost,
@@ -29,7 +29,7 @@ export const createEmployee = async (req, res) => {
       employeeCode,
       name,
       email,
-      departmentId,
+      roleId,
       primaryWorkCategoryId,
       skills: skills || [],
       hourlyCost,
@@ -55,11 +55,10 @@ export const getEmployees = async (req, res) => {
     const employees = await Employee.find()
       .populate("primaryWorkCategoryId")
       .populate("skills")
-      .populate("departmentId", "name");
+      .populate("roleId", "name");
 
     const employeeIds = employees.map(e => e._id);
 
-    // ✅ pull allocations for requested month/year
     const allocations = await Allocation.find({
       employeeId: { $in: employeeIds },
       ...(month && year && {
@@ -68,7 +67,7 @@ export const getEmployees = async (req, res) => {
       }),
     }).populate("projectId", "name");
 
-    // ✅ group allocations by employee
+    // ✅ FIXED REDUCE
     const allocationMap = allocations.reduce((acc, a) => {
       const key = a.employeeId.toString();
       if (!acc[key]) acc[key] = [];
@@ -76,7 +75,6 @@ export const getEmployees = async (req, res) => {
       return acc;
     }, {});
 
-    // ✅ attach allocations to employees
     const enrichedEmployees = employees.map(e => ({
       ...e.toObject(),
       allocations: allocationMap[e._id.toString()] || [],
@@ -84,6 +82,7 @@ export const getEmployees = async (req, res) => {
 
     res.json(enrichedEmployees);
   } catch (err) {
+    console.error("❌ getEmployees Error:", err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -220,7 +219,7 @@ export const getMyProfile = async (req, res) => {
     const employee = await Employee.findOne({
       userId: req.user.userId,
     })
-      .populate("departmentId")
+      .populate("roleId")
       .populate("primaryWorkCategoryId")
       .populate("skills");
 
@@ -350,7 +349,7 @@ export const getFullEmployeeDetails = async (req, res) => {
         name: employee.name,
         email: employee.email,
         employeeCode: employee.employeeCode,
-        departmentId: employee.departmentId,
+        roleId: employee.roleId,
         location: employee.location,
         joiningDate: employee.joiningDate,
         status: employee.status,

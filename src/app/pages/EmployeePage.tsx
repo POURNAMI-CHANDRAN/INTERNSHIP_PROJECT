@@ -16,63 +16,53 @@ import { KpiCard } from "../components/KPICard";
 import { cn } from "../components/ui/utils";
 
 /* ================= TYPES & UTILS ================= */
-type Employee = any;
+type BaseEntity = {
+  _id: string;
+  name: string;
+};
+
+type Employee = {
+  _id: string;
+  roleId?: string | BaseEntity;
+  primaryWorkCategoryId?: string | BaseEntity;
+  name: string;
+  allocations?: { allocatedHours?: number }[];
+  skills?: { name?: string }[];
+  status?: string;
+  location?: string;
+  joiningDate?: string;
+};
+
+function resolveName<T extends BaseEntity>(
+  value: string | T | undefined,
+  list: T[]
+): string {
+  if (value && typeof value === "object") {
+    return value.name;
+  }
+
+  const match = list.find(
+    (item) => String(item._id) === String(value)
+  );
+
+  return match?.name ?? "Unassigned";
+}
+
 type FeatureMap = Record<string, Employee[]>;
 
-const groupBy = (list: any[], keyFn: (e: any) => string): FeatureMap => {
-  return list.reduce((acc: FeatureMap, item) => {
+const groupBy = <T,>(list: T[], keyFn: (e: T) => string): Record<string, T[]> => {
+  return list.reduce((acc: Record<string, T[]>, item) => {
     const key = keyFn(item);
-    acc[key] = acc[key] || [];
+    if (!acc[key]) acc[key] = [];
     acc[key].push(item);
     return acc;
   }, {});
 };
 
-const getDepartmentName = (employee: any, departments: any[]) => {
-  // populated department object
-  if (
-    employee.departmentId &&
-    typeof employee.departmentId === "object" &&
-    employee.departmentId.name
-  ) {
-    return employee.departmentId.name;
-  }
-
-  // raw ObjectId/string match
-  const dept = departments.find(
-    (d: any) =>
-      String(d._id) === String(employee.departmentId)
-  );
-
-  return dept?.name || "Unassigned";
-};
-
-const getWorkCategoryName = (
-  employee: any,
-  workCategories: any[]
-) => {
-  // populated work category object
-  if (
-    employee.primaryWorkCategoryId &&
-    typeof employee.primaryWorkCategoryId === "object" &&
-    employee.primaryWorkCategoryId.name
-  ) {
-    return employee.primaryWorkCategoryId.name;
-  }
-
-  // raw ObjectId/string match
-  const wc = workCategories.find(
-    (w: any) =>
-      String(w._id) === String(employee.primaryWorkCategoryId)
-  );
-
-  return wc?.name || "Unassigned";
-};
-
 /* ================= MAIN COMPONENT ================= */
 
 export default function EmployeesPage() {
-  const { employees, departments, workCategories, projects, loading, refetchEmployees } = useResourceData(0, 0);
+  const { employees, roles, workCategories, projects, loading, refetchEmployees } = useResourceData(0, 0);
   const [showCreate, setShowCreate] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -108,8 +98,8 @@ export default function EmployeesPage() {
     
     return {
       all: filtered,
-      byDept: groupBy(filtered, (e) => getDepartmentName(e, departments)),     
-      byWC: groupBy(filtered, (e) => getWorkCategoryName(e, workCategories)),
+      byRole: groupBy(filtered, (e) => resolveName(e.roleId, roles)),
+      byWC: groupBy(filtered, (e) => resolveName(e.primaryWorkCategoryId, workCategories)),
       byLoc: groupBy(filtered, e => e.location || "Remote"),
       byUtil: groupBy(filtered, e => e.utilizationBucket),
       byHealth: groupBy(filtered, e => e.healthBucket),
@@ -122,16 +112,16 @@ export default function EmployeesPage() {
         return acc;
       }, {})
     };
-  }, [employees, departments, workCategories, searchQuery]);
+  }, [employees, roles, workCategories, searchQuery]);
 
   /* ================= CALCULATIONS ================= */
   const metrics = useMemo(() => ({
     total: employees.length,
     active: employees.filter((e) => e.status === "Active").length,
     inactive: employees.filter((e) => e.status === "Inactive").length,
-    departments: departments.length,
+    roles: roles.length,
     projects: projects.length,
-  }), [employees, departments, projects]);
+  }), [employees, roles, projects]);
 
 
   if (loading) return <LoadingSkeleton />;
@@ -185,13 +175,13 @@ export default function EmployeesPage() {
           <MetricTile icon={<Users size={16} />} label="Total" value={metrics.total} color="violet" />
           <MetricTile icon={<UserCheck size={16} />} label="Active" value={metrics.active} color="emerald" />
           <MetricTile icon={<UserX size={16} />} label="Inactive" value={metrics.inactive} color="rose" />
-          <MetricTile icon={<Building2 size={16} />} label="Depts" value={metrics.departments} color="blue" />
+          <MetricTile icon={<Building2 size={16} />} label="Depts" value={metrics.roles} color="blue" />
           <MetricTile icon={<Briefcase size={16} />} label="Projects" value={metrics.projects} color="amber" />
         </div>
 
         {/* DATA EXPLORER GRID */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <FeatureAccordion title="Departments" data={enrichedData.byDept} icon={<Building2 size={16}/>} />
+          <FeatureAccordion title="Roles" data={enrichedData.byRole} icon={<Building2 size={16}/>} />
           <FeatureAccordion title="Global Network" data={enrichedData.byLoc} icon={<Globe size={16}/>} />
           <FeatureAccordion title="Utilization Heatmap" data={enrichedData.byUtil} icon={<Activity size={16}/>} accent="rose" />
           <FeatureAccordion title="Skill Repository" data={enrichedData.bySkill} icon={<Award size={16}/>} />
@@ -202,7 +192,7 @@ export default function EmployeesPage() {
 
       {showCreate && (
         <CreateEmployeeModal
-          departments={departments}
+          roles={roles}
           onClose={() => setShowCreate(false)}
           onSuccess={async () => { await refetchEmployees(); setShowCreate(false); }}
         />

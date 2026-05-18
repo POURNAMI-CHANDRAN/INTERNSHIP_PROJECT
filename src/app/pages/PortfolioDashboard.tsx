@@ -37,7 +37,7 @@ export function PortfolioDashboard() {
   const canEdit = canEditEmployee();
 
   const { loading, utilization, bench, revenue } = useAnalytics(month, year);
-  const { employees, projects, workCategories, refetchEmployees, departments } =
+  const { employees, projects, workCategories, refetchEmployees, roles } =
     useResourceData(month, year);
 
   /* ================= SEARCH ================= */
@@ -61,35 +61,28 @@ export function PortfolioDashboard() {
 
   /* ================= CORRECT CALCULATIONS ================= */
 
-  // ✅ ALWAYS use full employee list
-  const totalEmployees = employees.length;
+const totalEmployees = employees?.length || 0;
 
-  // ✅ total allocated hours
-  const totalBookedHours = utilization.reduce(
-    (sum: number, u: any) => sum + (u.allocatedHours || 0),
-    0
-  );
+const totalBookedHours = (utilization || []).reduce(
+  (sum: number, u: any) => sum + (u?.allocatedHours || 0),
+  0
+);
 
-  // ✅ total capacity
-  const totalCapacity = totalEmployees * CAPACITY;
+const totalCapacity = totalEmployees * CAPACITY;
 
-  // ✅ total FTE (most important metric)
-  const totalFTE = totalBookedHours / CAPACITY;
+const totalFTE = CAPACITY ? totalBookedHours / CAPACITY : 0;
 
-  // ✅ utilization %
-  const avgUtilization =
-    totalCapacity > 0
-      ? Math.round((totalBookedHours / totalCapacity) * 100)
-      : 0;
+const avgUtilization =
+  totalCapacity > 0
+    ? Math.round((totalBookedHours / totalCapacity) * 100)
+    : 0;
 
-  // ✅ bench hours (true bench, not derived incorrectly)
-  const totalBench = Math.max(totalCapacity - totalBookedHours, 0);
+const totalBench = Math.max(totalCapacity - totalBookedHours, 0);
 
-  // ✅ revenue (already computed backend using FTE × rate)
-  const totalRevenue = revenue.reduce(
-    (sum: number, r: any) => sum + (r.revenue || 0),
-    0
-  );
+const totalRevenue = (revenue || []).reduce(
+  (sum: number, r: any) => sum + (r?.revenue || 0),
+  0
+);
 
   return (
     <div className="max-w-[1600px] mx-auto p-4 lg:p-8 space-y-8 animate-in fade-in duration-500">
@@ -184,7 +177,7 @@ export function PortfolioDashboard() {
           canEdit={canEdit}
           projects={projects}
           workCategories={workCategories}
-          departments={departments}
+          roles={roles}
           refetchEmployees={refetchEmployees}
         />
       )}

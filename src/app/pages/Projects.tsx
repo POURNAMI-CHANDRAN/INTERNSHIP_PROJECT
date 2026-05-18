@@ -1,153 +1,310 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  Plus, Search, Edit3, Trash2, Layers, Calendar, 
-  Building2, Activity, Archive, CheckCircle2, Clock, 
-  Ban, DollarSign, X, ChevronRight, Filter, Briefcase,
+  Plus,
+  Search,
+  Edit3,
+  Trash2,
+  Layers,
+  Calendar,
+  Activity,
+  CheckCircle2,
+  Clock,
+  Ban,
+  DollarSign,
+  X,
+  TrendingUp,
+  Target,
+  Users,
+  Briefcase,
 } from "lucide-react";
 
+/* =========================================================
+   TYPES
+========================================================= */
 
-/* ================= TYPES ================= */
-
-export interface Project {
+interface Project {
   _id: string;
   name: string;
-
-  client_id:
-    | string
-    | {
-        _id: string;
-        client_name: string;
-      };
-
   type: "Billable" | "Non-Billable";
-
   billingModel: "Hourly" | "Fixed";
   billingRate?: number;
   fixedMonthlyRevenue?: number;
-
-  startDate: string;
-  endDate?: string;
-
-  status: "PLANNED" | "ACTIVE" | "ON_HOLD" | "COMPLETED" | "CANCELLED";
-
+  startMonth: string;
+  startYear: number;
+  status:
+    | "PLANNED"
+    | "ACTIVE"
+    | "ON_HOLD"
+    | "COMPLETED"
+    | "CANCELLED";
   allowAllocations: boolean;
   allowMoves: boolean;
-
   targetFTE?: number;
   createdAt: string;
   updatedAt: string;
 }
 
-/* ================= CONSTANTS ================= */
+/* =========================================================
+   CONSTANTS
+========================================================= */
 
 const STATUS_CONFIG = {
-  ACTIVE: { color: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: Activity },
-  PLANNED: { color: "bg-sky-50 text-sky-700 border-sky-200", icon: Calendar },
-  ON_HOLD: { color: "bg-amber-50 text-amber-700 border-amber-200", icon: Clock },
-  COMPLETED: { color: "bg-indigo-50 text-indigo-700 border-indigo-200", icon: CheckCircle2 },
-  CANCELLED: { color: "bg-rose-50 text-rose-700 border-rose-200", icon: Ban },
+  ACTIVE: {
+    color:
+      "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+    icon: Activity,
+  },
+
+  PLANNED: {
+    color: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+    icon: Calendar,
+  },
+
+  ON_HOLD: {
+    color:
+      "bg-amber-500/10 text-amber-600 border-amber-500/20",
+    icon: Clock,
+  },
+
+  COMPLETED: {
+    color:
+      "bg-indigo-500/10 text-indigo-600 border-indigo-500/20",
+    icon: CheckCircle2,
+  },
+
+  CANCELLED: {
+    color: "bg-rose-500/10 text-rose-600 border-rose-500/20",
+    icon: Ban,
+  },
 };
 
-const BILLING_COLORS = {
-  "Billable": "text-blue-600 bg-blue-50 border-blue-100",
-  "Non-Billable": "text-slate-500 bg-slate-50 border-slate-100",
-};
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
 
-/* ================= MAIN COMPONENT ================= */
+/* =========================================================
+   MAIN COMPONENT
+========================================================= */
 
 export default function Projects() {
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+  const API_BASE =
+    import.meta.env.VITE_API_BASE_URL ||
+    "http://localhost:5000";
+
   const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+  const user = JSON.parse(
+    localStorage.getItem("user") || "{}"
+  );
+
   const userRole = user?.role;
 
+  /* ================= STATES ================= */
+
   const [projects, setProjects] = useState<Project[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
+  const [allocations, setAllocations] = useState<any[]>([]);
+
   const [loading, setLoading] = useState(true);
 
-  const [filters, setFilters] = useState({ status: "All", billing: "All", client: "All", search: "" });
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [allocations, setAllocations] = useState<any[]>([]);
-  const [localFTE, setLocalFTE] = useState<Record<string, string>>({});
+  const [filters, setFilters] = useState({
+    status: "All",
+    billing: "All",
+    search: "",
+  });
+
+  const [localFTE, setLocalFTE] = useState<
+    Record<string, string>
+  >({});
+
+  const [isModalOpen, setIsModalOpen] =
+    useState(false);
+
+  const [editingProject, setEditingProject] =
+    useState<Project | null>(null);
+
+  /* =========================================================
+     API HELPERS
+  ========================================================= */
+
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  };
+
+  /* =========================================================
+     LOAD DATA
+  ========================================================= */
 
   const loadData = async () => {
     setLoading(true);
+
     try {
-      const headers = { Authorization: `Bearer ${token}` };
-      const [p, c, e, a] = await Promise.all([
-        fetch(`${API_BASE}/api/projects`, { headers }),
-        fetch(`${API_BASE}/api/clients`, { headers }),
-        fetch(`${API_BASE}/api/employees`, { headers }),
-        fetch(`${API_BASE}/api/allocations`, { headers }),
+      const [p, e, a] = await Promise.all([
+        fetch(`${API_BASE}/api/projects`, {
+          headers,
+        }),
+
+        fetch(`${API_BASE}/api/employees`, {
+          headers,
+        }),
+
+        fetch(`${API_BASE}/api/allocations`, {
+          headers,
+        }),
       ]);
+
       const pd = await p.json();
-      const cd = await c.json();
       const ed = await e.json();
       const ad = await a.json();
 
-      setProjects(pd.data || pd || []);
-      setClients(cd.data || cd || []);
-      setEmployees(ed.data || ed || []);
-      setAllocations(ad.data || ad || []);
+      setProjects(pd.data || []);
+      setEmployees(ed.data || []);
+      setAllocations(ad.data || []);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  /* =========================================================
+     DELETE PROJECT
+  ========================================================= */
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to archive this project?")) return;
-    await fetch(`${API_BASE}/api/projects/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    loadData();
+    const confirmed = confirm(
+      "Archive this project?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await fetch(`${API_BASE}/api/projects/${id}`, {
+        method: "DELETE",
+        headers,
+      });
+
+      loadData();
+    } catch (err) {
+      console.error(err);
+    }
   };
+
+  /* =========================================================
+     UPDATE FTE
+  ========================================================= */
+
+  const updateTargetFTE = async (
+    projectId: string,
+    value: number
+  ) => {
+    try {
+      await fetch(
+        `${API_BASE}/api/projects/${projectId}/target_fte`,
+        {
+          method: "PUT",
+          headers,
+          body: JSON.stringify({
+            targetFTE: value,
+          }),
+        }
+      );
+
+      loadData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  /* =========================================================
+     FILTERED PROJECTS
+  ========================================================= */
 
   const filteredProjects = useMemo(() => {
     return projects.filter((p) => {
-      const matchStatus = filters.status === "All" || p.status === filters.status;
-      const matchBilling = filters.billing === "All" || p.type === filters.billing;
-      const clientId = typeof p.client_id === "string" ? p.client_id : p.client_id?._id;
-      const matchClient = filters.client === "All" || filters.client === clientId;
-      const matchSearch = p.name.toLowerCase().includes(filters.search.toLowerCase());
-      return matchStatus && matchBilling && matchClient && matchSearch;
+      const matchStatus =
+        filters.status === "All" ||
+        p.status === filters.status;
+
+      const matchBilling =
+        filters.billing === "All" ||
+        p.type === filters.billing;
+
+      const matchSearch = p.name
+        .toLowerCase()
+        .includes(filters.search.toLowerCase());
+
+      return (
+        matchStatus &&
+        matchBilling &&
+        matchSearch
+      );
     });
   }, [projects, filters]);
 
-  const updateTargetFTE = async (projectId: string, value: number) => {
-  try {
-    await fetch(`${API_BASE}/api/projects/${projectId}/target_fte`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ targetFTE: value }),
+  /* =========================================================
+     ALLOCATION MAP
+  ========================================================= */
+
+  const projectUsage = useMemo(() => {
+    const map: Record<string, number> = {};
+
+    allocations.forEach((a) => {
+      const pid = a.projectId || a.project_id;
+
+      map[pid] =
+        (map[pid] || 0) +
+        (a.allocatedHours || 0);
     });
 
-    loadData(); // refresh
-  } catch (err) {
-    console.error(err);
-  }
-};
+    return map;
+  }, [allocations]);
 
-const projectUsage = useMemo(() => {
-  const map: Record<string, number> = {};
+  /* =========================================================
+     SUMMARY DATA
+  ========================================================= */
 
-  allocations.forEach((a) => {
-    const pid = a.projectId || a.project_id; 
-    map[pid] = (map[pid] || 0) + (a.allocatedHours || 0);
-  });
+  const totalFTE = projects.reduce(
+    (s, p) => s + (p.targetFTE || 0),
+    0
+  );
 
-  return map;
-}, [allocations]);
+  const totalHours = Object.values(
+    projectUsage
+  ).reduce((s: any, v: any) => s + v, 0);
+
+  const utilization = Math.round(
+    (totalHours /
+      (projects.reduce(
+        (s, p) =>
+          s + (p.targetFTE || 0) * 160,
+        0
+      ) || 1)) *
+      100
+  );
+
+  /* =========================================================
+     UI
+  ========================================================= */
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-8 text-slate-900">
+     <div className="min-h-screen bg-[#F8FAFC] p-8 text-slate-900">
       {/* HEADER */}
       <div className="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -177,41 +334,63 @@ const projectUsage = useMemo(() => {
       </div>
 
       {/* FILTER BAR */}
-      <div className="max-w-7xl mx-auto mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="relative group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-4 mb-8">
+        <div className="relative flex-1">
+          <Search
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+            size={18}
+          />
+
           <input
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 transition"
-            placeholder="Search projects..."
+            placeholder="Search Projects..."
             value={filters.search}
-            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+            onChange={(e) =>
+              setFilters({
+                ...filters,
+                search: e.target.value,
+              })
+            }
+            className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium outline-none focus:ring-4 focus:ring-indigo-500/10 shadow-sm"
           />
         </div>
 
         <FilterDropdown
-          icon={<Activity size={14}/>}
-          label="Status"
           value={filters.status}
-          options={["All", "ACTIVE", "PLANNED", "ON_HOLD", "COMPLETED", "CANCELLED"]}
-          onChange={(v: string) => setFilters({ ...filters, status: v })}
+          options={[
+            "All",
+            "ACTIVE",
+            "PLANNED",
+            "ON_HOLD",
+            "COMPLETED",
+            "CANCELLED",
+          ]}
+          onChange={(v: string) =>
+            setFilters({
+              ...filters,
+              status: v,
+            })
+          }
         />
 
         <FilterDropdown
-          icon={<DollarSign size={14}/>}
-          label="Billing"
           value={filters.billing}
-          options={["All", "Billable", "Non-Billable"]}
-          onChange={(v: string) => setFilters({ ...filters, billing: v })}
-        />
-
-        <FilterDropdown
-          icon={<Building2 size={14}/>}
-          label="Client"
-          value={filters.client}
-          options={[{ label: "All Clients", value: "All" }, ...clients.map(c => ({ label: c.client_name, value: c._id }))]}
-          onChange={(v: string) => setFilters({ ...filters, client: v })}
+          options={[
+            "All",
+            "Billable",
+            "Non-Billable",
+          ]}
+          onChange={(v: string) =>
+            setFilters({
+              ...filters,
+              billing: v,
+            })
+          }
         />
       </div>
+
+      {/* =========================================================
+          SUMMARY CARDS
+      ========================================================= */}
 
       <div className="max-w-7xl mx-auto grid grid-cols-3 gap-4 mb-6">
 
@@ -238,28 +417,36 @@ const projectUsage = useMemo(() => {
 
       </div>
 
-      {/* ================= TABLE ================= */}
-      <div className="max-w-7xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      {/* =========================================================
+          TABLE
+      ========================================================= */}
+
+      <div className="max-w-7xl mx-auto bg-white rounded-[2rem] border border-slate-100 shadow-2xl shadow-slate-200/40 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-center">
+          <table className="w-full">
             <thead>
-              <tr className="bg-sky-50/50 border-b border-slate-200">
-                <th className="px-6 py-4 text-[14px] font-bold uppercase tracking-wider text-indigo-500 text-center">
-                  Project Details
+              <tr className="hover:bg-slate-50 transition-all align-middle">
+                <th className="px-8 py-5 text-center text-[12px] font-bold uppercase tracking-widest text-indigo-800">
+                  Project
                 </th>
-                <th className="px-6 py-4 text-[14px] font-bold uppercase tracking-wider text-indigo-500 text-center">
+
+                <th className="px-6 py-5 text-center text-[12px] font-bold uppercase tracking-widest text-indigo-800">
                   Economics
                 </th>
-                <th className="px-6 py-4 text-[14px] font-bold uppercase tracking-wider text-indigo-500 text-center">
+
+                <th className="px-6 py-5 text-center text-[12px]  font-bold uppercase tracking-widest text-indigo-800">
                   Timeline
                 </th>
-                <th className="px-6 py-4 text-[14px] font-bold uppercase tracking-wider text-indigo-500 text-center">
+
+                <th className="px-6 py-5 text-center text-[12px]  font-bold uppercase tracking-widest text-indigo-800">
                   Capacity
                 </th>
-                <th className="px-6 py-4 text-[14px] font-bold uppercase tracking-wider text-indigo-500 text-center">
+
+                <th className="px-6 py-5 text-center text-[12px]  font-bold uppercase tracking-widest text-indigo-800">
                   Status
                 </th>
-                <th className="px-6 py-4 text-[14px] font-bold uppercase tracking-wider text-indigo-500 text-center">
+
+                <th className="px-8 py-5 text-center text-[12px]  font-bold uppercase tracking-widest text-indigo-800">
                   Actions
                 </th>
               </tr>
@@ -270,329 +457,254 @@ const projectUsage = useMemo(() => {
                 <tr>
                   <td
                     colSpan={6}
-                    className="py-20 text-center text-slate-400 animate-pulse"
+                    className="py-32 text-center text-slate-400 animate-pulse"
                   >
-                    Syncing Environment...
+                    Loading Projects...
                   </td>
                 </tr>
               ) : (
                 filteredProjects.map((p) => {
-                  const config = STATUS_CONFIG[p.status] || STATUS_CONFIG.PLANNED;
-                  const StatusIcon = config.icon;
+                  const config =
+                    STATUS_CONFIG[
+                      p.status as keyof typeof STATUS_CONFIG
+                    ];
+
+                  const StatusIcon =
+                    config.icon;
+
+                  const capacity =
+                    (p.targetFTE || 0) * 160;
+
+                  const used =
+                    projectUsage[p._id] || 0;
+
+                  const percent =
+                    capacity > 0
+                      ? Math.min(
+                          (used / capacity) * 100,
+                          100
+                        )
+                      : 0;
+
+                  const isOver =
+                    used > capacity;
 
                   return (
                     <tr
                       key={p._id}
-                      className="group hover:bg-sky-50/30 transition-colors"
+                      className="hover:bg-slate-50 transition-all"
                     >
+                      {/* PROJECT */}
 
-      <td className="px-6 py-5 text-left align-middle">
-        <div className="flex items-center gap-4 group/item">
-          {/* Avatar with dynamic gradient */}
-          <div className="relative flex-shrink-0">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shadow-md shadow-sky-200 transition-all duration-300 group-hover/item:scale-105 group-hover/item:rotate-3">
-            <Layers className="text-white" size={19} strokeWidth={2.4} />
-          </div>
+                      <td className="px-6 py-6 align-middle">
+                        <div className="flex items-center gap-4 max-w-[320px]">
+                          <div>
+                            <div className="font-bold text-slate-900">
+                              {p.name}
+                            </div>
 
-          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full">
-          </div>
-        </div>
-
-          <div className="flex flex-col min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="font-bold text-[16px] text-slate-900 truncate tracking-tight">
-                {p.name}
-              </span>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5 text-slate-700 transition-colors group-hover/item:text-sky-600">
-                <Building2 size={13} strokeWidth={2.5} />
-                <span className="text-[14px] font-medium leading-none">
-                  {typeof p.client_id === "string"
-                    ? "Internal Workspace"
-                    : p.client_id?.client_name}
-                </span>
-              </div>
-              
-              {/* Subtle Separator */}
-              <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-              
-              <div className="flex items-center gap-1 text-slate-400">
-                <Clock size={11} />
-                <span className="text-[10px] font-medium">
-                  {new Date(p.createdAt).getFullYear()}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </td>
-
-                {/* Economics */}
-                <td className="px-6 py-4 text-center align-middle">
-                  {(() => {
-                    const rawBillingModel = p.billingModel as string;
-
-                    const safeType: "Billable" | "Non-Billable" =
-                      p.type ??
-                      (rawBillingModel === "Billable" ||
-                      rawBillingModel === "Non-Billable"
-                        ? (rawBillingModel as
-                            | "Billable"
-                            | "Non-Billable")
-                        : "Billable");
-
-                    const safeModel: "Hourly" | "Fixed" =
-                      rawBillingModel === "Hourly" ||
-                      rawBillingModel === "Fixed"
-                        ? (rawBillingModel as
-                            | "Hourly"
-                            | "Fixed")
-                        : (p.fixedMonthlyRevenue ?? 0) > 0
-                        ? "Fixed"
-                        : "Hourly";
-
-                    return (
-                      <div className="flex flex-col items-center justify-center gap-1.5">
-                        <span
-                          className={`w-fit px-2 py-0.5 rounded text-[10px] font-bold border ${
-                            safeType === "Billable"
-                              ? "text-emerald-700 bg-emerald-50 border-emerald-100"
-                              : "text-yellow-600 bg-yellow-50 border-yellow-200"
-                          }`}
-                        >
-                          {safeType}
-                        </span>
-
-                        <span
-                          className={`w-fit px-2 py-0.5 rounded text-[10px] font-bold border ${
-                            safeModel === "Hourly"
-                              ? "text-violet-700 bg-violet-50 border-violet-100"
-                              : "text-blue-700 bg-blue-50 border-blue-100"
-                          }`}
-                        >
-                          {safeModel}
-                        </span>
-
-                        <div className="text-xs font-semibold text-slate-700">
-                          {safeType === "Non-Billable"
-                            ? "Internal Cost Center"
-                            : safeModel === "Hourly"
-                            ? `₹${(
-                                p.billingRate ?? 0
-                              ).toLocaleString()}/hr`
-                            : `₹${(
-                                p.fixedMonthlyRevenue ?? 0
-                              ).toLocaleString()}/mo`}
+                            <div className="text-[12px] text-slate-400 font-medium">
+                              {p.billingModel}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })()}
-                </td>
+                      </td>
 
-                {/* Timeline */}
-                <td className="px-6 py-4 text-center align-middle">
-                  <div className="flex flex-col items-center justify-center">
-                    <span className="text-xs font-semibold text-slate-600">
-                      {new Date(p.startDate).toLocaleDateString()}
-                    </span>
+                      {/* ECONOMICS */}
 
-                    {p.endDate && (
-                      <span className="text-[10px] text-slate-400">
-                        Ends: {new Date(p.endDate).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
-                </td>
-
-                <td className="px-6 py-4 text-center align-middle">
-                  <div className="flex flex-col items-center gap-2">
-
-                    {/* FTE INPUT */}
-                    {(userRole === "Finance" || userRole === "Admin") ? (
-                    <input
-                      type="number"
-                      step="0.25"
-                      value={localFTE[p._id] ?? (p.targetFTE || "")}
-                      onChange={(e) =>
-                        setLocalFTE({
-                          ...localFTE,
-                          [p._id]: e.target.value,
-                        })
-                      }
-                      onBlur={(e) => {
-                        const val = Math.max(0, Number(e.target.value));
-                        updateTargetFTE(p._id, val);
-                      }}
-                      className="w-20 text-center border rounded-md text-sm font-semibold py-1"
-                    />
-                    ) : (
-                      <span className="text-sm font-bold text-slate-700">
-                        {p.targetFTE || 0} FTE
-                      </span>
-                    )}
-
-                    {/* CAPACITY vs USED */}
-                    {(() => {
-                      const capacity = (p.targetFTE || 0) * 160;
-                      const used = projectUsage[p._id] || 0;
-
-                      const percent =
-                        capacity > 0 ? Math.min((used / capacity) * 100, 100) : 0;
-
-                      const isOver = used > capacity;
-
-                      return (
-                        <>
-                          {/* TEXT */}
-                          <span className="text-xs text-slate-800">
-                            {used.toLocaleString()}h / {capacity.toLocaleString()}h
+                      <td className="px-6 py-6 text-center align-middle">
+                        <div className="flex flex-col items-center">
+                          <span
+                            className={`text-[10px] font-black px-2 py-1 rounded-lg border ${
+                              p.type ===
+                              "Billable"
+                                ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                                : "bg-slate-100 text-slate-500 border-slate-200"
+                            }`}
+                          >
+                            {p.type}
                           </span>
 
-                          <span className="text-[10px] text-slate-800">
-                            ({(p.targetFTE || 0)} FTE × 160)
-                          </span>
+                          <div className="mt-2 text-sm font-bold text-slate-700">
+                            {p.type ===
+                            "Non-Billable"
+                              ? "—"
+                              : `₹${(
+                                  p.billingRate ||
+                                  p.fixedMonthlyRevenue ||
+                                  0
+                                ).toLocaleString()}`}
+                          </div>
+                        </div>
+                      </td>
 
-                          {/* BAR */}
-                          <div className="w-28 h-2 bg-slate-200 rounded-full">
+                      {/* TIMELINE */}
+
+                      <td className="px-6 py-6 text-center align-middle">
+                        <div className="text-sm font-bold text-slate-700">
+                          {p.startMonth}
+                        </div>
+
+                        <div className="text-xs text-slate-400">
+                          {p.startYear}
+                        </div>
+                      </td>
+
+                      {/* CAPACITY */}
+
+                      <td className="px-6 py-6 text-center align-middle">
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="flex items-end gap-1">
+                            <input
+                              type="number"
+                              value={
+                                localFTE[p._id] ??
+                                (p.targetFTE || 0)
+                              }
+                              disabled={
+                                !(
+                                  userRole ===
+                                    "Admin" ||
+                                  userRole ===
+                                    "Finance"
+                                )
+                              }
+                              onChange={(e) =>
+                                setLocalFTE({
+                                  ...localFTE,
+                                  [p._id]:
+                                    e.target.value,
+                                })
+                              }
+                              onBlur={(e) =>
+                                updateTargetFTE(
+                                  p._id,
+                                  Number(
+                                    e.target.value
+                                  )
+                                )
+                              }
+                              className="w-14 text-center font-bold bg-transparent outline-none rounded-lg focus:ring-2 ring-indigo-500/20"
+                            />
+
+                            <span className="text-[10px] font-bold text-slate-400 mb-0.5">
+                              FTE
+                            </span>
+                          </div>
+
+                          <div className="w-28 h-2 bg-slate-100 rounded-full overflow-hidden">
                             <div
-                              className={`h-2 rounded-full ${
+                              className={`h-full rounded-full ${
                                 isOver
-                                  ? "bg-red-500"
-                                  : percent > 80
-                                  ? "bg-amber-500"
+                                  ? "bg-rose-500"
                                   : "bg-indigo-500"
                               }`}
-                              style={{ width: `${percent}%` }}
+                              style={{
+                                width: `${percent}%`,
+                              }}
                             />
                           </div>
 
-                          {/* STATUS */}
-                          {isOver ? (
-                            <span className="text-[10px] text-red-600 font-bold">
-                              OVER CAPACITY
-                            </span>
-                          ) : percent < 50 ? (
-                            <span className="text-[10px] text-slate-400">
-                              UNDER UTILIZED
-                            </span>
-                          ) : (
-                            <span className="text-[10px] text-emerald-600">
-                              BALANCED
-                            </span>
-                          )}
-                        </>
-                      );
-                    })()}
+                          <span
+                            className={`text-[9px] font-black ${
+                              isOver
+                                ? "text-rose-500"
+                                : "text-slate-400"
+                            }`}
+                          >
+                            {used.toLocaleString()} /{" "}
+                            {capacity.toLocaleString()}h
+                          </span>
+                        </div>
+                      </td>
 
-                  </div>
-                </td>
+                      {/* STATUS */}
 
-                {/* Status */}
-                <td className="px-6 py-4 text-center align-middle">
-                  <div className="flex flex-col items-center justify-center gap-1">
-                    <div
-                      className={`flex items-center gap-1.5 w-fit px-2.5 py-1 rounded-full border text-[10px] font-bold ${config.color}`}
-                    >
-                      <StatusIcon size={12} />
-                      {p.status}
-                    </div>
+                      <td className="px-6 py-6 text-center align-middle">
+                        <div
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[10px] font-black ${config.color}`}
+                        >
+                          <StatusIcon
+                            size={12}
+                          />
 
-                    {!p.allowAllocations && (
-                      <div className="text-[9px] text-slate-400 font-bold flex items-center gap-1">
-                        <Archive size={10} />
-                        ALLOCATIONS LOCKED
-                      </div>
-                    )}
-                  </div>
-                </td>
+                          {p.status}
+                        </div>
+                      </td>
 
-                {/* Actions */}
-                <td className="px-6 py-4 text-center align-middle">
-                  {(userRole === "Admin" ||
-                    userRole === "Finance") && (
-                    <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <ActionButton
-                        icon={<Edit3 size={15} />}
-                        onClick={() => {
-                          setEditingProject(p);
-                          setIsModalOpen(true);
-                        }}
-                        disabled={!p.allowMoves}
-                        variant="blue"
-                      />
+                      {/* ACTIONS */}
 
-                      <ActionButton
-                        icon={<Trash2 size={15} />}
-                        onClick={() => handleDelete(p._id)}
-                        disabled={!p.allowMoves}
-                        variant="rose"
-                      />
-                    </div>
-                  )}
-                </td>
-              </tr>
-            );
-          })
-        )}
-      </tbody>
-    </table>
-  </div>
-</div>
+                      <td className="px-6 py-6 text-center align-middle">
+                        {(userRole === "Admin" ||
+                          userRole ===
+                            "Finance") && (
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => {
+                                setEditingProject(
+                                  p
+                                );
+
+                                setIsModalOpen(
+                                  true
+                                );
+                              }}
+                              className="p-2.5 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl text-slate-400 transition-all"
+                            >
+                              <Edit3
+                                size={18}
+                              />
+                            </button>
+
+                            <button
+                              onClick={() =>
+                                handleDelete(
+                                  p._id
+                                )
+                              }
+                              className="p-2.5 hover:bg-rose-50 hover:text-rose-600 rounded-xl text-slate-400 transition-all"
+                            >
+                              <Trash2
+                                size={18}
+                              />
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* =========================================================
+          MODAL
+      ========================================================= */}
 
       {isModalOpen && (
         <ProjectModal
           project={editingProject}
-          clients={clients}
-          employees={employees}
           API_BASE={API_BASE}
           token={token}
-          onClose={() => setIsModalOpen(false)}
-          onSaved={() => { setIsModalOpen(false); loadData(); }}
+          onClose={() =>
+            setIsModalOpen(false)
+          }
+          onSaved={() => {
+            setIsModalOpen(false);
+            loadData();
+          }}
         />
       )}
     </div>
   );
 }
 
-/* ================= HELPER COMPONENTS ================= */
-
-function FilterDropdown({ icon, label, value, options, onChange }: any) {
-  return (
-    <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus-within:ring-2 focus-within:ring-indigo-500/20 transition">
-      <span className="text-green-800">{icon}</span>
-      <select 
-        className="bg-transparent text-sm font-medium text-slate-700 outline-none w-full cursor-pointer"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        {options.map((opt: any) => (
-          <option key={typeof opt === 'string' ? opt : opt.value} value={typeof opt === 'string' ? opt : opt.value}>
-            {typeof opt === 'string' ? opt : opt.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-
-function ActionButton({ icon, onClick, disabled, variant }: any) {
-  const styles = {
-    blue: "hover:bg-sky-50 hover:text-sky-600 text-slate-400",
-    rose: "hover:bg-rose-50 hover:text-rose-600 text-slate-400",
-  };
-  return (
-    <button
-      disabled={disabled}
-      onClick={onClick}
-      className={`p-2 rounded-lg transition-all ${disabled ? "opacity-10 cursor-not-allowed" : styles[variant as keyof typeof styles]}`}
-    >
-      {icon}
-    </button>
-  );
-}
+/* =========================================================
+   SUMMARY CARD
+========================================================= */
 
 function SummaryCard({
   title,
@@ -605,177 +717,357 @@ function SummaryCard({
 }) {
   return (
     <div className="bg-white border rounded-xl p-4 text-center">
-      <p className="text-xs text-slate-500">{title}</p>
+      <p className="text-md font-bold text-indigo-700">{title}</p>
       <p className={`text-lg font-bold ${color}`}>{value}</p>
     </div>
   );
 }
-/* ================= MODAL COMPONENT ================= */
 
-function ProjectModal({ project, clients, employees, API_BASE, token, onClose, onSaved }: any) {
+/* =========================================================
+   FILTER DROPDOWN
+========================================================= */
+
+function FilterDropdown({
+  value,
+  options,
+  onChange,
+}: any) {
+  return (
+    <select
+      value={value}
+      onChange={(e) =>
+        onChange(e.target.value)
+      }
+      className="px-5 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 shadow-sm outline-none focus:ring-4 focus:ring-indigo-500/10"
+    >
+      {options.map((opt: string) => (
+        <option key={opt} value={opt}>
+          {opt}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+/* =========================================================
+   PROJECT MODAL
+========================================================= */
+
+function ProjectModal({
+  project,
+  API_BASE,
+  token,
+  onClose,
+  onSaved,
+}: any) {
   const isEdit = !!project;
-  const [loading, setLoading] = useState(false);
 
-  /* ✅ FIXED FORM STATE */
+  const [loading, setLoading] =
+    useState(false);
+
   const [form, setForm] = useState({
-    name: "",
-    client_id: "",
-    type: "Billable",
-    billingModel: "Fixed",
-    billingRate: "",
-    startDate: "",
-    endDate: "",
-    status: "PLANNED",
-    assignedTo: "",
-  });
+    name: project?.name || "",
 
-  /* ✅ LOAD EDIT DATA WHEN PROJECT CHANGES */
-  useEffect(() => {
-    setForm({
-      name: project?.name || "",
-      client_id:
-        typeof project?.client_id === "string"
-          ? project?.client_id
-          : project?.client_id?._id || "",
-      type: project?.type || "Billable",
-      billingModel: project?.billingModel || "Fixed",
-      billingRate: project?.billingRate || "",
-      startDate: project?.startDate
-        ? project.startDate.split("T")[0]
-        : "",
-      endDate: project?.endDate
-        ? project.endDate.split("T")[0]
-        : "",
-      status: project?.status || "PLANNED",
-      assignedTo:
-        typeof project?.assignedTo === "string"
-          ? project?.assignedTo
-          : project?.assignedTo?._id || "",
-    });
-  }, [project]);
+    type: project?.type || "Billable",
+
+    billingModel:
+      project?.billingModel || "Fixed",
+
+    billingRate:
+      project?.billingRate || "",
+
+    startMonth:
+      project?.startMonth || "January",
+
+    startYear:
+      project?.startYear ||
+      new Date().getFullYear(),
+
+    status:
+      project?.status || "PLANNED",
+  });
 
 const handleSubmit = async () => {
   setLoading(true);
 
   try {
     const payload = {
-      name: form.name,
-      client_id: form.client_id || null,
+      name: form.name.trim(),
       type: form.type,
       billingModel: form.billingModel,
-      billingRate: Number(form.billingRate) || 0,
-      startDate: form.startDate,
-      endDate: form.endDate || null,
+
+      billingRate:
+        form.billingModel === "Hourly"
+          ? Number(form.billingRate)
+          : 0,
+
+      fixedMonthlyRevenue:
+        form.billingModel === "Fixed"
+          ? Number(form.billingRate) // reuse input OR rename field (better below)
+          : 0,
+
+      startMonth: form.startMonth,
+      startYear: Number(form.startYear),
       status: form.status,
-      assignedTo: form.assignedTo || null,
     };
 
-    const url = isEdit
-      ? `${API_BASE}/api/projects/${project._id}`
-      : `${API_BASE}/api/projects`;
+    console.log("Sending Payload:", payload);
 
-    const res = await fetch(url, {
-      method: isEdit ? "PATCH" : "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
+    const res = await fetch(
+      isEdit
+        ? `${API_BASE}/api/projects/${project._id}`
+        : `${API_BASE}/api/projects`,
+      {
+        method: isEdit ? "PATCH" : "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      }
+    );
 
-    const data = await res.json();
+    const text = await res.text();
 
-    if (res.ok) {
-      onSaved();
-    } else {
-      alert(data.message || "Failed to Save Project");
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      console.error("❌ Non-JSON Response Received");
+      console.error("Raw Response:", text); // 👈 THIS is key
+      return;
     }
-  } catch (error) {
-    console.error(error);
-    alert("Something Went Wrong");
+
+    if (!res.ok) {
+      console.error("Backend Error:", data);
+      alert(data.message || "Failed to Save Project");
+      return;
+    }
+
+    onSaved();
+  } catch (err) {
+    console.error(err);
+    alert("Something went Wrong");
   } finally {
     setLoading(false);
   }
 };
 
-  const inputClass = "w-full border border-slate-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-sky-500/20 outline-none bg-slate-50/50 transition-all font-medium";
-  const labelClass = "block text-[10px] font-bold text-sky-800 uppercase tracking-wider mb-1.5 ml-1";
-
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
-        <div className="p-6 border-b flex items-center justify-between bg-slate-50/50">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-sky-600 rounded-lg text-white"><Briefcase size={20}/></div>
-            <h2 className="text-lg font-bold text-slate-800">{isEdit ? "Project Settings" : "New Project"}</h2>
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-6">
+      <div className="bg-white w-full max-w-xl rounded-[2.5rem] overflow-hidden shadow-2xl">
+        {/* HEADER */}
+
+        <div className="px-10 py-8 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-sk-600 rounded-2xl text-white">
+              <Briefcase size={22} />
+            </div>
+
+            <h2 className="text-2xl font-black tracking-tight text-slate-900">
+              {isEdit
+                ? "Update Project"
+                : "Create Project"}
+            </h2>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full"><X size={20}/></button>
+
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-slate-200 rounded-full"
+          >
+            <X size={22} />
+          </button>
         </div>
 
-        <div className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
-          <div>
-            <label className={labelClass}>Project Identity</label>
-            <input className={inputClass} placeholder="Project Name" value={form.name} onChange={e => setForm({...form, name: e.target.value})}/>
+        {/* BODY */}
+
+        <div className="p-10 space-y-6">
+          <InputGroup label="Project Name">
+            <input
+              value={form.name}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  name: e.target.value,
+                })
+              }
+              className={inputClass}
+              placeholder="Project Name"
+            />
+          </InputGroup>
+
+          <div className="grid grid-cols-2 gap-5">
+            <InputGroup label="Project Type">
+              <select
+                value={form.type}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    type: e.target.value as any,
+                  })
+                }
+                className={inputClass}
+              >
+                <option value="Billable">
+                  Billable
+                </option>
+
+                <option value="Non-Billable">
+                  Non-Billable
+                </option>
+              </select>
+            </InputGroup>
+
+            <InputGroup label="Billing Model">
+              <select
+                value={form.billingModel}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    billingModel:
+                      e.target.value as any,
+                  })
+                }
+                className={inputClass}
+              >
+                <option value="Hourly">
+                  Hourly
+                </option>
+
+                <option value="Fixed">
+                  Fixed
+                </option>
+              </select>
+            </InputGroup>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelClass}>Partner Client</label>
-              <select className={inputClass} value={form.client_id} onChange={e => setForm({...form, client_id: e.target.value})}>
-                <option value="">Select Client</option>
-                {clients.map((c: any) => <option key={c._id} value={c._id}>{c.client_name}</option>)}
+          <div className="grid grid-cols-2 gap-5">
+            <InputGroup label="Billing Rate">
+              <input
+                type="number"
+                value={form.billingRate}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    billingRate:
+                      e.target.value,
+                  })
+                }
+                className={inputClass}
+              />
+            </InputGroup>
+
+            <InputGroup label="Status">
+              <select
+                value={form.status}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    status:
+                      e.target.value as any,
+                  })
+                }
+                className={inputClass}
+              >
+                {Object.keys(
+                  STATUS_CONFIG
+                ).map((s) => (
+                  <option
+                    key={s}
+                    value={s}
+                  >
+                    {s}
+                  </option>
+                ))}
               </select>
-            </div>
-            <div>
-              <label className={labelClass}>Revenue Type</label>
-              <select className={inputClass} value={form.type} onChange={e => setForm({...form, type: e.target.value})}>
-                <option value="Billable">Billable</option>
-                <option value="Non-Billable">Non-Billable</option>
-              </select>
-            </div>
+            </InputGroup>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-             <div>
-              <label className={labelClass}>Billing Model</label>
-              <select className={inputClass} value={form.billingModel} onChange={e => setForm({...form, billingModel: e.target.value})}>
-                <option value="Fixed">Fixed</option>
-                <option value="Hourly">Hourly</option>
+          <div className="grid grid-cols-2 gap-5">
+            <InputGroup label="Start Month">
+              <select
+                value={form.startMonth}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    startMonth:
+                      e.target.value,
+                  })
+                }
+                className={inputClass}
+              >
+                {MONTHS.map((m) => (
+                  <option
+                    key={m}
+                    value={m}
+                  >
+                    {m}
+                  </option>
+                ))}
               </select>
-            </div>
-            <div>
-              <label className={labelClass}>Base Rate (INR)</label>
-              <input type="number" className={inputClass} value={form.billingRate} onChange={e => setForm({...form, billingRate: e.target.value})}/>
-            </div>
-          </div>
+            </InputGroup>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelClass}>Start Date</label>
-              <input type="date" className={inputClass} value={form.startDate} onChange={e => setForm({...form, startDate: e.target.value})}/>
-            </div>
-            <div>
-              <label className={labelClass}>Status</label>
-              <select className={inputClass} value={form.status} onChange={e => setForm({...form, status: e.target.value})}>
-                {Object.keys(STATUS_CONFIG).map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
+            <InputGroup label="Start Year">
+              <input
+                type="number"
+                value={form.startYear}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    startYear: Number(
+                      e.target.value
+                    ),
+                  })
+                }
+                className={inputClass}
+              />
+            </InputGroup>
           </div>
         </div>
+
+        {/* FOOTER */}
 
         <div className="p-6 border-t bg-slate-50/50 flex justify-center gap-3">
-          <button 
-            onClick={handleSubmit} 
+          <button
+            onClick={handleSubmit}
             disabled={loading}
             className="px-6 py-2 bg-sky-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-sky-100 disabled:opacity-50"
           >
-            {loading ? "Saving..." : isEdit ? "Update Project" : "Create Project"}
+            {loading
+              ? "Saving..."
+              : isEdit
+              ? "Update Project"
+              : "Create Project"}
           </button>
 
           <button onClick={onClose} className="px-5 py-2 text-sm font-bold text-slate-500">Cancel</button>
-
         </div>
       </div>
     </div>
   );
 }
+
+/* =========================================================
+   INPUT GROUP
+========================================================= */
+
+function InputGroup({
+  label,
+  children,
+}: any) {
+  return (
+    <div className="space-y-2">
+      <label className="block text-[14px] font-bold text-sky-800 uppercase tracking-wider mb-1.5 ml-1">
+        {label}
+      </label>
+
+      {children}
+    </div>
+  );
+}
+
+/* =========================================================
+   SHARED INPUT CLASS
+========================================================= */
+
+  const inputClass = "w-full border border-slate-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-sky-500/20 outline-none bg-slate-50/50 transition-all font-medium";

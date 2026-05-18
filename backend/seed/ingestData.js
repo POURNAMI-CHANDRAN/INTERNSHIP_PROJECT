@@ -21,7 +21,7 @@ Status: ${emp.status || ""}
 Hourly Cost: ${emp.hourlyCost || 0}
 Monthly Salary: ${emp.monthlySalary || 0}
 Skills: ${skills}
-Department: ${emp.departmentText || ""}
+role: ${emp.roleText || ""}
       `.trim();
 
       const embedding = await getEmbedding(text);

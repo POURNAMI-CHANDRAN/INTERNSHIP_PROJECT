@@ -1,31 +1,31 @@
 // interface Employee {
 //   _id: string;
 //   name: string;
-//   departmentId?: { _id: string; name: string };
+//   roleId?: { _id: string; name: string };
 // }
 
-// interface Department {
+// interface role {
 //   _id: string;
 //   name: string;
 // }
 
-interface SidebarDepartment {
+interface Sidebarrole {
   _id: string;
   name: string;
   employees: Employee[];
 }
-export function buildDepartments(
-  departments: Department[] = [],
+export function buildroles(
+  roles: role[] = [],
   employees: Employee[] = []
-): SidebarDepartment[] {
-  return departments.map((dept) => ({
+): Sidebarrole[] {
+  return roles.map((dept) => ({
     _id: dept._id,
     name: dept.name,
     employees: employees.filter((emp) => {
       const empDeptId =
-        typeof emp.departmentId === "object"
-          ? emp.departmentId._id
-          : emp.departmentId;
+        typeof emp.roleId === "object"
+          ? emp.roleId._id
+          : emp.roleId;
 
       return empDeptId === dept._id;
     }),
@@ -41,7 +41,7 @@ interface Employee {
   name: string;
   role?: string;
 
-  departmentId?: {
+  roleId?: {
     _id: string;
     name: string;
   };
@@ -55,7 +55,7 @@ interface Allocation {
   year: number;
 }
 
-interface Department {
+interface role {
   _id: string;
   name: string;
 }
@@ -63,7 +63,7 @@ interface Department {
 interface HeatmapState {
   employees: Employee[];
   allocations: Allocation[];
-  departments: Department[];
+  roles: role[];
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;

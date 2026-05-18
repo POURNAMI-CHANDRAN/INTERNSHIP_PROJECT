@@ -6,35 +6,21 @@ const workCategorySchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      uppercase: true,
       trim: true,
+      uppercase: true,
       minlength: 2,
-      maxlength: 50
-    },
-
-    /**
-     * Defines what billing types are allowed
-     * for this work category.
-     *
-     * Example:
-     * DEVELOPMENT -> ["Billable"]
-     * SUPPORT     -> ["Billable", "Non-Billable"]
-     * INTERNAL    -> ["Non-Billable"]
-     */
-    
-    allowedBillingTypes: {
-      type: [String],
-      enum: ["Billable", "Non-Billable"],
-      required: true
+      maxlength: 50,
     },
 
     status: {
       type: String,
       enum: ["Active", "Inactive"],
-      default: "Active"
-    }
+      default: "Active",
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
 export default mongoose.model("WorkCategory", workCategorySchema);

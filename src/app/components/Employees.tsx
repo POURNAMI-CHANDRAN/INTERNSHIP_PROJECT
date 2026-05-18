@@ -5,16 +5,16 @@ import {cn} from "../components/ui/utils";
 
 const API = import.meta.env.VITE_API_BASE_URL;
 
-interface Department { _id: string; name: string; }
+interface role { _id: string; name: string; }
 interface WorkCategory { _id: string; name: string; }
 interface Skill { _id: string; name: string; category: string; }
 
 export function CreateEmployeeModal({
-  departments,
+  roles,
   onClose,
   onSuccess,
 }: {
-  departments: Department[];
+  roles: role[];
   onClose: () => void;
   onSuccess: () => void;
 }) {
@@ -26,7 +26,7 @@ export function CreateEmployeeModal({
   const [form, setForm] = useState({
     name: "",
     email: "",
-    departmentId: "",
+    roleId: "",
     primaryWorkCategoryId: "",
     skills: [] as string[],
     hourlyCost: "",
@@ -66,7 +66,7 @@ export function CreateEmployeeModal({
   };
 
   const submit = async () => {
-    if (!form.name || !form.email || !form.departmentId) {
+    if (!form.name || !form.email || !form.roleId) {
       setError("Essential Fields are Missing.");
       return;
     }
@@ -136,11 +136,11 @@ export function CreateEmployeeModal({
             <div className="grid grid-cols-2 gap-4">
               <select
                 className="w-full bg-slate-50 border-none ring-1 ring-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-sky-600 transition-all outline-none appearance-none"
-                value={form.departmentId}
-                onChange={(e) => updateField("departmentId", e.target.value)}
+                value={form.roleId}
+                onChange={(e) => updateField("roleId", e.target.value)}
               >
-                <option value="">Department</option>
-                {departments.map((d) => <option key={d._id} value={d._id}>{d.name}</option>)}
+                <option value="">Role</option>
+                {roles.map((d) => <option key={d._id} value={d._id}>{d.name}</option>)}
               </select>
               <select
                 className="w-full bg-slate-50 border-none ring-1 ring-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-sky-600 transition-all outline-none appearance-none"

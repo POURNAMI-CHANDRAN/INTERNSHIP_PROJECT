@@ -253,7 +253,7 @@ export default function MyProfile() {
 
                 <div className="flex items-center gap-2">
                   <Building2 size={16} />
-                  {profile?.departmentId?.name || "Organization"}
+                  {profile?.roleId?.name || "Organization"}
                 </div>
 
                 <div className="flex items-center gap-2">

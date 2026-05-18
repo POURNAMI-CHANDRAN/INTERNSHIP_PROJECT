@@ -4,7 +4,7 @@
 // interface HeatmapState {
 //   employees: any[];
 //   allocations: any[];
-//   departments: any[];
+//   roles: any[];
 //   loading: boolean;
 //   error: string | null;
 //   refetch: () => Promise<void>; 
@@ -20,7 +20,7 @@
 // export default function useResourceHeatmapData(year: number): HeatmapState {
 //   const [employees, setEmployees] = useState<any[]>([]);
 //   const [allocations, setAllocations] = useState<any[]>([]);
-//   const [departments, setDepartments] = useState<any[]>([]);
+//   const [roles, setroles] = useState<any[]>([]);
 //   const [loading, setLoading] = useState(true);
 //   const [error, setError] = useState<string | null>(null);
 
@@ -30,7 +30,7 @@
 //         const [empRes, allocRes, deptRes] = await Promise.all([
 //           api.get("/employees"),
 //           api.get("/allocations", { params: { year } }),
-//           api.get("/departments"),
+//           api.get("/roles"),
 //         ]);
 
 //         const normalize = (res: any) =>
@@ -50,11 +50,11 @@
 //               ? a.employeeId._id
 //               : a.employeeId,
 //         }));
-//         const departmentsData = normalize(deptRes.data);
+//         const rolesData = normalize(deptRes.data);
 
 //         setEmployees(employeesData);
 //         setAllocations(allocationsData);
-//         setDepartments(departmentsData);
+//         setroles(rolesData);
 //       } catch (err) {
 //         console.error(err);
 //         setError("Failed to Load Data");
@@ -73,7 +73,7 @@
 //       const [empRes, allocRes, deptRes] = await Promise.all([
 //         api.get("/employees"),
 //         api.get("/allocations", { params: { year } }),
-//         api.get("/departments"),
+//         api.get("/roles"),
 //       ]);
 
 //       const normalize = (res: any) =>
@@ -93,11 +93,11 @@
 //             ? a.employeeId._id
 //             : a.employeeId,
 //       }));
-//       const departmentsData = normalize(deptRes.data);
+//       const rolesData = normalize(deptRes.data);
 
 //       setEmployees(employeesData);
 //       setAllocations(allocationsData);
-//       setDepartments(departmentsData);
+//       setroles(rolesData);
 //     } catch (err) {
 //       console.error(err);
 //       setError("Failed to Load Data");
@@ -106,7 +106,7 @@
 //     }
 //   };
 
-//   return { employees, allocations, departments, loading, error, refetch };
+//   return { employees, allocations, roles, loading, error, refetch };
 // }
 
 import { useEffect, useState, useCallback } from "react";
@@ -117,7 +117,7 @@ import api from "../api/api";
 interface Employee {
   _id: string;
   name: string;
-  departmentId?: any;
+  roleId?: any;
 }
 
 interface Allocation {
@@ -127,7 +127,7 @@ interface Allocation {
   year: number;
 }
 
-interface Department {
+interface role {
   _id: string;
   name: string;
 }
@@ -135,7 +135,7 @@ interface Department {
 interface HeatmapState {
   employees: Employee[];
   allocations: Allocation[];
-  departments: Department[];
+  roles: role[];
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
@@ -170,7 +170,7 @@ export default function useResourceHeatmapData(
 ): HeatmapState {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [allocations, setAllocations] = useState<Allocation[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
+  const [roles, setroles] = useState<role[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -184,16 +184,16 @@ export default function useResourceHeatmapData(
       const [empRes, allocRes, deptRes] = await Promise.all([
         api.get("/employees"),
         api.get("/allocations", { params: { year } }),
-        api.get("/departments"),
+        api.get("/roles"),
       ]);
 
       const employeesData = normalizeArray(empRes.data);
       const allocationsRaw = normalizeArray(allocRes.data);
-      const departmentsData = normalizeArray(deptRes.data);
+      const rolesData = normalizeArray(deptRes.data);
 
       setEmployees(employeesData);
       setAllocations(normalizeAllocations(allocationsRaw));
-      setDepartments(departmentsData);
+      setroles(rolesData);
 
     } catch (err: any) {
       console.error("Heatmap fetch error:", err);
@@ -224,7 +224,7 @@ export default function useResourceHeatmapData(
   return {
     employees,
     allocations,
-    departments,
+    roles,
     loading,
     error,
     refetch: fetchAll,
