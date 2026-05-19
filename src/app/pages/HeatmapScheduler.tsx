@@ -143,8 +143,8 @@ const handleSubmitAssignment = async (data: {
       {/* HEADER */}
       <header className="flex items-center justify-between border-b bg-white px-6 py-4 shadow-sm">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">
-            Resource Planner
+          <h1 className="text-lg font-bold">
+            Resource<span className="text-blue-600"> Planner</span>
           </h1>
           <p className="text-sm text-gray-500">
             Managing Allocations for {year}

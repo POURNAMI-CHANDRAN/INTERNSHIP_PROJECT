@@ -51,6 +51,17 @@ const employeeSchema = new mongoose.Schema(
       default: 0,
     },
 
+    billingRate: {
+      type: Number,
+      default: 0,
+    },
+
+    billingCurrency: {
+      type: String,
+      enum: ["INR", "USD", "EUR", "GBP"],
+      default: "INR",
+    },
+
     monthlySalary: {
       type: Number,
       min: 0,

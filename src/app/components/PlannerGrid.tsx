@@ -27,42 +27,39 @@ type Employee = {
   name?: string;
   employeeCode?: string;
   hourlyCost?: number;
+  billingRate?: number;
+  marginMultiplier?: number;
   allocations?: Allocation[];
   skills?: { name?: string }[];
   primaryWorkCategoryId?: { name?: string };
+  roleId?: { name?: string };
 };
 
 /* ================= STATUS BADGE ================= */
 const StatusBadge = ({ fte }: { fte: number }) => {
-  const config = {
-    bench: {
-      bg: "bg-red-50",
-      text: "text-red-700",
-      ring: "ring-red-600/20",
-      label: "Bench",
-    },
-    partial: {
-      bg: "bg-amber-50",
-      text: "text-amber-700",
-      ring: "ring-amber-600/20",
-      label: "Partial",
-    },
-    full: {
-      bg: "bg-emerald-50",
-      text: "text-emerald-700",
-      ring: "ring-emerald-600/20",
-      label: "Full",
-    },
-  };
 
-  const status =
-    fte === 0 ? config.bench : fte < 1 ? config.partial : config.full;
+  const allocatedHours = Math.round(fte * HOURS_PER_MONTH);
+  const benchHours = HOURS_PER_MONTH - allocatedHours;
+
+  const isFullyBench = allocatedHours === 0;
+  const isFullyAllocated = allocatedHours >= HOURS_PER_MONTH;
 
   return (
     <span
-      className={`inline-flex items-center rounded-md ${status.bg} px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${status.text} ring-1 ring-inset ${status.ring}`}
+      className={`
+        inline-flex items-center rounded-md
+        px-2 py-1 text-[10px]
+        font-bold tracking-wider ring-1
+        ${
+          isFullyBench
+            ? "bg-red-50 text-red-700 ring-red-600/20"
+            : isFullyAllocated
+            ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20"
+            : "bg-amber-50 text-amber-700 ring-amber-600/20"
+        }
+      `}
     >
-      {status.label}
+      {allocatedHours}h • {benchHours}h
     </span>
   );
 };
@@ -100,47 +97,6 @@ export function ResourcePlanningGrid({
   return (
     <div className="w-full rounded-2xl border border-slate-200 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] antialiased">
 
-      {/* HEADER */}
-      <div className="flex flex-col gap-4 border-b border-slate-100 p-6 lg:flex-row lg:items-center lg:justify-between bg-slate-50/30 rounded-t-2xl">
-
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600">
-            <Users className="h-5 w-5 text-white" />
-          </div>
-
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">
-              Resource Allocation
-            </h2>
-            <p className="text-sm text-slate-500">
-              Team utilization overview
-            </p>
-          </div>
-        </div>
-
-        {/* SEARCH */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative group">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-
-            <input
-              type="text"
-              placeholder="Filter by Name, Skill, Project..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-10 w-72 rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500"
-            />
-          </div>
-
-          <p className="text-slate-500 whitespace-nowrap">
-            Total Headcount:{" "}
-            <span className="text-slate-900 font-bold">
-              {employees.length}
-            </span>
-          </p>
-        </div>
-      </div>
-
       {/* ================= TABLE ================= */}
       <div className="w-full overflow-hidden">
         <table className="w-full table-auto border-separate border-spacing-0">
@@ -149,7 +105,7 @@ export function ResourcePlanningGrid({
           <thead>
             <tr className="bg-sky-50 text-[14px] uppercase tracking-wider text-sky-800">
               <th className="px-6 py-4 text-center">Member</th>
-              <th className="px-4 py-4 text-center">Category</th>
+              <th className="px-4 py-4 text-center">Designation</th>
               <th className="px-4 py-4 text-center">Skills</th>
               <th className="px-4 py-4 text-center">Projects</th>
               <th className="px-4 py-4 text-center">Capacity</th>
@@ -210,7 +166,7 @@ export function ResourcePlanningGrid({
                         <p className="font-bold text-[16px] text-slate-900">
                           {emp.name}
                         </p>
-                        <p className="text-[12px] text-cyan-700">
+                        <p className="text-[12px] text-amber-900 font-semibold">
                           {emp.employeeCode}
                         </p>
                       </div>
@@ -219,18 +175,38 @@ export function ResourcePlanningGrid({
 
                   {/* CATEGORY */}
                   <td className="px-4 py-5 text-center font-medium text-indigo-900">
-                    {categories.length ? (
-                      categories.map((cat, i) => (
-                        <span
-                          key={i}
-                          className="mx-1 px-2 py-1 bg-sky-50 text-sky-700 text-[10px] rounded-md"
-                        >
-                          {cat}
-                        </span>
-                      ))
-                    ) : (
-                      emp.primaryWorkCategoryId?.name || "Unassigned"
-                    )}
+
+                    <div className="flex flex-col items-center gap-2">
+
+                      {/* CATEGORY */}
+                      <div className="flex flex-wrap justify-center gap-1">
+                        {categories.length ? (
+                          categories.map((cat, i) => (
+                            <span
+                              key={i}
+                              className="
+                                px-2 py-1 rounded-md
+                                bg-sky-50 text-sky-700
+                                text-[12px] font-semibold
+                              "
+                            >
+                              {cat}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-indigo-900 text-sm font-semibold">
+                            {emp.primaryWorkCategoryId?.name || "Unassigned"}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* ROLE */}
+                      <div className="text-[12px] text-cyan-700 font-semibold">
+                        {emp.roleId?.name || "No Role Assigned"}
+                      </div>
+
+                    </div>
+
                   </td>
 
                   {/* SKILLS */}
@@ -268,22 +244,67 @@ export function ResourcePlanningGrid({
                   {/* CAPACITY */}
                   <td className="px-4 py-5 text-center">
                     <div className="flex flex-col items-center">
-                      <span className="font-black text-slate-900">
-                        {Math.round(fte * 100)}%
-                      </span>
-                      <StatusBadge fte={fte} />
+
+                      {(() => {
+
+                        // TOTAL HOURS FOR EMPLOYEE
+                        const totalHours = emp.allocations?.reduce(
+                          (sum: number, a: any) =>
+                            sum + Number(a?.allocatedHours || 0), 0) || 0;
+
+                        // CONVERT HOURS -> FTE
+                        const totalFTE = totalHours / HOURS_PER_MONTH;
+
+                        return (
+                          <>
+                            <span className="font-black text-cyan-900">
+                              {totalFTE.toFixed(2)} FTE
+                            </span>
+
+                            <StatusBadge fte={totalFTE}/>
+                          </>
+                        );
+                      })()}
                     </div>
                   </td>
 
-                  {/* FINANCIAL */}
-                  <td className="px-6 py-5 text-center">
-                    <div className="font-bold text-slate-900">
-                      ₹{calculateRatePerHour(emp.hourlyCost || 0)}
-                    </div>
-                    <div className="text-[10px] text-slate-400">
-                      / hour
-                    </div>
-                  </td>
+                {/* FINANCIAL */}
+                <td className="px-6 py-5 text-center">
+
+                  {(() => {
+
+                    const hourlyCost = emp.hourlyCost || 0;
+
+                    // Finance controlled multiplier
+                    const multiplier = emp.marginMultiplier || DEFAULT_MARGIN;
+
+                    // Final billing rate
+                    const billingRate =
+                      emp.billingRate ||
+                      Math.round(hourlyCost * multiplier);
+
+                    return (
+                      <div className="flex flex-col items-center">
+
+                        {/* BILLING RATE */}
+                        <div className="font-bold text-slate-900 text-[15px]">
+                          ${billingRate}
+                        </div>
+
+                        {/* DETAILS */}
+                        <div className="text-[10px] text-slate-500">
+                          Cost: ${hourlyCost}
+                        </div>
+
+                        <div className="text-[10px] text-cyan-700 font-semibold">
+                          {multiplier}x Margin
+                        </div>
+
+                      </div>
+                    );
+                  })()}
+
+                </td>
 
                 </tr>
               );

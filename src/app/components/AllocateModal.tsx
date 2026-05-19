@@ -51,7 +51,7 @@ export function AllocateModal({
       };
 
       if (mode === "create") {
-        if (!employeeId || !projectId || !workCategoryId || hours <= 0) throw new Error("Please fill all required fields");
+        if (!employeeId || !projectId || !workCategoryId || hours < 0) throw new Error("Please Fill all Required Fields");
         const employee = employees.find((e) => e._id === employeeId);
 
         const existingHours =
@@ -185,6 +185,7 @@ export function AllocateModal({
                   </label>
                   <input
                     type="number"
+                    min={0}
                     max={160}
                     className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-lg text-sm focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 outline-none transition-all"
                     placeholder="e.g. 160"

@@ -18,6 +18,8 @@ export const createEmployee = async (req, res) => {
       primaryWorkCategoryId,
       skills,
       hourlyCost,
+      billingRate,
+      billingCurrency,
       status,
       joiningDate,
       location,
@@ -33,6 +35,8 @@ export const createEmployee = async (req, res) => {
       primaryWorkCategoryId,
       skills: skills || [],
       hourlyCost,
+      billingRate,
+      billingCurrency,
       status,
       joiningDate,
       location,
@@ -303,9 +307,14 @@ export const getFullEmployeeDetails = async (req, res) => {
        FORMAT + CALCULATE (FIX ✅)
     ========================= */
     const formattedAllocations = allocations.map((a) => {
+      const billingRate =
+        a.rateSnapshot || emp.billingRate ||
+        employee.billingRate ||
+        0;
+
       const revenue =
-        a.isBillable && a.rateSnapshot
-          ? a.allocatedHours * a.rateSnapshot
+        a.isBillable
+          ? a.allocatedHours * billingRate
           : 0;
 
       const cost = employee.hourlyCost
@@ -320,7 +329,7 @@ export const getFullEmployeeDetails = async (req, res) => {
         fte: a.allocationFTE,
         billable: a.isBillable,
         billing_type: a.billingType,
-        rate: a.rateSnapshot,
+        rate: a.rateSnapshot || emp.billingRate,
         revenue,
         cost,
       };
@@ -355,6 +364,8 @@ export const getFullEmployeeDetails = async (req, res) => {
         status: employee.status,
         monthlySalary: employee.monthlySalary,
         hourlyCost: employee.hourlyCost,
+        billingRate: employee.billingRate,
+        billingCurrency: employee.billingCurrency,
       },
 
       skills,
@@ -410,8 +421,8 @@ export const getAllEmployeesReport = async (req, res) => {
 
       const detailedAllocations = allocations.map((a) => {
         const revenue =
-          a.isBillable && a.rateSnapshot
-            ? a.allocatedHours * a.rateSnapshot
+          a.isBillable && a.rateSnapshot || emp.billingRate
+            ? a.allocatedHours * a.rateSnapshot || emp.billingRate
             : 0;
 
         const cost = emp.hourlyCost
@@ -429,7 +440,7 @@ export const getAllEmployeesReport = async (req, res) => {
           hours: a.allocatedHours,
           fte: a.allocationFTE,
           billable: a.isBillable,
-          rate: a.rateSnapshot,
+          rate: a.rateSnapshot || emp.billingRate,
           revenue,
           cost,
         };

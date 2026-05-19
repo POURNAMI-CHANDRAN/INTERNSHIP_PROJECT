@@ -63,6 +63,12 @@ const projectSchema = new mongoose.Schema(
       min: 0,
     },
 
+    billingCurrency: {
+      type: String,
+      enum: ["INR", "USD", "EUR", "GBP"],
+      default: "INR"
+    },
+
     fixedMonthlyRevenue: {
       type: Number,
       default: 0,

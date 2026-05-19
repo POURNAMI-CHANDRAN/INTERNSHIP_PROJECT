@@ -84,41 +84,49 @@ const allocationSchema = new mongoose.Schema(
 /* =========================================================
    CORE BUSINESS LOGIC (CRITICAL)
 ========================================================= */
-
 allocationSchema.pre("validate", function () {
-  /* ================= SYNC HOURS & FTE ================= */
+  const CAPACITY = 160;
 
-  if ((!this.allocatedHours || this.allocatedHours === 0) && this.allocationFTE > 0) {
-    this.allocatedHours = Number(
-      (this.allocationFTE * MONTHLY_CAPACITY).toFixed(2)
-    );
-  }
+  // ===============================
+  // 1. SAFE ZERO HANDLING
+  // ===============================
+  const hasHours = this.allocatedHours > 0;
+  const hasFTE = this.allocationFTE > 0;
 
-  if ((!this.allocationFTE || this.allocationFTE === 0) && this.allocatedHours > 0) {
-    this.allocationFTE = Number(
-      (this.allocatedHours / MONTHLY_CAPACITY).toFixed(4)
-    );
-  }
-
-  /* ================= BILLING LOGIC ================= */
-
-  if (this.billingType === "Billable") {
-    this.isBillable = true;
-  } else {
-    this.isBillable = false;
-  }
-
-  /* ================= REVENUE CALCULATION ================= */
-
-  if (!this.isBillable) {
-    this.rateSnapshot = 0;
+  // if both are 0 → keep as draft allocation
+  if (!hasHours && !hasFTE) {
+    this.allocatedHours = 0;
+    this.allocationFTE = 0;
     this.revenue = 0;
-  } else {
-    // 💡 CORE FORMULA
-    this.revenue = Number(
-      (this.allocatedHours * this.rateSnapshot).toFixed(2)
-    );
+    this.rateSnapshot = 0;
+    return;
+  }
+
+  // ===============================
+  // 2. NORMALIZE FTE ↔ HOURS
+  // ===============================
+  if (hasFTE && !hasHours) {
+    this.allocatedHours = Number((this.allocationFTE * CAPACITY).toFixed(2));
+  }
+
+  if (hasHours && !hasFTE) {
+    this.allocationFTE = Number((this.allocatedHours / CAPACITY).toFixed(4));
+  }
+
+  // ===============================
+  // 3. BILLING FLAG
+  // ===============================
+  this.isBillable = this.billingType === "Billable";
+
+  // ===============================
+  // 4. REVENUE RULES
+  // ===============================
+  if (!this.isBillable) {
+    this.revenue = 0;
+    this.rateSnapshot = 0;
+    return;
   }
 });
+
 
 export default mongoose.model("Allocation", allocationSchema);

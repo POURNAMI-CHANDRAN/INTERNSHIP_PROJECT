@@ -120,7 +120,7 @@ export function WorkloadManager() {
       {/* HEADER */}
       <header className="h-16 flex items-center justify-between px-6 border-b bg-white shadow-sm">
         <h1 className="text-lg font-bold">
-          Workload<span className="text-blue-600">Matrix</span>
+          Workload<span className="text-blue-600"> Matrix</span>
         </h1>
 
         <div className="flex items-center gap-4">

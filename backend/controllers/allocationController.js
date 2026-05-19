@@ -48,8 +48,7 @@ const calculateFinancials = async ({
 
     const totalRevenue = Number(project.fixedMonthlyRevenue || 0);
 
-    revenue =
-      totalFTE > 0 ? (fte / totalFTE) * totalRevenue : 0;
+    revenue = totalFTE > 0 ? (fte / totalFTE) * totalRevenue : 0;
 
     // normalized hourly rate (for analytics)
     rateSnapshot = totalRevenue / MONTHLY_CAPACITY;
@@ -121,7 +120,7 @@ export const createAllocation = async (req, res) => {
         (allocationFTE ? allocationFTE * MONTHLY_CAPACITY : 0)
     );
 
-    if (!hours || hours <= 0) {
+    if (hours < 0 || isNaN(hours)) {
       return res.status(400).json({ message: "Invalid Hours" });
     }
 
@@ -141,7 +140,7 @@ export const createAllocation = async (req, res) => {
       0
     );
 
-    if (totalAllocated + hours > MONTHLY_CAPACITY) {
+    if (hours > 0 && totalAllocated + hours > MONTHLY_CAPACITY) {
       return res.status(400).json({ message: "Over Allocation" });
     }
 
@@ -216,6 +215,10 @@ export const updateAllocation = async (req, res) => {
           ? allocationFTE * MONTHLY_CAPACITY
           : allocation.allocatedHours)
     );
+
+    if (hours < 0 || isNaN(hours)) {
+      return res.status(400).json({ message: "Invalid Hours" });
+    }
 
     /* ================= CAPACITY CHECK ================= */
     const others = await Allocation.find({

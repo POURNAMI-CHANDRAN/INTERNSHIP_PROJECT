@@ -90,8 +90,8 @@ const totalRevenue = (revenue || []).reduce(
       {/* ================= HEADER ================= */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Resource Portfolio
+          <h1 className="text-lg font-bold">
+            Resource<span className="text-blue-600"> Portfolio</span>
           </h1>
           <p className="text-slate-500 text-sm font-medium flex items-center gap-2">
             <CalendarIcon size={14} />
@@ -150,23 +150,47 @@ const totalRevenue = (revenue || []).reduce(
 
       {/* ================= TABLE ================= */}
       <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-        <div className="p-4 border-b flex justify-between gap-4">
-          <div className="relative max-w-sm w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+
+        {/* HEADER */}
+        <div className="p-4 border-b flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+
+          {/* SEARCH */}
+          <div className="relative w-full lg:max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="Filter by Name, Skill, Project..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm"
+              className="
+                h-10 w-full rounded-xl
+                border border-slate-200 bg-white
+                pl-10 pr-4 text-sm outline-none
+                focus:ring-4 focus:ring-blue-500/10
+                focus:border-blue-500
+              "
             />
           </div>
+
+          {/* HEADCOUNT */}
+          <div className="flex items-center justify-end">
+            <p className="text-sm text-slate-500 whitespace-nowrap">
+              Total Headcount:{" "}
+              <span className="text-slate-900 font-bold">
+                {employees.length}
+              </span>
+            </p>
+          </div>
+
         </div>
 
+        {/* GRID */}
         <ResourcePlanningGrid
           employees={filteredEmployees}
           onSelectEmployee={setSelectedEmployee}
         />
+
       </div>
 
       {/* DRAWER */}

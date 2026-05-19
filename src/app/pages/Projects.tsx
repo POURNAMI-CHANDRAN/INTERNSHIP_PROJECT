@@ -28,6 +28,7 @@ interface Project {
   type: "Billable" | "Non-Billable";
   billingModel: "Hourly" | "Fixed";
   billingRate?: number;
+  billingCurrency: "INR",
   fixedMonthlyRevenue?: number;
   startMonth: string;
   startYear: number;
@@ -115,6 +116,12 @@ export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [allocations, setAllocations] = useState<any[]>([]);
+
+  const currentMonth = new Date().getMonth() + 1;
+  const currentYear = new Date().getFullYear();
+
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   const [loading, setLoading] = useState(true);
 
@@ -262,35 +269,31 @@ export default function Projects() {
      ALLOCATION MAP
   ========================================================= */
 
-  const projectUsage = useMemo(() => {
-    const map: Record<string, number> = {};
+const projectUsage = useMemo(() => {
+  const map: Record<string, number> = {};
 
-    allocations.forEach((a) => {
-      const pid = a.projectId || a.project_id;
+  allocations.forEach((a) => {
+    const pid = a.projectId || a.project_id;
 
-      map[pid] =
-        (map[pid] || 0) +
-        (a.allocatedHours || 0);
-    });
+    const fte = (a.allocatedHours || 0) / 160;
 
-    return map;
-  }, [allocations]);
+    map[pid] = (map[pid] || 0) + fte;
+  });
+
+  return map;
+}, [allocations]);
 
   /* =========================================================
      SUMMARY DATA
   ========================================================= */
 
-  const totalFTE = projects.reduce(
-    (s, p) => s + (p.targetFTE || 0),
-    0
-  );
+  const totalAllocatedFTE = Object.values(projectUsage).reduce(
+    (s: number, v: number) => s + v, 0);
 
-  const totalHours = Object.values(
-    projectUsage
-  ).reduce((s: any, v: any) => s + v, 0);
+  const totalAllocatedHours = totalAllocatedFTE * 160;
 
   const utilization = Math.round(
-    (totalHours /
+    (totalAllocatedHours /
       (projects.reduce(
         (s, p) =>
           s + (p.targetFTE || 0) * 160,
@@ -392,27 +395,34 @@ export default function Projects() {
           SUMMARY CARDS
       ========================================================= */}
 
-      <div className="max-w-7xl mx-auto grid grid-cols-3 gap-4 mb-6">
+      <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
 
-        {/* TOTAL CAPACITY */}
+        {/* TOTAL FTE */}
         <SummaryCard
           title="Planned Capacity"
-          value={`${projects.reduce((s, p) => s + (p.targetFTE || 0), 0)} FTE`}
+          value={`${projects.reduce((s, p) => s + (p.targetFTE || 0), 0).toFixed(2)} FTE`}
         />
 
-        {/* ALLOCATED */}
+        {/* USED FTE */}
         <SummaryCard
-          title="Allocated Hours"
+          title="Consumed Capacity"
+          value={`${(
+            Object.values(projectUsage).reduce((s: any, v: any) => s + v, 0) / 160
+          ).toFixed(2)} FTE`}
+        />
+
+        {/* TOTAL HOURS */}
+        <SummaryCard
+          title="Capacity Hours"
+          value={`${
+            projects.reduce((s, p) => s + ((p.targetFTE || 0) * 160), 0)
+          }h`}
+        />
+
+        {/* ALLOCATED HOURS */}
+        <SummaryCard
+          title="Booked Hours"
           value={`${Object.values(projectUsage).reduce((s: any, v: any) => s + v, 0)}h`}
-        />
-
-        {/* UTILIZATION */}
-        <SummaryCard
-          title="Avg Utilization"
-          value={`${Math.round(
-            (Object.values(projectUsage).reduce((s: any, v: any) => s + v, 0) /
-              (projects.reduce((s, p) => s + (p.targetFTE || 0) * 160, 0) || 1)) * 100
-          )}%`}
         />
 
       </div>
@@ -421,32 +431,32 @@ export default function Projects() {
           TABLE
       ========================================================= */}
 
-      <div className="max-w-7xl mx-auto bg-white rounded-[2rem] border border-slate-100 shadow-2xl shadow-slate-200/40 overflow-hidden">
+      <div className="max-w-7xl mx-auto bg-white rounded-[2rem] border border-slate-100 shadow-2xl shadow-sky-200/40 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="hover:bg-slate-50 transition-all align-middle">
-                <th className="px-8 py-5 text-center text-[12px] font-bold uppercase tracking-widest text-indigo-800">
+              <tr className="bg-indigo-50 transition-all align-middle">
+                <th className="px-8 py-5 text-center text-[14px] font-bold uppercase tracking-widest text-indigo-800">
                   Project
                 </th>
 
-                <th className="px-6 py-5 text-center text-[12px] font-bold uppercase tracking-widest text-indigo-800">
+                <th className="px-6 py-5 text-center text-[14px] font-bold uppercase tracking-widest text-indigo-800">
                   Economics
                 </th>
 
-                <th className="px-6 py-5 text-center text-[12px]  font-bold uppercase tracking-widest text-indigo-800">
+                <th className="px-6 py-5 text-center text-[14px]  font-bold uppercase tracking-widest text-indigo-800">
                   Timeline
                 </th>
 
-                <th className="px-6 py-5 text-center text-[12px]  font-bold uppercase tracking-widest text-indigo-800">
+                <th className="px-6 py-5 text-center text-[14px]  font-bold uppercase tracking-widest text-indigo-800">
                   Capacity
                 </th>
 
-                <th className="px-6 py-5 text-center text-[12px]  font-bold uppercase tracking-widest text-indigo-800">
+                <th className="px-6 py-5 text-center text-[14px]  font-bold uppercase tracking-widest text-indigo-800">
                   Status
                 </th>
 
-                <th className="px-8 py-5 text-center text-[12px]  font-bold uppercase tracking-widest text-indigo-800">
+                <th className="px-8 py-5 text-center text-[14px]  font-bold uppercase tracking-widest text-indigo-800">
                   Actions
                 </th>
               </tr>
@@ -464,35 +474,30 @@ export default function Projects() {
                 </tr>
               ) : (
                 filteredProjects.map((p) => {
-                  const config =
-                    STATUS_CONFIG[
-                      p.status as keyof typeof STATUS_CONFIG
-                    ];
+                  const config = STATUS_CONFIG[p.status as keyof typeof STATUS_CONFIG];
 
-                  const StatusIcon =
-                    config.icon;
+                  const StatusIcon = config.icon;
 
-                  const capacity =
-                    (p.targetFTE || 0) * 160;
 
-                  const used =
-                    projectUsage[p._id] || 0;
+                  const capacity = p.targetFTE || 0;
+                  const used = projectUsage[p._id] || 0;
 
-                  const percent =
-                    capacity > 0
-                      ? Math.min(
-                          (used / capacity) * 100,
-                          100
-                        )
-                      : 0;
+                  const percent = capacity > 0 ? Math.min((used / capacity) * 100, 100) : 0;
 
-                  const isOver =
-                    used > capacity;
+                  const isOver = used > capacity;
 
+                  const currencySymbolMap: Record<string, string> = {
+                    INR: "₹",
+                    USD: "$",
+                    EUR: "€",
+                    GBP: "£",
+                  };
+
+                  const currencySymbol = currencySymbolMap[p.billingCurrency] || "₹";
                   return (
                     <tr
                       key={p._id}
-                      className="hover:bg-slate-50 transition-all"
+                      className="hover:bg-sky-50 transition-all"
                     >
                       {/* PROJECT */}
 
@@ -503,7 +508,7 @@ export default function Projects() {
                               {p.name}
                             </div>
 
-                            <div className="text-[12px] text-slate-400 font-medium">
+                            <div className="text-[14px] text-slate-400 font-medium">
                               {p.billingModel}
                             </div>
                           </div>
@@ -519,21 +524,16 @@ export default function Projects() {
                               p.type ===
                               "Billable"
                                 ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                                : "bg-slate-100 text-slate-500 border-slate-200"
+                                : "bg-yellow-50 text-yellow-600 border-yellow-100"
                             }`}
                           >
                             {p.type}
                           </span>
 
                           <div className="mt-2 text-sm font-bold text-slate-700">
-                            {p.type ===
-                            "Non-Billable"
-                              ? "—"
-                              : `₹${(
-                                  p.billingRate ||
-                                  p.fixedMonthlyRevenue ||
-                                  0
-                                ).toLocaleString()}`}
+                            {p.type === "Non-Billable"
+                          ? "—"
+                          : `${currencySymbol}${p.billingRate?.toFixed(2) || 0}`}
                           </div>
                         </div>
                       </td>
@@ -612,8 +612,7 @@ export default function Projects() {
                                 : "text-slate-400"
                             }`}
                           >
-                            {used.toLocaleString()} /{" "}
-                            {capacity.toLocaleString()}h
+                            {(used).toFixed(2)} / {capacity.toFixed(2)} FTE
                           </span>
                         </div>
                       </td>
@@ -770,14 +769,13 @@ function ProjectModal({
 
     type: project?.type || "Billable",
 
-    billingModel:
-      project?.billingModel || "Fixed",
+    billingModel: project?.billingModel || "Fixed",
 
-    billingRate:
-      project?.billingRate || "",
+    billingRate: project?.billingRate || "",
 
-    startMonth:
-      project?.startMonth || "January",
+    billingCurrency: project?.billingCurrency || "INR",
+
+    startMonth: project?.startMonth || "January",
 
     startYear:
       project?.startYear ||
@@ -800,6 +798,8 @@ const handleSubmit = async () => {
         form.billingModel === "Hourly"
           ? Number(form.billingRate)
           : 0,
+
+      billingCurrency: form.billingCurrency, 
 
       fixedMonthlyRevenue:
         form.billingModel === "Fixed"
@@ -860,7 +860,7 @@ const handleSubmit = async () => {
 
         <div className="px-10 py-8 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-sk-600 rounded-2xl text-white">
+            <div className="p-3 bg-sky-600 rounded-2xl text-white">
               <Briefcase size={22} />
             </div>
 
@@ -880,7 +880,6 @@ const handleSubmit = async () => {
         </div>
 
         {/* BODY */}
-
         <div className="p-10 space-y-6">
           <InputGroup label="Project Name">
             <input
@@ -908,13 +907,8 @@ const handleSubmit = async () => {
                 }
                 className={inputClass}
               >
-                <option value="Billable">
-                  Billable
-                </option>
-
-                <option value="Non-Billable">
-                  Non-Billable
-                </option>
+                <option value="Billable">Billable</option>
+                <option value="Non-Billable">Non-Billable</option>
               </select>
             </InputGroup>
 
@@ -924,19 +918,13 @@ const handleSubmit = async () => {
                 onChange={(e) =>
                   setForm({
                     ...form,
-                    billingModel:
-                      e.target.value as any,
+                    billingModel: e.target.value as any,
                   })
                 }
                 className={inputClass}
               >
-                <option value="Hourly">
-                  Hourly
-                </option>
-
-                <option value="Fixed">
-                  Fixed
-                </option>
+                <option value="Hourly">Hourly</option>
+                <option value="Fixed">Fixed</option>
               </select>
             </InputGroup>
           </div>
@@ -949,39 +937,50 @@ const handleSubmit = async () => {
                 onChange={(e) =>
                   setForm({
                     ...form,
-                    billingRate:
-                      e.target.value,
+                    billingRate: e.target.value,
                   })
                 }
                 className={inputClass}
               />
             </InputGroup>
 
-            <InputGroup label="Status">
+            <InputGroup label="Currency">
               <select
-                value={form.status}
+                value={form.billingCurrency}
                 onChange={(e) =>
                   setForm({
                     ...form,
-                    status:
-                      e.target.value as any,
+                    billingCurrency: e.target.value,
                   })
                 }
                 className={inputClass}
               >
-                {Object.keys(
-                  STATUS_CONFIG
-                ).map((s) => (
-                  <option
-                    key={s}
-                    value={s}
-                  >
-                    {s}
-                  </option>
-                ))}
+                <option value="INR">INR (₹)</option>
+                <option value="USD">USD ($)</option>
+                <option value="EUR">EUR (€)</option>
+                <option value="GBP">GBP (£)</option>
               </select>
             </InputGroup>
           </div>
+
+          <InputGroup label="Status">
+            <select
+              value={form.status}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  status: e.target.value as any,
+                })
+              }
+              className={inputClass}
+            >
+              {Object.keys(STATUS_CONFIG).map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </InputGroup>
 
           <div className="grid grid-cols-2 gap-5">
             <InputGroup label="Start Month">
@@ -990,17 +989,13 @@ const handleSubmit = async () => {
                 onChange={(e) =>
                   setForm({
                     ...form,
-                    startMonth:
-                      e.target.value,
+                    startMonth: e.target.value,
                   })
                 }
                 className={inputClass}
               >
                 {MONTHS.map((m) => (
-                  <option
-                    key={m}
-                    value={m}
-                  >
+                  <option key={m} value={m}>
                     {m}
                   </option>
                 ))}
@@ -1014,9 +1009,7 @@ const handleSubmit = async () => {
                 onChange={(e) =>
                   setForm({
                     ...form,
-                    startYear: Number(
-                      e.target.value
-                    ),
+                    startYear: Number(e.target.value),
                   })
                 }
                 className={inputClass}
@@ -1024,7 +1017,6 @@ const handleSubmit = async () => {
             </InputGroup>
           </div>
         </div>
-
         {/* FOOTER */}
 
         <div className="p-6 border-t bg-slate-50/50 flex justify-center gap-3">

@@ -30,6 +30,10 @@ import {
 const API = import.meta.env.VITE_API_BASE_URL;
 const CAPACITY = 160;
 
+const USD_TO_INR = 83;
+
+export const toUSD = (inr: number) => inr / USD_TO_INR;
+export const toINR = (usd: number) => usd * USD_TO_INR;
 /* ===================== TYPES ===================== */
 
 type role = {
@@ -41,7 +45,9 @@ type EditFormState = {
   roleId: string;
   joiningDate: string;
   location: string;
-  hourlyCost: string;
+  monthlySalary: string;
+  billingRate: string;
+  billingCurrency: string;
   skills: string[];
 };
 
@@ -119,7 +125,9 @@ export default function EmployeeDrawer({
     roleId: "",
     joiningDate: "",
     location: "",
-    hourlyCost: "",
+    monthlySalary: "",
+    billingRate: "",
+    billingCurrency: "INR",
     skills: [],
   });
 
@@ -136,7 +144,11 @@ useEffect(() => {
 
     location: employee?.location || "",
 
-    hourlyCost: employee?.hourlyCost?.toString() || "",
+    monthlySalary: employee?.monthlySalary?.toString() || "",
+
+    billingRate: employee?.billingRate?.toString() || "",
+
+    billingCurrency: employee?.billingCurrency || "INR",
 
     skills: Array.isArray(employee?.skills)
       ? employee.skills
@@ -207,7 +219,9 @@ useEffect(() => {
           joiningDate: editForm.joiningDate,
           location: editForm.location,
           roleId: editForm.roleId,
-          hourlyCost: Number(editForm.hourlyCost),
+          monthlySalary: Number(editForm.monthlySalary),
+          billingRate: Number(editForm.billingRate),
+          billingCurrency: editForm.billingCurrency,
           skills: editForm.skills,
         },
         {
@@ -282,19 +296,6 @@ const trendData = useMemo(() => {
         <aside className="col-span-12 lg:col-span-4 xl:col-span-3 bg-white border-r border-slate-200 h-full p-5 flex flex-col justify-between overflow-hidden">
           {/* TOP */}
           <div>
-            {/* INSIGHTS */}
-            {utilizationPct > 100 && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-700">
-                Overallocated — Consider Moving Hours
-              </div>
-            )}
-
-            {utilizationPct < 50 && (
-              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs font-semibold text-amber-700">
-                Underutilized — Can Take More Work
-              </div>
-            )}
-            
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-[10px] font-black uppercase tracking-[0.18em] text-sky-900">
                 Personnel Details
@@ -346,8 +347,36 @@ const trendData = useMemo(() => {
 
                 <Row
                   icon={<DollarSign size={14} />}
-                  label="Rate/Hr"
-                  value={`₹${employee?.hourlyCost?.toLocaleString("en-IN") || 0}`}
+                  label="Monthly Salary"
+                  value={`₹${employee?.monthlySalary?.toLocaleString("en-IN") || 0}`}
+                />
+
+                <Row
+                  icon={<TrendingUp size={14} />}
+                  label="Billing Rate"
+                  value={
+                    <div className="text-right">
+                      <div className="font-bold">
+                        ${employee?.billingCurrency === "USD"
+                          ? employee?.billingRate
+                          : (employee?.billingRate / 83).toFixed(2)
+                        }/hr
+                      </div>
+
+                      <div className="text-[10px] text-slate-500">
+                        ₹{employee?.billingCurrency === "USD"
+                          ? (employee?.billingRate * 83).toLocaleString("en-IN")
+                          : employee?.billingRate?.toLocaleString("en-IN")
+                        }/hr
+                      </div>
+                    </div>
+                  }
+                />
+
+                <Row
+                  icon={<Clock size={14} />}
+                  label="Cost Rate"
+                  value={`₹${employee?.hourlyCost?.toLocaleString("en-IN") || 0}/hr`}
                 />
 
                 <Row
@@ -425,16 +454,44 @@ const trendData = useMemo(() => {
                 />
 
                 <Input
-                  label="Hourly Cost"
+                  label="Monthly Salary"
                   type="number"
-                  value={editForm.hourlyCost}
+                  value={editForm.monthlySalary}
                   onChange={(e: any) =>
                     setEditForm({
                       ...editForm,
-                      hourlyCost: e.target.value,
+                      monthlySalary: e.target.value,
                     })
                   }
                 />
+
+                <Input
+                  label="Billing Rate"
+                  type="number"
+                  value={editForm.billingRate}
+                  onChange={(e: any) =>
+                    setEditForm({
+                      ...editForm,
+                      billingRate: e.target.value,
+                    })
+                  }
+                />
+
+              <select
+                value={editForm.billingCurrency}
+                onChange={(e) =>
+                  setEditForm({
+                    ...editForm,
+                    billingCurrency: e.target.value,
+                  })
+                }
+                className="w-full h-9 px-3 rounded-lg border border-slate-200 text-sm"
+              >
+                <option value="INR">INR ₹</option>
+                <option value="USD">USD $</option>
+                <option value="EUR">EUR €</option>
+                <option value="GBP">GBP £</option>
+              </select>
 
  <div className="relative">
   <label className="text-[10px] font-bold uppercase text-slate-400 mb-1 block">

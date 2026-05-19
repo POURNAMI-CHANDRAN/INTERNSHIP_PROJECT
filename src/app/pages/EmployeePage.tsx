@@ -132,18 +132,10 @@ export default function EmployeesPage() {
       <nav className="bg-white/80 backdrop-blur-md border-b border-slate-200 top-0 z-40 px-8 py-3">
         <div className="max-w-[1600px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="bg-sky-900 p-2.5 rounded-xl shadow-lg shadow-slate-200">
-              <LayoutGrid className="text-white" size={18} />
-            </div>
             <div>
-              <h1 className="text-md font-bold tracking-tight text-slate-800">Workforce Intelligence</h1>
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">v4.2.0 • Live</p>
-              </div>
+              <h1 className="text-lg font-bold">
+                Workforce<span className="text-blue-600"> Intelligence</span>
+              </h1>
             </div>
           </div>
 
