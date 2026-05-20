@@ -203,6 +203,8 @@ const totalRevenue = (revenue || []).reduce(
           workCategories={workCategories}
           roles={roles}
           refetchEmployees={refetchEmployees}
+          selectedMonth={month}
+          selectedYear={year}
         />
       )}
 

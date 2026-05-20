@@ -120,7 +120,7 @@ export default function Projects() {
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
 
-  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   const [loading, setLoading] = useState(true);
@@ -268,39 +268,62 @@ export default function Projects() {
   /* =========================================================
      ALLOCATION MAP
   ========================================================= */
-
 const projectUsage = useMemo(() => {
   const map: Record<string, number> = {};
 
   allocations.forEach((a) => {
-    const pid = a.projectId || a.project_id;
+    const pid =
+      a.projectId?._id ||
+      a.projectId ||
+      a.project_id?._id ||
+      a.project_id;
 
-    const fte = (a.allocatedHours || 0) / 160;
+    /* HANDLE MONTH FORMAT */
+    let allocationMonth = a.month;
+
+    // If month is stored as string like "May"
+    if (typeof allocationMonth === "string") {
+      allocationMonth =
+        MONTHS.findIndex(
+          (m) =>
+            m.toLowerCase() ===
+            allocationMonth.toLowerCase()
+        ) + 1;
+    }
+
+    allocationMonth = Number(allocationMonth);
+
+    const allocationYear = Number(a.year);
+
+    /* FILTER */
+    if (
+      allocationMonth !== Number(selectedMonth) ||
+      allocationYear !== Number(selectedYear)
+    ) {
+      return;
+    }
+
+    /* FTE */
+    const fte = Number(a.allocationFTE || 0);
 
     map[pid] = (map[pid] || 0) + fte;
   });
 
   return map;
-}, [allocations]);
+}, [allocations, selectedMonth, selectedYear]);
 
   /* =========================================================
      SUMMARY DATA
   ========================================================= */
+const totalPlannedFTE = projects.reduce((s, p) => s + (p.targetFTE || 0), 0);
 
-  const totalAllocatedFTE = Object.values(projectUsage).reduce(
-    (s: number, v: number) => s + v, 0);
+const totalAllocatedFTE = Object.values(projectUsage).reduce((s, v) => s + v, 0);
 
-  const totalAllocatedHours = totalAllocatedFTE * 160;
+const totalPlannedHours = totalPlannedFTE * 160;
 
-  const utilization = Math.round(
-    (totalAllocatedHours /
-      (projects.reduce(
-        (s, p) =>
-          s + (p.targetFTE || 0) * 160,
-        0
-      ) || 1)) *
-      100
-  );
+const totalAllocatedHours = totalAllocatedFTE * 160;
+
+const utilization = Math.round((totalAllocatedFTE / (totalPlannedFTE || 1)) * 100);
 
   /* =========================================================
      UI
@@ -309,31 +332,73 @@ const projectUsage = useMemo(() => {
   return (
      <div className="min-h-screen bg-[#F8FAFC] p-8 text-slate-900">
       {/* HEADER */}
-      <div className="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+
+        {/* LEFT */}
         <div className="flex items-center gap-4">
-          {/* ICON BOX */}
           <div className="bg-sky-600 p-2.5 rounded-xl shadow-lg shadow-sky-200">
             <Layers className="text-white" size={28} />
           </div>
 
-          {/* TEXT BLOCK */}
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
-            Project<span className="text-sky-600"> Portfolio</span>
+              Project<span className="text-sky-600"> Portfolio</span>
             </h1>
 
-            <p className="text-slate-600 font-medium">Manage allocations and economics</p>
+            <p className="text-slate-600 font-medium">
+              Manage allocations and economics
+            </p>
           </div>
-        </div>      
+        </div>
 
-        {(userRole === "Admin" || userRole === "Finance") && (
-          <button
-            onClick={() => { setEditingProject(null); setIsModalOpen(true); }}
-            className="h-11 px-5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-semibold text-sm transition-all flex items-center gap-2 shadow-md active:scale-95"
+        {/* RIGHT CONTROLS */}
+        <div className="flex flex-wrap items-center gap-3">
+
+          {/* MONTH */}
+          <select
+            value={selectedMonth}
+            onChange={(e) =>
+              setSelectedMonth(Number(e.target.value))
+            }
+            className="h-11 px-4 bg-white border border-slate-200 rounded-xl text-sm font-semibold shadow-sm outline-none focus:ring-4 focus:ring-sky-500/10"
           >
-            <Plus size={18} /> Create Project
-          </button>
-        )}
+            {MONTHS.map((month, index) => (
+              <option key={month} value={index + 1}>
+                {month}
+              </option>
+            ))}
+          </select>
+
+          {/* YEAR */}
+          <select
+            value={selectedYear}
+            onChange={(e) =>
+              setSelectedYear(Number(e.target.value))
+            }
+            className="h-11 px-4 bg-white border border-slate-200 rounded-xl text-sm font-semibold shadow-sm outline-none focus:ring-4 focus:ring-sky-500/10"
+          >
+            {[2024, 2025, 2026, 2027, 2028].map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
+
+          {/* CREATE BUTTON */}
+          {(userRole === "Admin" ||
+            userRole === "Finance") && (
+            <button
+              onClick={() => {
+                setEditingProject(null);
+                setIsModalOpen(true);
+              }}
+              className="h-11 px-5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-semibold text-sm transition-all flex items-center gap-2 shadow-md active:scale-95"
+            >
+              <Plus size={18} />
+              Create Project
+            </button>
+          )}
+        </div>
       </div>
 
       {/* FILTER BAR */}
@@ -406,25 +471,20 @@ const projectUsage = useMemo(() => {
         {/* USED FTE */}
         <SummaryCard
           title="Consumed Capacity"
-          value={`${(
-            Object.values(projectUsage).reduce((s: any, v: any) => s + v, 0) / 160
-          ).toFixed(2)} FTE`}
+          value={`${totalAllocatedFTE.toFixed(2)} FTE`}
         />
 
         {/* TOTAL HOURS */}
         <SummaryCard
           title="Capacity Hours"
-          value={`${
-            projects.reduce((s, p) => s + ((p.targetFTE || 0) * 160), 0)
-          }h`}
+          value={`${totalPlannedHours.toFixed(0)}h`}
         />
 
         {/* ALLOCATED HOURS */}
         <SummaryCard
           title="Booked Hours"
-          value={`${Object.values(projectUsage).reduce((s: any, v: any) => s + v, 0)}h`}
+          value={`${totalAllocatedHours.toFixed(0)}h`}  
         />
-
       </div>
 
       {/* =========================================================
@@ -494,6 +554,55 @@ const projectUsage = useMemo(() => {
                   };
 
                   const currencySymbol = currencySymbolMap[p.billingCurrency] || "₹";
+
+                  const getCapacityStatus = () => {
+                  // No Plan + No Allocation
+                  // 0.00 / 0.00
+                  if (capacity === 0 && used === 0) {
+                    return {
+                      label: "UNPLANNED",
+                      text: "text-cyan-600",
+                      bar: "bg-cyan-400",
+                    };
+                  }
+
+                  // 0.25 / 0.00
+                  if (capacity === 0 && used > 0) {
+                    return {
+                      label: "UNALLOCATED",
+                      text: "text-[#bf3cc7]",
+                      bar: "bg-[#ee76f5]",
+                    };
+                  }
+
+                  // 0.63 / 0.55
+                  if (used > capacity) {
+                    return {
+                      label: "OVERLOADED",
+                      text: "text-rose-500",
+                      bar: "bg-rose-500",
+                    };
+                  }
+
+                  // 0.55 / 0.55
+                  if (used === capacity) {
+                    return {
+                      label: "OPTIMAL",
+                      text: "text-emerald-600",
+                      bar: "bg-emerald-500",
+                    };
+                  }
+
+                  // 0.00 / 0.50
+                  return {
+                    label: "UNDERLOADED",
+                    text: "text-amber-500",
+                    bar: "bg-amber-500",
+                  };
+                };
+
+                const statusConfig = getCapacityStatus();
+
                   return (
                     <tr
                       key={p._id}
@@ -550,72 +659,66 @@ const projectUsage = useMemo(() => {
                         </div>
                       </td>
 
-                      {/* CAPACITY */}
+                    {/* CAPACITY */}
 
-                      <td className="px-6 py-6 text-center align-middle">
-                        <div className="flex flex-col items-center gap-2">
-                          <div className="flex items-end gap-1">
-                            <input
-                              type="number"
-                              value={
-                                localFTE[p._id] ??
-                                (p.targetFTE || 0)
-                              }
-                              disabled={
-                                !(
-                                  userRole ===
-                                    "Admin" ||
-                                  userRole ===
-                                    "Finance"
-                                )
-                              }
-                              onChange={(e) =>
-                                setLocalFTE({
-                                  ...localFTE,
-                                  [p._id]:
-                                    e.target.value,
-                                })
-                              }
-                              onBlur={(e) =>
-                                updateTargetFTE(
-                                  p._id,
-                                  Number(
-                                    e.target.value
-                                  )
-                                )
-                              }
-                              className="w-14 text-center font-bold bg-transparent outline-none rounded-lg focus:ring-2 ring-indigo-500/20"
-                            />
+                    <td className="px-6 py-6 text-center align-middle">
+                      <div className="flex flex-col items-center gap-2">
 
-                            <span className="text-[10px] font-bold text-slate-400 mb-0.5">
-                              FTE
-                            </span>
-                          </div>
+                        {/* INPUT */}
+                        <div className="flex items-end gap-1">
+                          <input
+                            type="number"
+                            value={
+                              localFTE[p._id] ??
+                              (p.targetFTE || 0)
+                            }
+                            disabled={
+                              !(
+                                userRole === "Admin" ||
+                                userRole === "Finance"
+                              )
+                            }
+                            onChange={(e) =>
+                              setLocalFTE({
+                                ...localFTE,
+                                [p._id]: e.target.value,
+                              })
+                            }
+                            onBlur={(e) =>
+                              updateTargetFTE(
+                                p._id,
+                                Number(e.target.value)
+                              )
+                            }
+                            className="w-14 text-center font-bold bg-transparent outline-none rounded-lg focus:ring-2 ring-indigo-500/20"
+                          />
 
-                          <div className="w-28 h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${
-                                isOver
-                                  ? "bg-rose-500"
-                                  : "bg-indigo-500"
-                              }`}
-                              style={{
-                                width: `${percent}%`,
-                              }}
-                            />
-                          </div>
-
-                          <span
-                            className={`text-[9px] font-black ${
-                              isOver
-                                ? "text-rose-500"
-                                : "text-slate-400"
-                            }`}
-                          >
-                            {(used).toFixed(2)} / {capacity.toFixed(2)} FTE
+                          <span className="text-[10px] font-bold text-slate-800 mb-0.5">
+                            FTE
                           </span>
                         </div>
-                      </td>
+
+                        {/* PROGRESS BAR */}
+                        <div className="w-28 h-2 bg-sky-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${statusConfig.bar}`}
+                            style={{
+                              width: `${
+                                capacity > 0
+                                  ? Math.min((used / capacity) * 100, 100)
+                                  : used > 0
+                                  ? 100
+                                  : 0
+                              }%`,
+                            }}
+                          />
+                        </div>
+
+                        <span className={`text-[12px] font-black ${statusConfig.text}`}>
+                          {used.toFixed(2)} / {capacity.toFixed(2)} FTE
+                        </span>
+                      </div>
+                    </td>
 
                       {/* STATUS */}
 

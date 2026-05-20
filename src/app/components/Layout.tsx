@@ -411,8 +411,8 @@ export default function Layout() {
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-sky-500/20 rounded-full blur-3xl" />
           
           <div className="flex items-center gap-4 relative z-10">
-            <div className="h-12 w-12 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center">
-              <User size={24} className="text-indigo-400" />
+            <div className="h-12 w-12 rounded-full bg-indigo-50 backdrop-blur-md border border-indigo-50/20 flex items-center justify-center">
+              <User size={32} className="text-indigo-800" />
             </div>
             <div className="overflow-hidden">
               <p className="text-[10px] font-black text-green-800 uppercase tracking-widest mb-0.5">Verified Account</p>
@@ -423,18 +423,18 @@ export default function Layout() {
 
         {/* Links Section */}
         <div className="p-2">
-          <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+          <div className="px-3 py-2 text-[10px] font-bold text-indigo-800 uppercase tracking-widest">
             Settings
           </div>
           <Link
             to="/my-profile"
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sky-50 text-slate-600 hover:text-slate-900 text-sm font-semibold transition-all group"
           >
-            <User size={18} className="text-slate-400 group-hover:text-slate-900 transition-colors" />
+            <User size={18} className="text-slate-600 group-hover:text-slate-900 transition-colors" />
             Personal Profile
           </Link>
           <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sky-50 text-slate-600 hover:text-slate-900 text-sm font-semibold transition-all group text-left">
-            <Settings size={18} className="text-slate-400 group-hover:text-slate-900 transition-colors" />
+            <Settings size={18} className="text-slate-600 group-hover:text-slate-900 transition-colors" />
             Preferences
           </button>
           

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import useResourceHeatmapData from "../../hooks/useHeatMapData";
+import * as XLSX from "xlsx-js-style";
 
 const MONTHLY_CAPACITY = 160;
 
@@ -106,13 +107,324 @@ export function WorkloadManager() {
       );
   }, [employees, allocations, year, query]);
 
-  const getColor = (pct: number) => {
-    if (pct === 0) return "bg-slate-200 text-slate-400";
-    if (pct < 70) return "bg-cyan-500 text-cyan-600";
-    if (pct < 95) return "bg-emerald-500 text-emerald-600";
-    if (pct <= 100) return "bg-amber-500 text-amber-600";
-    return "bg-rose-500 text-rose-600";
+const getColor = (hours: number, fte: number) => {
+
+  // 0.00 / 0.00
+  if (hours === 0 && fte === 0) {
+    return {
+      bar: "bg-cyan-600",
+      text: "text-cyan-600",
+      label: "UNPLANNED",
+    };
+  }
+
+  // Allocation exists without capacity
+  if (hours > 0 && fte === 0) {
+    return {
+      bar: "bg-amber-500",
+      text: "text-amber-500",
+      label: "UNALLOCATED",
+    };
+  }
+
+  // OVERLOADED
+  if (fte > 1) {
+    return {
+      bar: "bg-rose-500",
+      text: "text-rose-500",
+      label: "OVER",
+    };
+  }
+
+  // OPTIMAL
+  if (fte === 1) {
+    return {
+      bar: "bg-emerald-500",
+      text: "text-emerald-600",
+      label: "OPTIMAL",
+    };
+  }
+
+  // UNDERLOADED
+  return {
+    bar: "bg-[#c904bb]",
+    text: "text-[#c904bb]",
+    label: "UNDER",
   };
+};
+
+
+const handleExport = () => {
+
+  const exportData: any[] = [];
+
+  // GROUP EMPLOYEES
+  const groupedEmployees: Record<string, RowType[]> = {};
+
+  rows.forEach((row) => {
+    if (!groupedEmployees[row.name]) {
+      groupedEmployees[row.name] = [];
+    }
+
+    groupedEmployees[row.name].push(row);
+  });
+
+  // LOOP EMPLOYEE GROUPS
+  Object.entries(groupedEmployees).forEach(
+    ([employeeName, employeeRows]) => {
+
+      // MONTH TOTALS
+      const employeeTotals: Record<
+        string,
+        { hours: number; fte: number }
+      > = {};
+
+      MONTHS.forEach((m) => {
+        employeeTotals[m] = {
+          hours: 0,
+          fte: 0,
+        };
+      });
+
+      // PROJECT ROWS
+      employeeRows.forEach((row) => {
+
+        const rowData: any = {
+          Resource: row.name,
+          Project: row.project,
+        };
+
+        MONTHS.forEach((month, idx) => {
+
+          const hours = row.map[idx + 1] || 0;
+
+          const fte = hours / MONTHLY_CAPACITY;
+
+          // TOTALS
+          employeeTotals[month].hours += hours;
+          employeeTotals[month].fte += fte;
+
+          rowData[month] =
+            hours === 0
+              ? "-"
+              : `${fte.toFixed(2)} FTE • ${hours}h`;
+        });
+
+        exportData.push(rowData);
+      });
+
+      // TOTAL ROW
+      const totalRow: any = {
+        Resource: `${employeeName} TOTAL`,
+        Project: "",
+      };
+
+      MONTHS.forEach((month) => {
+
+        totalRow[month] =
+          employeeTotals[month].hours === 0
+            ? "-"
+            : `${employeeTotals[month].fte.toFixed(2)} FTE • ${
+                employeeTotals[month].hours
+              }h`;
+      });
+
+      exportData.push(totalRow);
+
+      // EMPTY SPACING ROW
+      exportData.push({});
+    }
+  );
+
+  // CREATE SHEET
+  const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+  // COLUMN WIDTHS
+  const colWidths: number[] = exportData.reduce(
+    (widths: number[], row: any) => {
+
+      Object.keys(row).forEach((key, i) => {
+
+        const value = row[key]
+          ? row[key].toString()
+          : "";
+
+        widths[i] = Math.max(
+          widths[i] || key.length,
+          value.length + 4
+        );
+      });
+
+      return widths;
+
+    },
+    []
+  );
+
+  worksheet["!cols"] = colWidths.map((w: number) => ({
+    wch: Math.min(w, 45),
+  }));
+
+  // ROW HEIGHTS
+  worksheet["!rows"] = exportData.map(() => ({
+    hpt: 28,
+  }));
+
+  // RANGE
+  const range = XLSX.utils.decode_range(
+    worksheet["!ref"] || ""
+  );
+
+  // STYLE ALL CELLS
+  for (let R = range.s.r; R <= range.e.r; ++R) {
+
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+
+      const cellAddress = XLSX.utils.encode_cell({
+        r: R,
+        c: C,
+      });
+
+      const cell = worksheet[cellAddress];
+
+      if (!cell) continue;
+
+      // DEFAULT STYLE
+      cell.s = {
+        alignment: {
+          horizontal: "center",
+          vertical: "center",
+          wrapText: true,
+        },
+
+        border: {
+          top: {
+            style: "thin",
+            color: { rgb: "CBD5E1" },
+          },
+          bottom: {
+            style: "thin",
+            color: { rgb: "CBD5E1" },
+          },
+          left: {
+            style: "thin",
+            color: { rgb: "CBD5E1" },
+          },
+          right: {
+            style: "thin",
+            color: { rgb: "CBD5E1" },
+          },
+        },
+      };
+
+      // HEADER ROW
+      if (R === 0) {
+
+        cell.s = {
+          ...cell.s,
+
+          font: {
+            bold: true,
+            color: { rgb: "000000" },
+            sz: 12,
+          },
+
+          fill: {
+            fgColor: { rgb: "FCF0A9" },
+          },
+        };
+      }
+
+      // TOTAL ROWS
+      const firstCell = worksheet[
+        XLSX.utils.encode_cell({
+          r: R,
+          c: 0,
+        })
+      ];
+
+      if (
+        firstCell &&
+        typeof firstCell.v === "string" &&
+        firstCell.v.includes("TOTAL")
+      ) {
+
+        // COLOR ENTIRE ROW
+        for (let col = 0; col <= range.e.c; col++) {
+
+          const totalCellAddress =
+            XLSX.utils.encode_cell({
+              r: R,
+              c: col,
+            });
+
+          const totalCell =
+            worksheet[totalCellAddress];
+
+          // CREATE EMPTY CELL IF MISSING
+          if (!totalCell) {
+            worksheet[totalCellAddress] = {
+              t: "s",
+              v: "",
+            };
+          }
+
+          worksheet[totalCellAddress].s = {
+            alignment: {
+              horizontal: "center",
+              vertical: "center",
+              wrapText: true,
+            },
+
+            font: {
+              bold: true,
+              color: { rgb: "0F172A" },
+              sz: 11,
+            },
+
+            fill: {
+              fgColor: { rgb: "DBEAFE" },
+            },
+
+            border: {
+              top: {
+                style: "thin",
+                color: { rgb: "94A3B8" },
+              },
+              bottom: {
+                style: "thin",
+                color: { rgb: "94A3B8" },
+              },
+              left: {
+                style: "thin",
+                color: { rgb: "94A3B8" },
+              },
+              right: {
+                style: "thin",
+                color: { rgb: "94A3B8" },
+              },
+            },
+          };
+        }
+      }
+    }
+  }
+
+  // CREATE WORKBOOK
+  const workbook = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    worksheet,
+    "Workload Matrix"
+  );
+
+  // EXPORT FILE
+  XLSX.writeFile(
+    workbook,
+    `WORKLOAD MATRIX.xlsx`
+  );
+};
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-slate-50 to-white text-slate-900">
@@ -147,7 +459,7 @@ export function WorkloadManager() {
           </div>
 
           <button
-            onClick={refetch}
+            onClick={() => refetch()}
             className="p-2 rounded-lg border hover:bg-slate-100"
           >
             <LucideRefreshCcw
@@ -156,7 +468,8 @@ export function WorkloadManager() {
             />
           </button>
 
-          <button className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800">
+          <button onClick={handleExport}
+            className="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-800">
             <LucideDownload size={16} className="inline mr-2" />
             Export
           </button>
@@ -171,8 +484,8 @@ export function WorkloadManager() {
           <thead className="sticky top-0 z-[50] bg-sky-50 shadow-sm">
             <tr>
               {/* LEFT STICKY COLUMN HEADER */}
-              <th className="sticky left-0 z-[60] bg-sky-50 p-4 text-center text-indigo-800 border-r w-72">
-                Resource
+              <th className="sticky left-0 z-[60] bg-sky-50 p-4 text-center text-indigo-900 border-r w-72">
+                RESOURCE
               </th>
 
               {/* MONTH HEADERS */}
@@ -199,7 +512,7 @@ export function WorkloadManager() {
                     <div
                       className={`p-2 rounded-lg ${
                         row.bench
-                          ? "bg-amber-100 text-amber-600"
+                          ? "bg-rose-100 text-rose-600"
                           : "bg-blue-100 text-blue-600"
                       }`}
                     >
@@ -207,8 +520,8 @@ export function WorkloadManager() {
                     </div>
 
                     <div>
-                      <div className="text-md font-semibold">{row.project}</div>
-                      <div className="text-md text-slate-500">{row.name}</div>
+                      <div className="text-md font-bold">{row.project}</div>
+                      <div className="text-md font-medium text-blue-600">{row.name}</div>
                     </div>
                   </td>
 
@@ -219,25 +532,25 @@ export function WorkloadManager() {
                     const fte = hours / MONTHLY_CAPACITY;
                     const pct = Math.round(fte * 100);
 
-                    const color = getColor(pct);
+                    const color = getColor(hours, fte);
 
                     return (
                       <td key={i} className="p-3 text-center">
                         <div className="flex flex-col items-center gap-1">
-                          <span className="text-xs font-bold">
-                            {hours ? fte.toFixed(2) : "—"}
+                          <span className={`text-[10px] font-extrabold ${color.text}`}>
+                            {hours ? fte.toFixed(2) : "0.00"}
                           </span>
 
                           <div className="h-2 w-14 bg-slate-200 rounded-full overflow-hidden">
                             <div
-                              className={`${color.split(" ")[0]} h-full transition-all`}
+                              className={`${color.bar} h-full transition-all`}
                               style={{ width: `${Math.min(pct, 100)}%` }}
                             />
                           </div>
 
                           <span
-                            className={`text-[10px] font-semibold ${
-                              color.split(" ")[1]
+                            className={`text-[10px] font-bold ${
+                              color.text
                             }`}
                           >
                             {hours ? "FTE" : "Free"}
@@ -256,3 +569,5 @@ export function WorkloadManager() {
     </div>
   );
 }
+
+

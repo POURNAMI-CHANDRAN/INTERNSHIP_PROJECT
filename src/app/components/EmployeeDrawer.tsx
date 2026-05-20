@@ -18,19 +18,16 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { AllocateModal } from "./AllocateModal";
-import {
- Area,  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  AreaChart,
-} from "recharts";
 
 const API = import.meta.env.VITE_API_BASE_URL;
 const CAPACITY = 160;
 
 const USD_TO_INR = 83;
+
+const MONTHS = [
+  "Jan","Feb","Mar","Apr","May","Jun",
+  "Jul","Aug","Sep","Oct","Nov","Dec"
+];
 
 export const toUSD = (inr: number) => inr / USD_TO_INR;
 export const toINR = (usd: number) => usd * USD_TO_INR;
@@ -59,6 +56,8 @@ type EmployeeDrawerProps = {
   workCategories: any[];
   roles: role[];
   refetchEmployees: () => void;
+  selectedMonth: number;
+  selectedYear: number;
 };
 
 /* ===================== COMPONENT ===================== */
@@ -71,12 +70,12 @@ export default function EmployeeDrawer({
   workCategories,
   roles,
   refetchEmployees,
+  selectedMonth,
+  selectedYear,
 }: EmployeeDrawerProps) {
   const [editingInfo, setEditingInfo] = useState(false);
   const [savingInfo, setSavingInfo] = useState(false);
-  const [allocationMode, setAllocationMode] = useState<
-    "edit" | "move" | null
-  >(null);
+  const [allocationMode, setAllocationMode] = useState<"edit" | "move" | null>(null);
   const [activeAllocation, setActiveAllocation] = useState<any>(null);
   const [allSkills, setAllSkills] = useState<any[]>([]);
 
@@ -154,7 +153,7 @@ useEffect(() => {
       ? employee.skills
           .map((s: any) => (typeof s === "object" ? s._id || s.id : s))
           .filter(Boolean)
-          .map((id: any) => String(id))   // ✅ NORMALIZE TO STRING
+          .map((id: any) => String(id))   
       : [],
   });
 }, [employee]);
@@ -176,9 +175,9 @@ useEffect(() => {
   const totalFTE = getFTE(bookedHours);
 
   const getUtilColor = (pct: number) => {
-    if (pct > 100) return "text-red-600";       // 🔴 Overloaded
-    if (pct > 90) return "text-green-600";      // 🟡 Risk
-    if (pct > 60) return "text-sky-600";       //      Healthy
+    if (pct > 100) return "text-red-600";       
+    if (pct > 90) return "text-green-600";      
+    if (pct > 60) return "text-sky-600";       
     return "text-amber-500";                   
   };
 
@@ -714,12 +713,33 @@ const trendData = useMemo(() => {
         <section className="col-span-12 lg:col-span-8 xl:col-span-9 p-6 overflow-y-auto">
         {/* ALLOCATIONS HEADER */}
         <div className="flex items-center justify-between mb-5">
-          <h3 className="font-bold text-slate-800 flex items-center gap-2">
-            <TrendingUp size={17} className="text-indigo-500" />
-            Project Allocations
-          </h3>
+        <h3 className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100/80 pb-3 sm:flex-nowrap">
+          {/* Left Side: Title & Premium Icon */}
+          <div className="flex items-center gap-2.5 group">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-indigo-50 to-violet-50 text-indigo-600 shadow-sm shadow-indigo-100/40 transition-all duration-300 group-hover:scale-105">
+              <TrendingUp size={24}/>
+            </div>
+            
+            <div className="flex flex-col">
+              <span className="font-bold tracking-tight text-slate-900 text-base md:text-lg">
+                Project Allocations
+              </span>
+              <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+                Real-time Resource Distribution
+              </span>
+            </div>
+          </div>
 
-          <span className="text-xs font-semibold bg-white border border-slate-200 px-2 py-1 rounded-lg text-slate-500">
+          {/* Right Side: Premium Interactive Date Badge */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200/60 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05)] text-[12px] font-semibold text-slate-700 hover:border-slate-300 transition-colors duration-200 cursor-default">
+            <Calendar size={16} className="text-indigo-500 mr-0.5" />
+            <span className="text-slate-700 uppercase font-bold">{MONTHS[selectedMonth - 1]}</span>
+            <span className="text-slate-400 font-bold">/</span>
+            <span className="text-indigo-600 font-bold">{selectedYear}</span>
+          </div>
+        </h3>
+
+          <span className="text-xs font-semibold bg-white border border-slate-200 px-2 py-1 rounded-lg text-emerald-800">
             {allocations.length} Active
           </span>
         </div>
@@ -743,62 +763,83 @@ const trendData = useMemo(() => {
                   >
                     <div className="flex justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-[10px] font-bold uppercase text-indigo-500 mb-1">
+                        <p className="text-[12px] font-bold uppercase text-indigo-500 mb-1">
                           Project
                         </p>
 
-                        <h4 className="font-bold text-slate-900 truncate">
+                        <h4 className="font-bold text-slate-900">
                           {a?.projectId?.name || "Unnamed"}
                         </h4>
 
-                        <p className="text-[11px] text-slate-500 mt-1">
-                          {a?.workCategoryId?.name || "General"}
+                        <p className="text-[12px] font-bold text-cyan-700 mt-1">
+                          {
+                            workCategories.find(
+                              (wc: any) =>
+                                wc._id ===
+                                (typeof a.workCategoryId === "object"
+                                  ? a.workCategoryId?._id
+                                  : a.workCategoryId)
+                            )?.name || "General"
+                          }
                         </p>
                       </div>
 
-                      <span
-                        className={`text-[10px] font-bold px-2 py-1 rounded-md shrink-0 ${
-                          a.isBillable
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-yellow-100 text-yellow-700"
-                        }`}
-                      >
-                        {a.isBillable ? "Billable" : "Internal"}
-                      </span>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-[2px] rounded-md shrink-0 inline-flex items-center leading-none ${
+                        a.isBillable
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-yellow-100 text-yellow-700"
+                      }`}
+                    >
+                      {a.isBillable ? "Billable" : "Internal"}
+                    </span>
                     </div>
 
-                    <div className="flex items-center mt-4 pt-3 border-t border-slate-100">
-                      <div className="flex items-center gap-1 text-xs font-semibold text-sky-700">
-                        <Clock size={12} />
-                        {hours}h
-
-                        <div className="text-[10px] text-slate-500 ml-2">
-                          {fte.toFixed(2)} FTE • {allocationPct}%
-                        </div>
+                  <div className="flex items-center mt-4 pt-3 border-t border-slate-100">
+                    <div className="flex items-center gap-2 text-[13px] font-semibold">
+                      
+                      {/* FTE */}
+                      <div className="flex items-center gap-1 text-[#9905a1]">
+                        <Clock size={15} />
+                        <span>{fte.toFixed(2)} FTE</span>
                       </div>
 
-                      {canEdit && (
-                        <div className="ml-auto flex gap-1 opacity-0 group-hover:opacity-100 transition">
-                          <IconButton
-                            icon={<Edit3 size={13} />}
-                            onClick={() => {
-                              setActiveAllocation(a);
-                              setAllocationMode("edit");
-                            }}
-                            color="text-indigo-600 hover:bg-indigo-50"
-                          />
+                      {/* Divider */}
+                      <span className="text-slate-900">•</span>
 
-                          <IconButton
-                            icon={<ArrowRightLeft size={13} />}
-                            onClick={() => {
-                              setActiveAllocation(a);
-                              setAllocationMode("move");
-                            }}
-                            color="text-sky-600 hover:bg-sky-50"
-                          />
-                        </div>
-                      )}
+                      {/* Hours */}
+                      <div className="text-sky-700">
+                        {hours}h
+                      </div>
+
+                      {/* Percentage */}
+                      <div className="text-[11px] text-slate-500 font-medium">
+                        ({allocationPct}%)
+                      </div>
                     </div>
+
+                    {canEdit && (
+                      <div className="ml-auto flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                        <IconButton
+                          icon={<Edit3 size={13} />}
+                          onClick={() => {
+                            setActiveAllocation(a);
+                            setAllocationMode("edit");
+                          }}
+                          color="text-indigo-600 hover:bg-indigo-50"
+                        />
+
+                        <IconButton
+                          icon={<ArrowRightLeft size={13} />}
+                          onClick={() => {
+                            setActiveAllocation(a);
+                            setAllocationMode("move");
+                          }}
+                          color="text-sky-600 hover:bg-sky-50"
+                        />
+                      </div>
+                    )}
+                  </div>
                   </div>
                 );
               })}
