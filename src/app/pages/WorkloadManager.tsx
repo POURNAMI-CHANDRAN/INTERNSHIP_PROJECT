@@ -481,10 +481,10 @@ const handleExport = () => {
         <div className="rounded-xl border bg-white shadow-sm overflow-auto">
 
           <table className="w-full table-fixed border-separate border-spacing-0">
-          <thead className="sticky top-0 z-[50] bg-sky-50 shadow-sm">
+          <thead className="top-0 z-[50] bg-sky-50 shadow-sm">
             <tr>
               {/* LEFT STICKY COLUMN HEADER */}
-              <th className="sticky left-0 z-[60] bg-sky-50 p-4 text-center text-indigo-900 border-r w-72">
+              <th className="left-0 z-[60] bg-sky-50 p-4 text-center text-indigo-900 border-r w-72">
                 RESOURCE
               </th>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { useNavigate, Link, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../auth/authContext";
 import { cn } from "./ui/utils";
 import axios from "axios";
@@ -25,6 +25,7 @@ import {
   ChevronRight,
   Settings,
   Sparkles,
+  Info,
 } from "lucide-react";
 
 export default function Layout() {
@@ -155,6 +156,7 @@ export default function Layout() {
   ];
 
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + "/");
+  const navigate = useNavigate();
 
   return (
   <div className="flex h-screen bg-[#F8FAFC] overflow-hidden text-slate-900 font-sans">
@@ -280,6 +282,14 @@ export default function Layout() {
           </div>
 
 <div className="flex items-center gap-4">
+<button
+  onClick={() => navigate("/help")}
+  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-sky-600 hover:bg-sky-50 rounded-lg transition-colors"
+>
+  <Info size={16} />
+  Help
+</button>
+
   {/* NOTIFICATIONS */}
   <div className="relative" onClick={(e) => e.stopPropagation()}>
     <button

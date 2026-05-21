@@ -778,15 +778,17 @@ return (
                         <td className="p-5 text-sm text-center">
                           <div className="flex flex-col items-center space-y-1">
                             
-                            <div className="text-emerald-600 font-bold flex items-center justify-center gap-1">
-                              <TrendingUp size={14} />
-                              INR {e.summary.total_revenue.toLocaleString()}
-                            </div>
+                        <div className="text-emerald-600 font-bold flex items-center justify-center gap-1">
+                          <TrendingUp size={14} />
 
-                            <div className="text-rose-600 font-medium flex items-center justify-center gap-1">
-                              <TrendingDown size={14} />
-                              INR {e.summary.total_cost.toLocaleString()}
-                            </div>
+                          INR {(e.summary?.total_revenue || 0).toLocaleString("en-IN")}
+                        </div>
+
+                        <div className="text-rose-600 font-medium flex items-center justify-center gap-1">
+                          <TrendingDown size={14} />
+
+                          INR {(e.summary?.total_cost || 0).toLocaleString("en-IN")}
+                        </div>
 
                           </div>
                         </td>
@@ -795,7 +797,7 @@ return (
                           <span className={`inline-flex items-center px-3 py-1 rounded-lg font-bold text-sm ${
                             e.summary.profit >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
                           }`}>
-                            INR {e.summary.profit.toLocaleString()}
+                            INR {(e.summary?.profit || 0).toLocaleString("en-IN")}
                           </span>
                         </td>
 
@@ -831,7 +833,7 @@ return (
                                         </h4>
 
                                         <span
-                                          className={`text-[10px] font-bold px-2 py-1 rounded ${
+                                          className={`text-[10px] font-bold px-2 py-[2px] inline-flex items-center rounded ${
                                             a.billable
                                               ? "bg-green-100 text-green-700"
                                               : "bg-yellow-100 text-yellow-700"

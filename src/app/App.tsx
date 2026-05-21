@@ -28,6 +28,8 @@ import { WorkloadManager } from "./pages/WorkloadManager";
 import Layout from "./components/Layout";
 import ResourcesLayout from "./components/ResourcesLayout";
 
+import Help from "./pages/Help";
+
 export default function App() {
   return (
     <Routes>
@@ -50,6 +52,9 @@ export default function App() {
 
           {/* ===== PROFILE ===== */}
           <Route path="/my-profile" element={<MyProfile />} />
+
+          {/* ===== HELP ===== */}
+          <Route path="/help" element={<Help />} />
 
           {/* ===== MASTER DATA ===== */}
           <Route path="/segmentations" element={<Segmentations />} />
