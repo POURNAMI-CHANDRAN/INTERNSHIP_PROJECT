@@ -367,7 +367,7 @@ export const getAllAllocations = async (req, res) => {
     if (month) query.month = Number(month);
 
     const allocations = await Allocation.find(query)
-      .populate("employeeId", "name employeeCode primaryWorkCategoryId location")
+      .populate("employeeId", "name employeeId primaryWorkCategoryId location")
       .populate("projectId", "name billingModel type");
 
     res.json({

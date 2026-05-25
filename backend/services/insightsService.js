@@ -78,7 +78,7 @@ export const getBenchInsights = async ({ month, year }) => {
 
       return {
         employeeId: e.employeeId,
-        employeeCode: e.employeeCode,
+        employeeId: e.employeeId,
         name: e.name,
         benchHours: idleHours,
         benchCost,

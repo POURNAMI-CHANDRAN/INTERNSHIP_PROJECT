@@ -1,15 +1,18 @@
 import Skill from "../models/Skill.js";
 import EmployeeSkill from "../models/EmployeeSkill.js";
 
-/* ================= CREATE SKILL ================= */
+/* =========================================================
+   CREATE SKILL
+========================================================= */
 
 export const createSkill = async (req, res) => {
   try {
     const { name, skill_name, category } = req.body;
 
     const finalName = (name || skill_name || "").trim();
+    const finalCategory = (category || "General").trim();
 
-    console.log("FINAL NAME:", finalName);
+    /* VALIDATION */
 
     if (!finalName) {
       return res.status(400).json({
@@ -18,7 +21,8 @@ export const createSkill = async (req, res) => {
       });
     }
 
-    // CHECK EXISTING SKILL
+    /* CHECK EXISTING */
+
     const existing = await Skill.findOne({
       name: {
         $regex: new RegExp(`^${finalName}$`, "i"),
@@ -28,18 +32,19 @@ export const createSkill = async (req, res) => {
     if (existing) {
       return res.status(400).json({
         success: false,
-        message: `${finalName} already Exists`,
+        message: `${finalName} already exists`,
       });
     }
 
-    // CREATE SKILL
+    /* CREATE */
+
     const skill = await Skill.create({
       name: finalName,
-      category: category || "General",
+      category: finalCategory,
       status: "Active",
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Skill Created Successfully",
       data: skill,
@@ -48,22 +53,23 @@ export const createSkill = async (req, res) => {
   } catch (err) {
     console.log("CREATE SKILL ERROR:", err);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: err.message,
+      message: err.message || "Internal Server Error",
     });
   }
 };
 
-/* ================= GET ALL SKILLS ================= */
+/* =========================================================
+   GET ALL SKILLS
+========================================================= */
 
 export const getSkills = async (req, res) => {
   try {
-    const skills = await Skill.find().sort({
-      name: 1,
-    });
+    const skills = await Skill.find()
+      .sort({ name: 1 });
 
-    res.json({
+    return res.status(200).json({
       success: true,
       count: skills.length,
       data: skills,
@@ -72,33 +78,68 @@ export const getSkills = async (req, res) => {
   } catch (err) {
     console.log("GET SKILLS ERROR:", err);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: err.message,
+      message: err.message || "Internal Server Error",
     });
   }
 };
 
-/* ================= DEACTIVATE SKILL ================= */
+/* =========================================================
+   GET SKILL CATEGORIES
+========================================================= */
+
+export const getSkillCategories = async (req, res) => {
+  try {
+
+    const categories = await Skill.distinct("category");
+
+    const cleanedCategories = categories
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b));
+
+    return res.status(200).json({
+      success: true,
+      count: cleanedCategories.length,
+      data: cleanedCategories,
+    });
+
+  } catch (err) {
+    console.log("GET SKILL CATEGORIES ERROR:", err);
+
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Internal Server Error",
+    });
+  }
+};
+
+/* =========================================================
+   DEACTIVATE SKILL
+========================================================= */
 
 export const deleteSkill = async (req, res) => {
   try {
-    // CHECK WHETHER SKILL IS ASSIGNED
-    const assigned = await EmployeeSkill.find({
-      skillId: req.params.id,
+    const skillId = req.params.id;
+
+    /* CHECK ASSIGNMENT */
+
+    const assignedCount = await EmployeeSkill.countDocuments({
+      skillId,
     });
 
-    if (assigned.length > 0) {
+    if (assignedCount > 0) {
       return res.status(400).json({
         success: false,
         message:
-          "Cannot Deactivate Skill. It is Assigned to Employee/Employees.",
+          "Cannot Deactivate Skill. It is assigned to employees.",
       });
     }
 
-    // SOFT DELETE
+    /* SOFT DELETE */
+
     const skill = await Skill.findByIdAndUpdate(
-      req.params.id,
+      skillId,
       {
         status: "Inactive",
       },
@@ -110,11 +151,11 @@ export const deleteSkill = async (req, res) => {
     if (!skill) {
       return res.status(404).json({
         success: false,
-        message: "Skill NOT Found",
+        message: "Skill Not Found",
       });
     }
 
-    res.json({
+    return res.status(200).json({
       success: true,
       message: "Skill Deactivated Successfully",
       data: skill,
@@ -123,19 +164,23 @@ export const deleteSkill = async (req, res) => {
   } catch (err) {
     console.log("DELETE SKILL ERROR:", err);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: err.message,
+      message: err.message || "Internal Server Error",
     });
   }
 };
 
-/* ================= RESTORE SKILL ================= */
+/* =========================================================
+   RESTORE SKILL
+========================================================= */
 
 export const restoreSkill = async (req, res) => {
   try {
+    const skillId = req.params.id;
+
     const skill = await Skill.findByIdAndUpdate(
-      req.params.id,
+      skillId,
       {
         status: "Active",
       },
@@ -147,11 +192,11 @@ export const restoreSkill = async (req, res) => {
     if (!skill) {
       return res.status(404).json({
         success: false,
-        message: "Skill NOT Found",
+        message: "Skill Not Found",
       });
     }
 
-    res.json({
+    return res.status(200).json({
       success: true,
       message: "Skill Restored Successfully",
       data: skill,
@@ -160,9 +205,9 @@ export const restoreSkill = async (req, res) => {
   } catch (err) {
     console.log("RESTORE SKILL ERROR:", err);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: err.message,
+      message: err.message || "Internal Server Error",
     });
   }
 };

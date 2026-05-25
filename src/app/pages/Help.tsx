@@ -47,9 +47,9 @@ const ENHANCED_SECTIONS = [
     icon: Users,
     tagline: "Lifecycle states, skills mapping, and resource pools",
     statuses: [
-      { name: "ACTIVE", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
+      { name: "Active", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
       { name: "BENCH", color: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" },
-      { name: "ON_HOLD", color: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20" },
+      { name: "On_Hold", color: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20" },
       { name: "RELEASED", color: "bg-zinc-500/10 text-zinc-600 dark:text-slate-600 border-zinc-500/20" },
     ],
     actions: ["Provision staff profiles globally", "Map technical capabilities", "Track historical utilization indexes", "Align structural departmental costs"],

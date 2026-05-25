@@ -1,9 +1,9 @@
 /**
- * Bench = 160 - ACTIVE allocation hours
+ * Bench = 160 - Active allocation hours
  */
 export function calculateBench(allocations = []) {
   const activeHours = allocations
-    .filter(a => a.projectId?.status === "ACTIVE")
+    .filter(a => a.projectId?.status === "Active")
     .reduce((sum, a) => sum + a.allocatedHours, 0);
 
   const benchHours = Math.max(0, 160 - activeHours);

@@ -60,7 +60,7 @@ const costScore = (rate) => {
 ===================================================== */
 
 const cleanEmployee = (employee) => ({
-  employeeId: employee.employeeCode || "N/A",
+  employeeId: employee.employeeId || "N/A",
   name: employee.name || "Unknown",
   workCategory: employee.workCategory || "",
   experienceYears: employee.experienceYears || 0,

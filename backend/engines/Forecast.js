@@ -1,10 +1,10 @@
 /**
- * Predict next-month bench based on ACTIVE allocations
+ * Predict next-month bench based on Active allocations
  */
 export function forecastBench(allocationsByEmployee = []) {
   return allocationsByEmployee.map(e => {
     const activeHours = e.allocations
-      .filter(a => a.projectId?.status === "ACTIVE")
+      .filter(a => a.projectId?.status === "Active")
       .reduce((s, a) => s + a.allocatedHours, 0);
 
     const predictedBench = Math.max(0, 160 - activeHours);

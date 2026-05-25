@@ -47,7 +47,7 @@ export async function buildMasterAI() {
 
       const text = `
 Employee: ${emp.name}
-Code: ${emp.employeeCode}
+Code: ${emp.employeeId}
 Location: ${emp.location}
 Skills: ${(emp.skillsText || []).join(", ")}
 Hourly Cost: ${emp.hourlyCost}
@@ -95,7 +95,7 @@ Type: ${proj.type}
 Billing Model: ${proj.billingModel}
 Status: ${proj.status}
 Billing Rate: ${proj.billingRate}
-Active: ${proj.status === "ACTIVE"}
+Active: ${proj.status === "Active"}
       `.trim();
 
       const embedding = await getEmbedding(text);
@@ -116,7 +116,7 @@ Active: ${proj.status === "ACTIVE"}
             status: proj.status,
             billingModel: proj.billingModel,
             billingRate: proj.billingRate,
-            active: proj.status === "ACTIVE"
+            active: proj.status === "Active"
           }
         }
       );

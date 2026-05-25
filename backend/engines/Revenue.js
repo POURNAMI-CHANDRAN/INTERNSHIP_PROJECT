@@ -7,7 +7,7 @@ export function calculateRevenue(allocations = [], employee) {
   let cost = 0;
 
   allocations
-    .filter(a => a.projectId?.status === "ACTIVE" && a.isBillable)
+    .filter(a => a.projectId?.status === "Active" && a.isBillable)
     .forEach(a => {
       revenue += a.rateSnapshot * a.allocatedHours;
       cost += employee.hourlyCost * a.allocatedHours;

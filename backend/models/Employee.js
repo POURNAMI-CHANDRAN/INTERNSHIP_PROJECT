@@ -2,10 +2,17 @@ import mongoose from "mongoose";
 
 const employeeSchema = new mongoose.Schema(
   {
+    employeeId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+
     employeeCode: {
       type: String,
       unique: true,
-      sparse: true,
+      trim: true,
     },
 
     name: {
@@ -19,12 +26,6 @@ const employeeSchema = new mongoose.Schema(
       required: true,
       unique: true,
       lowercase: true,
-    },
-
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
     },
 
     roleId: {

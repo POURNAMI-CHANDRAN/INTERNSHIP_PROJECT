@@ -55,12 +55,26 @@ export const createProject = async (req, res, next) => {
 
 export const updateProject = async (req, res, next) => {
   try {
-    const { allowAllocations, allowMoves, ...rest } = req.body;
+    const updates = { ...req.body };
+
+    // ✅ Remove undefined or null values
+    Object.keys(updates).forEach((key) => {
+      if (
+        updates[key] === undefined ||
+        updates[key] === null ||
+        updates[key] === ""
+      ) {
+        delete updates[key];
+      }
+    });
 
     const project = await Project.findByIdAndUpdate(
       req.params.id,
-      { $set: rest },
-      { new: true, runValidators: true }
+      { $set: updates },
+      {
+        new: true,
+        runValidators: true,
+      }
     );
 
     if (!project) {
@@ -87,11 +101,11 @@ export const changeProjectStatus = async (req, res, next) => {
     const { status } = req.body;
 
     const allowedStatuses = [
-      "PLANNED",
-      "ACTIVE",
-      "ON_HOLD",
-      "COMPLETED",
-      "CANCELLED",
+      "Planned",
+      "Active",
+      "On_Hold",
+      "Completed",
+      "Cancelled",
     ];
 
     if (!allowedStatuses.includes(status)) {
@@ -110,7 +124,7 @@ export const changeProjectStatus = async (req, res, next) => {
       });
     }
 
-    if (project.status === "COMPLETED") {
+    if (project.status === "Completed") {
       return res.status(400).json({
         success: false,
         message: "Completed Projects Cannot Change Status",
@@ -142,14 +156,14 @@ export const archiveProject = async (req, res, next) => {
       });
     }
 
-    if (project.status === "COMPLETED") {
+    if (project.status === "Completed") {
       return res.status(400).json({
         success: false,
         message: "Completed Projects Cannot Be Archived",
       });
     }
 
-    project.status = "CANCELLED";
+    project.status = "Cancelled";
     await project.save();
 
     res.status(200).json({

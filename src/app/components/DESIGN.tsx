@@ -35,7 +35,7 @@ interface Employee {
   _id: string;
   name: string;
   email: string;
-  employeeCode: string;
+  employeeId: string;
   roleId?: Role;
 }
 
@@ -275,7 +275,7 @@ export default function PremiumBenchManagement() {
   const filteredData = useMemo(() => {
     let data = benchData.filter((item) => {
       const employee = item.employee;
-      const text = `${employee.name} ${employee.email} ${employee.employeeCode} ${employee.roleId?.name || ""}`.toLowerCase();
+      const text = `${employee.name} ${employee.email} ${employee.employeeId} ${employee.roleId?.name || ""}`.toLowerCase();
       
       const matchesSearch = text.includes(search.toLowerCase());
       const matchesStatus = statusFilter === "All" || item.status === statusFilter;
@@ -311,7 +311,7 @@ export default function PremiumBenchManagement() {
       startY: 32,
       head: [["Employee ID", "Full Name", "Assigned Corporate Role", "Billable Hrs", "Bench Allocation", "FTE Load", "Core Status"]],
       body: filteredData.map((item) => [
-        item.employee.employeeCode,
+        item.employee.employeeId,
         item.employee.name,
         item.employee.roleId?.name || "Unassigned",
         `${item.billableHours}h`,
@@ -471,7 +471,7 @@ export default function PremiumBenchManagement() {
                               </div>
                               <div>
                                 <p className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">{item.employee.name}</p>
-                                <p className="text-xs text-slate-400 font-medium">{item.employee.employeeCode} • {item.employee.roleId?.name || "Unassigned"}</p>
+                                <p className="text-xs text-slate-400 font-medium">{item.employee.employeeId} • {item.employee.roleId?.name || "Unassigned"}</p>
                               </div>
                             </div>
                           </td>
@@ -576,7 +576,7 @@ export default function PremiumBenchManagement() {
               <div className="p-6 border-b border-slate-100 flex justify-between items-start sticky top-0 bg-white z-10">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">{selectedEmployee.employee.name}</h2>
-                  <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">{selectedEmployee.employee.employeeCode}</p>
+                  <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">{selectedEmployee.employee.employeeId}</p>
                   <p className="text-xs font-medium text-slate-400 mt-0.5">{selectedEmployee.employee.email}</p>
                 </div>
                 <button

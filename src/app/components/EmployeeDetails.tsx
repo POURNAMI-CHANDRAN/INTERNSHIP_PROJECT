@@ -77,7 +77,7 @@ function EmployeeDetails({
                 <h2 className="text-xl font-bold tracking-tight text-gray-900">{employee.name}</h2>
                 <div className="mt-1 flex items-center gap-2">
                   <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                    {employee.employeeCode}
+                    {employee.employeeId}
                   </span>
                   <span className="text-xs text-gray-400">•</span>
                   <span className="text-sm text-gray-500 font-medium">

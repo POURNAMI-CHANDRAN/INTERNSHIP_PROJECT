@@ -14,7 +14,7 @@ export function evaluateProjectHealth(projects, allocations) {
 
     const issues = [];
 
-    if (project.status !== "ACTIVE" && totalHours > 0) {
+    if (project.status !== "Active" && totalHours > 0) {
       issues.push({
         issue: "Capacity locked in inactive project",
         severity: "HIGH",
@@ -22,7 +22,7 @@ export function evaluateProjectHealth(projects, allocations) {
       });
     }
 
-    if (project.status === "ACTIVE" && totalHours < 40) {
+    if (project.status === "Active" && totalHours < 40) {
       issues.push({
         issue: "Understaffed project",
         severity: "MEDIUM",

@@ -25,7 +25,7 @@ type Allocation = {
 type Employee = {
   _id: string;
   name?: string;
-  employeeCode?: string;
+  employeeId?: string;
   hourlyCost?: number;
   billingRate?: number;
   marginMultiplier?: number;
@@ -83,7 +83,7 @@ export function ResourcePlanningGrid({
     return (employees || []).filter((emp) => {
       return (
         emp?.name?.toLowerCase()?.includes(q) ||
-        emp?.employeeCode?.toLowerCase()?.includes(q) ||
+        emp?.employeeId?.toLowerCase()?.includes(q) ||
         emp?.skills?.some((s) =>
           s?.name?.toLowerCase()?.includes(q)
         ) ||
@@ -167,7 +167,7 @@ export function ResourcePlanningGrid({
                           {emp.name}
                         </p>
                         <p className="text-[12px] text-amber-900 font-semibold">
-                          {emp.employeeCode}
+                          {emp.employeeId}
                         </p>
                       </div>
                     </div>

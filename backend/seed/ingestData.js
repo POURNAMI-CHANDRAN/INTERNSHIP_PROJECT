@@ -14,7 +14,7 @@ export async function ingestEmployees() {
 
       const text = `
 Employee Name: ${emp.name || ""}
-Employee Code: ${emp.employeeCode || ""}
+Employee Code: ${emp.employeeId || ""}
 Email: ${emp.email || ""}
 Location: ${emp.location || ""}
 Status: ${emp.status || ""}
@@ -35,7 +35,7 @@ role: ${emp.roleText || ""}
             type: "employee",
             employeeId: emp._id,
             name: emp.name,
-            employeeCode: emp.employeeCode,
+            employeeId: emp.employeeId,
             location: emp.location,
             hourlyCost: emp.hourlyCost,
             skills: emp.skills

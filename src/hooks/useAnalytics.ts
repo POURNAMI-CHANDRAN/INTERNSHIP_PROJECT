@@ -17,7 +17,7 @@ export type UtilizationRow = {
 
 export type BenchEmployee = {
   name: string;
-  employeeCode: string;
+  employeeId: string;
   idleHours: number;
 };
 

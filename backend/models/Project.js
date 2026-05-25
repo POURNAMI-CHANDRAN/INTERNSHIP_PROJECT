@@ -4,11 +4,11 @@ import mongoose from "mongoose";
 
 function applyLifecycleFlags(doc) {
 
-  if (doc.status === "ACTIVE") {
+  if (doc.status === "Active") {
     doc.allowAllocations = true;
     doc.allowMoves = true;
 
-  } else if (doc.status === "ON_HOLD") {
+  } else if (doc.status === "On_Hold") {
     doc.allowAllocations = false;
     doc.allowMoves = true;
 
@@ -94,13 +94,13 @@ const projectSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: [
-        "PLANNED",
-        "ACTIVE",
-        "ON_HOLD",
-        "COMPLETED",
-        "CANCELLED",
+        "Planned",
+        "Active",
+        "On_Hold",
+        "Completed",
+        "Cancelled",
       ],
-      default: "PLANNED",
+      default: "Planned",
     },
 
     allowAllocations: {

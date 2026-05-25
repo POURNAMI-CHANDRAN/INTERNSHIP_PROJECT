@@ -2,6 +2,7 @@ import express from "express";
 import {
   createSkill,
   getSkills,
+  getSkillCategories,
   // updateSkill,
   deleteSkill,
   restoreSkill,
@@ -10,6 +11,9 @@ import {
 import { protect, authorize } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
+
+/* ---------------- GET SKILL CATEGORIES ---------------- */
+router.get("/categories/all", getSkillCategories);
 
 /* ---------------- GET ---------------- */
 router.get(
@@ -27,14 +31,6 @@ router.post(
   createSkill
 );
 
-// /* ---------------- UPDATE ---------------- */
-// router.patch(
-//   "/:id",
-//   protect,
-//   authorize("Admin", "Finance"),
-//   updateSkill
-// );
-
 /* ---------------- DELETE ---------------- */
 router.delete(
   "/:id",
@@ -45,7 +41,7 @@ router.delete(
 
 /* ---------------- RESTORE ---------------- */
 router.patch(
-  "/restore/:id",
+  "/:id/restore",
   protect,
   authorize("Admin", "Finance"),
   restoreSkill

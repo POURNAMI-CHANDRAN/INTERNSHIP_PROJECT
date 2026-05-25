@@ -360,7 +360,7 @@ export default function PremiumBenchManagement() {
       const text = `
         ${employee.name}
         ${employee.email}
-        ${employee.employeeCode}
+        ${employee.employeeId}
         ${employee.roleId?.name}
       `.toLowerCase();
 
@@ -472,7 +472,7 @@ export default function PremiumBenchManagement() {
         <div className="max-w-[1800px] mx-auto flex justify-between items-center">
 
           <div className="flex items-center gap-4">
-            <div className="p-3 rounded-2xl bg-indigo-600 text-white">
+            <div className="p-3 rounded-2xl bg-sky-600 text-white">
               <TrendingUpDown size={28} />
             </div>
 
@@ -551,7 +551,7 @@ export default function PremiumBenchManagement() {
                   }
                   className={`w-full text-left px-4 py-3 rounded-xl font-bold transition-all ${
                     statusFilter === status
-                      ? "bg-indigo-600 text-white"
+                      ? "bg-sky-600 text-white"
                       : "bg-white border border-slate-200"
                   }`}
                 >
@@ -620,20 +620,20 @@ export default function PremiumBenchManagement() {
               <table className="w-full">
 
                 <thead>
-                  <tr className="bg-slate-50 text-left">
-                    <th className="px-6 py-4 text-xs font-black uppercase">
+                  <tr className="bg-sky-50 text-center text-sky-600">
+                    <th className="px-6 py-4 text-[14px] font-black uppercase">
                       Employee
                     </th>
 
-                    <th className="px-6 py-4 text-xs font-black uppercase">
+                    <th className="px-6 py-4 text-[14px] font-black uppercase">
                       Billable
                     </th>
 
-                    <th className="px-6 py-4 text-xs font-black uppercase">
+                    <th className="px-6 py-4 text-[14px] font-black uppercase">
                       Bench
                     </th>
 
-                    <th className="px-6 py-4 text-xs font-black uppercase">
+                    <th className="px-6 py-4 text-[14px] font-black uppercase">
                       Status
                     </th>
                   </tr>
@@ -657,7 +657,7 @@ export default function PremiumBenchManagement() {
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-3">
 
-                            <div className="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center font-black text-indigo-700">
+                            <div className="h-10 w-10 rounded-xl bg-sky-100 flex items-center justify-center font-black text-sky-700">
                               {item.employee.name.charAt(
                                 0
                               )}
@@ -671,7 +671,7 @@ export default function PremiumBenchManagement() {
                               <p className="text-xs text-slate-500 font-bold">
                                 {
                                   item.employee
-                                    .employeeCode
+                                    .employeeId
                                 }
                               </p>
                             </div>
@@ -683,9 +683,9 @@ export default function PremiumBenchManagement() {
                             "N/A"}
                         </td> */}
 
-                        <td className="px-6 py-5">
+                        <td className="px-6 py-5 text-center">
 
-                          <div className="space-y-1">
+                          <div className="space-y-1 text-center">
                             <p className="font-black text-slate-800">
                               {item.billableHours}h
                             </p>
@@ -696,9 +696,9 @@ export default function PremiumBenchManagement() {
                           </div>
                         </td>
 
-                        <td className="px-6 py-5">
+                        <td className="px-6 py-5 text-center">
 
-                          <div className="space-y-1">
+                          <div className="space-y-1 text-center">
                             <p className="font-black text-slate-800">
                               {item.benchHours}h
                             </p>
@@ -709,16 +709,16 @@ export default function PremiumBenchManagement() {
                           </div>
                         </td>
 
-                        <td className="px-6 py-5">
+                        <td className="px-6 py-5 text-center">
 
                           <div
-                            className={`inline-flex items-center gap-2 px-3 py-1 rounded-xl border ${theme.bg} ${theme.text} ${theme.border}`}
+                            className={`inline-flex items-center gap-2 px-3 py-1 text-center rounded-xl border ${theme.bg} ${theme.text} ${theme.border}`}
                           >
                             <div
                               className={`h-2 w-2 rounded-full ${theme.dot}`}
                             />
 
-                            <span className="text-xs font-black uppercase">
+                            <span className="text-xs font-black uppercase text-center">
                               {item.status}
                             </span>
                           </div>
@@ -741,9 +741,9 @@ export default function PremiumBenchManagement() {
 
           {/* KPI */}
 
-          <div className="bg-indigo-600 text-white rounded-[2rem] p-6">
+          <div className="bg-sky-600 text-white rounded-[2rem] p-6">
 
-            <p className="text-xs uppercase font-black tracking-widest text-indigo-200">
+            <p className="text-xs uppercase font-black tracking-widest text-sky-200">
               Total Billable FTE
             </p>
 
@@ -754,7 +754,7 @@ export default function PremiumBenchManagement() {
             <div className="grid grid-cols-2 gap-4 mt-6">
 
               <div>
-                <p className="text-xs font-black uppercase text-indigo-200">
+                <p className="text-xs font-black uppercase text-sky-200">
                   Bench FTE
                 </p>
 
@@ -764,7 +764,7 @@ export default function PremiumBenchManagement() {
               </div>
 
               <div>
-                <p className="text-xs font-black uppercase text-indigo-200">
+                <p className="text-xs font-black uppercase text-sky-200">
                   Workforce
                 </p>
 
@@ -858,10 +858,10 @@ export default function PremiumBenchManagement() {
                     }
                   </h2>
 
-                  <p className="text-indigo-600 font-bold uppercase">
+                  <p className="text-sky-600 font-bold uppercase">
                     {
                       selectedEmployee.employee
-                        .employeeCode
+                        .employeeId
                     }
                   </p>
                 </div>
@@ -908,7 +908,7 @@ export default function PremiumBenchManagement() {
                 <div className="flex items-center gap-2 mb-5">
                   <Clock3
                     size={18}
-                    className="text-indigo-600"
+                    className="text-sky-600"
                   />
 
                   <h3 className="text-xl font-black">
@@ -1085,7 +1085,7 @@ function LoadingScreen() {
           duration: 1.2,
           ease: "linear",
         }}
-        className="h-16 w-16 border-4 border-indigo-600 border-t-transparent rounded-full"
+        className="h-16 w-16 border-4 border-sky-600 border-t-transparent rounded-full"
       />
 
       <p className="mt-5 text-xs uppercase tracking-[0.3em] font-black text-slate-400">

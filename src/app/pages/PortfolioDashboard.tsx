@@ -47,7 +47,7 @@ export function PortfolioDashboard() {
     const q = search.toLowerCase();
     return employees.filter((e: any) =>
       e.name.toLowerCase().includes(q) ||
-      e.employeeCode.toLowerCase().includes(q)
+      e.employeeId.toLowerCase().includes(q)
     );
   }, [employees, search]);
 

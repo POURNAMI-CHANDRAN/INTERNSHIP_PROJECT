@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { X, User, Mail, Briefcase, MapPin, DollarSign, Calendar } from "lucide-react";
+import { X, User, Mail, Briefcase, MapPin, DollarSign, Calendar, IdCard } from "lucide-react";
 import {cn} from "../components/ui/utils";
 
 const API = import.meta.env.VITE_API_BASE_URL;
@@ -24,6 +24,7 @@ export function CreateEmployeeModal({
   const [error, setError] = useState("");
 
   const [form, setForm] = useState({
+    employeeId: "",
     name: "",
     email: "",
     roleId: "",
@@ -46,7 +47,7 @@ export function CreateEmployeeModal({
         setWorkCategories(Array.isArray(wcRes.data) ? wcRes.data : wcRes.data.data ?? []);
         setSkills(Array.isArray(skillRes.data) ? skillRes.data : skillRes.data.data ?? []);
       } catch (err) {
-        console.error("Master data failed", err);
+        console.error("Master Data Failed", err);
       }
     };
     fetchMasters();
@@ -66,7 +67,7 @@ export function CreateEmployeeModal({
   };
 
   const submit = async () => {
-    if (!form.name || !form.email || !form.roleId) {
+    if (!form.name || !form.employeeId || !form.roleId) {
       setError("Essential Fields are Missing.");
       return;
     }
@@ -80,7 +81,7 @@ export function CreateEmployeeModal({
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.response?.data?.message || "Creation failed");
+      setError(err.response?.data?.message || "Creation Failed");
     } finally {
       setLoading(false);
     }
@@ -117,19 +118,30 @@ export function CreateEmployeeModal({
                     onChange={(e) => updateField("name", e.target.value)}
                   />
                </div>
-               <div className="relative group">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-sky-800 group-focus-within:text-sky-600 transition-colors" />
+                <div className="relative group">
+                  <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-sky-800 group-focus-within:text-sky-600 transition-colors" />
                   <input
-                    type="email"
-                    placeholder="Work Email"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Employee ID"
                     className="w-full bg-slate-50 border-none ring-1 ring-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-sky-600 transition-all outline-none"
-                    value={form.email}
-                    onChange={(e) => updateField("email", e.target.value)}
+                    value={form.employeeId}
+                    onChange={(e) => updateField("employeeId",e.target.value.replace(/\D/g, ""))}
                   />
-               </div>
+                </div>
             </div>
           </div>
 
+          <div className="relative group">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-sky-800 group-focus-within:text-sky-600 transition-colors" />
+            <input
+              type="email"
+              placeholder="Work Email"
+              className="w-full bg-slate-50 border-none ring-1 ring-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-sky-600 transition-all outline-none"
+              value={form.email}
+              onChange={(e) => updateField("email", e.target.value)}
+            />
+          </div>
           {/* SECTION: Role & Allocation */}
           <div className="space-y-4">
             <h3 className="text-[10px] font-bold text-sky-800 uppercase tracking-widest px-1">Organization</h3>

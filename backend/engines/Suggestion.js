@@ -8,7 +8,7 @@ export function suggestMoves({ employees, projects }) {
     if (emp.bench.benchHours < 40) return;
 
     projects.forEach(project => {
-      if (project.status !== "ACTIVE") return;
+      if (project.status !== "Active") return;
 
       const skillMatch = emp.skills.some(s =>
         project.requiredSkills?.includes(s)

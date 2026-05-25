@@ -33,11 +33,11 @@ interface Project {
   startMonth: string;
   startYear: number;
   status:
-    | "PLANNED"
-    | "ACTIVE"
-    | "ON_HOLD"
-    | "COMPLETED"
-    | "CANCELLED";
+    | "Planned"
+    | "Active"
+    | "On_Hold"
+    | "Completed"
+    | "Cancelled";
   allowAllocations: boolean;
   allowMoves: boolean;
   targetFTE?: number;
@@ -50,30 +50,30 @@ interface Project {
 ========================================================= */
 
 const STATUS_CONFIG = {
-  ACTIVE: {
+  Active: {
     color:
       "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
     icon: Activity,
   },
 
-  PLANNED: {
+  Planned: {
     color: "bg-blue-500/10 text-blue-600 border-blue-500/20",
     icon: Calendar,
   },
 
-  ON_HOLD: {
+  On_Hold: {
     color:
       "bg-amber-500/10 text-amber-600 border-amber-500/20",
     icon: Clock,
   },
 
-  COMPLETED: {
+  Completed: {
     color:
       "bg-indigo-500/10 text-indigo-600 border-indigo-500/20",
     icon: CheckCircle2,
   },
 
-  CANCELLED: {
+  Cancelled: {
     color: "bg-rose-500/10 text-rose-600 border-rose-500/20",
     icon: Ban,
   },
@@ -426,11 +426,11 @@ const utilization = Math.round((totalAllocatedFTE / (totalPlannedFTE || 1)) * 10
           value={filters.status}
           options={[
             "All",
-            "ACTIVE",
-            "PLANNED",
-            "ON_HOLD",
-            "COMPLETED",
-            "CANCELLED",
+            "Active",
+            "Planned",
+            "On_Hold",
+            "Completed",
+            "Cancelled",
           ]}
           onChange={(v: string) =>
             setFilters({
@@ -878,43 +878,102 @@ function ProjectModal({
 
     billingCurrency: project?.billingCurrency || "INR",
 
-    startMonth: project?.startMonth || "January",
+    startMonth: project?.startMonth || MONTHS[new Date().getMonth()],
 
     startYear:
       project?.startYear ||
       new Date().getFullYear(),
 
     status:
-      project?.status || "PLANNED",
+      project?.status || "Planned",
   });
 
 const handleSubmit = async () => {
   setLoading(true);
 
   try {
-    const payload = {
-      name: form.name.trim(),
-      type: form.type,
-      billingModel: form.billingModel,
+    let payload: any = {};
 
-      billingRate:
-        form.billingModel === "Hourly"
-          ? Number(form.billingRate)
-          : 0,
+    /* ================= CREATE ================= */
 
-      billingCurrency: form.billingCurrency, 
+    if (!isEdit) {
+      payload = {
+        name: form.name.trim(),
+        type: form.type,
+        billingModel: form.billingModel,
 
-      fixedMonthlyRevenue:
-        form.billingModel === "Fixed"
-          ? Number(form.billingRate) // reuse input OR rename field (better below)
-          : 0,
+        billingRate:
+          form.billingModel === "Hourly"
+            ? Number(form.billingRate)
+            : 0,
 
-      startMonth: form.startMonth,
-      startYear: Number(form.startYear),
-      status: form.status,
-    };
+        billingCurrency: form.billingCurrency,
 
-    console.log("Sending Payload:", payload);
+        fixedMonthlyRevenue:
+          form.billingModel === "Fixed"
+            ? Number(form.billingRate)
+            : 0,
+
+        startMonth: form.startMonth,
+        startYear: Number(form.startYear),
+        status: form.status,
+      };
+    }
+
+    /* ================= UPDATE ================= */
+
+    else {
+      if (form.name !== project.name) {
+        payload.name = form.name.trim();
+      }
+
+      if (form.type !== project.type) {
+        payload.type = form.type;
+      }
+
+      if (form.billingModel !== project.billingModel) {
+        payload.billingModel = form.billingModel;
+      }
+
+      if (
+        Number(form.billingRate) !==
+        Number(project.billingRate || 0)
+      ) {
+        payload.billingRate =
+          form.billingModel === "Hourly"
+            ? Number(form.billingRate)
+            : 0;
+
+        payload.fixedMonthlyRevenue =
+          form.billingModel === "Fixed"
+            ? Number(form.billingRate)
+            : 0;
+      }
+
+      if (
+        form.billingCurrency !== project.billingCurrency
+      ) {
+        payload.billingCurrency =
+          form.billingCurrency;
+      }
+
+      if (form.startMonth !== project.startMonth) {
+        payload.startMonth = form.startMonth;
+      }
+
+      if (
+        Number(form.startYear) !==
+        Number(project.startYear)
+      ) {
+        payload.startYear = Number(form.startYear);
+      }
+
+      if (form.status !== project.status) {
+        payload.status = form.status;
+      }
+    }
+
+    console.log("FINAL PAYLOAD:", payload);
 
     const res = await fetch(
       isEdit
@@ -930,24 +989,15 @@ const handleSubmit = async () => {
       }
     );
 
-    const text = await res.text();
-
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      console.error("❌ Non-JSON Response Received");
-      console.error("Raw Response:", text); // 👈 THIS is key
-      return;
-    }
+    const data = await res.json();
 
     if (!res.ok) {
-      console.error("Backend Error:", data);
-      alert(data.message || "Failed to Save Project");
+      alert(data.message || "Failed to Save");
       return;
     }
 
     onSaved();
+
   } catch (err) {
     console.error(err);
     alert("Something went Wrong");

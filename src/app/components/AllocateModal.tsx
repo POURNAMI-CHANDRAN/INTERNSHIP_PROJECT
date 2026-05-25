@@ -132,7 +132,7 @@ export function AllocateModal({
                 >
                   <option value="">Select Employee...</option>
                   {employees.map((e) => (
-                    <option key={e._id} value={e._id}>{e.employeeCode} • {e.name}</option>
+                    <option key={e._id} value={e._id}>{e.employeeId} • {e.name}</option>
                   ))}
                 </select>
               </div>

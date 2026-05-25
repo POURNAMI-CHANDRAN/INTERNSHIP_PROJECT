@@ -106,7 +106,7 @@ export function EmployeeSidebar({
                           {emp.name}
                         </span>
 
-                        {/* ACTIVE DOT */}
+                        {/* Active DOT */}
                         {isSelected && (
                           <div className="w-2 h-2 bg-blue-500 rounded-full" />
                         )}

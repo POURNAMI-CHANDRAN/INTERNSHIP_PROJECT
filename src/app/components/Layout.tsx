@@ -148,9 +148,9 @@ export default function Layout() {
     {
       group: "Settings",
       items: [
-        { path: "/user-management", label: "Users", icon: UserCog, roles: ["Admin"] },
         { path: "/segmentations", label: "Org Config", icon: Building2, roles: ["Admin"] },
         { path: "/skills", label: "Competencies", icon: Sparkles, roles: ["Admin"] },
+        { path: "/user-management", label: "Users", icon: UserCog, roles: ["Admin"] },
       ],
     },
   ];
@@ -236,7 +236,7 @@ export default function Layout() {
                         </span>
                       )}
 
-                      {/* ACTIVE INDICATOR */}
+                      {/* Active INDICATOR */}
                       {active && (
                         <div className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-sky-600" />
                       )}

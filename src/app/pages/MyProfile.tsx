@@ -4,40 +4,25 @@ import {
   Mail,
   MapPin,
   Calendar,
-  DollarSign,
   Briefcase,
-  Award,
-  FileText,
-  ExternalLink,
-  Clock3,
   Building2,
   Sparkles,
   ShieldCheck,
-  TrendingUp,
+  IdCard,
+  CircleDot,
+  Coins
 } from "lucide-react";
-
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 type AnyObj = Record<string, any>;
 
-export default function MyProfile() {
-  const API_BASE =
-    import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+export default function MyProfileOverview() {
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
   const savedUser = JSON.parse(localStorage.getItem("user") || "{}");
   const token = localStorage.getItem("token") || savedUser?.token || "";
 
   const [profile, setProfile] = useState<AnyObj | null>(null);
-
-  const [data, setData] = useState({
-    skills: [] as any[],
-    allocations: [] as any[],
-    timesheets: [] as any[],
-    documents: [] as any[],
-    payroll: null as any,
-  });
-
-  const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -49,136 +34,38 @@ export default function MyProfile() {
     [token]
   );
 
-  const fetcher = async (url: string) => {
-    const res = await fetch(url, {
-      headers: authHeaders,
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || "Request Failed");
-    }
-
-    const json = await res.json();
-
-    return json?.data ?? json;
-  };
-
- useEffect(() => {
-  const init = async () => {
-    try {
-      setLoading(true);
-
-      const me = await fetcher(
-        `${API_BASE}/api/employees/me`
-      );
-
-      setProfile(me);
-
-      // OPTIONAL extra APIs
-      if (me?._id) {
-        const [
-          allocations,
-          timesheets,
-          payroll,
-          docs,
-        ] = await Promise.allSettled([
-          fetcher(
-            `${API_BASE}/api/employees/me/allocations`
-          ),
-
-          fetcher(
-            `${API_BASE}/api/timesheets/employee/${me._id}`
-          ),
-
-          fetcher(
-            `${API_BASE}/api/payroll/${me._id}`
-          ),
-
-          fetcher(
-            `${API_BASE}/api/documents/${me._id}`
-          ),
-        ]);
-
-        setData({
-          skills: me.skills || [],
-
-          allocations:
-            allocations.status === "fulfilled"
-              ? allocations.value
-              : [],
-
-          timesheets:
-            timesheets.status === "fulfilled"
-              ? timesheets.value
-              : [],
-
-          payroll:
-            payroll.status === "fulfilled"
-              ? payroll.value
-              : null,
-
-          documents:
-            docs.status === "fulfilled"
-              ? docs.value
-              : [],
+  useEffect(() => {
+    const init = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${API_BASE}/api/employees/me`, {
+          headers: authHeaders,
         });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || "Request Failed");
+        }
+
+        const json = await res.json();
+        setProfile(json?.data ?? json);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  init();
-}, [token]);
-
-  const tabs = [
-    {
-      id: "overview",
-      label: "Overview",
-      icon: <User size={18} />,
-    },
-
-    {
-      id: "skills",
-      label: "Skills",
-      icon: <Award size={18} />,
-    },
-
-    {
-      id: "projects",
-      label: "Projects",
-      icon: <Briefcase size={18} />,
-    },
-
-    {
-      id: "timesheets",
-      label: "Timesheets",
-      icon: <Clock3 size={18} />,
-    },
-
-    {
-      id: "payroll",
-      label: "Payroll",
-      icon: <DollarSign size={18} />,
-    },
-
-    {
-      id: "documents",
-      label: "Documents",
-      icon: <FileText size={18} />,
-    },
-  ];
+    init();
+  }, [token, authHeaders, API_BASE]);
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-slate-50">
+      <div className="h-screen flex items-center justify-center bg-sky-50">
         <div className="flex flex-col items-center gap-4">
-          <div className="h-14 w-14 rounded-full border-4 border-slate-200 border-t-blue-600 animate-spin" />
-          <p className="text-slate-500 font-medium">
-            Loading your Workspace...
+          <div className="h-12 w-12 rounded-full border-4 border-slate-200 border-t-sky-600 animate-spin" />
+          <p className="text-sky-500 text-sm font-medium tracking-wide">
+            Loading Workspace...
           </p>
         </div>
       </div>
@@ -187,410 +74,173 @@ export default function MyProfile() {
 
   if (error) {
     return (
-      <div className="p-10">
-        <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-2xl">
-          {error}
+      <div className="p-10 bg-sky-50 min-h-screen flex items-center justify-center">
+        <div className="bg-red-50 border border-red-100 text-red-600 p-6 rounded-2xl max-w-md w-full text-center">
+          <p className="font-semibold text-sm">{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F6F8FC] text-slate-900">
-      {/* HERO */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-700 via-indigo-700 to-sky-600" />
-
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-10 left-10 w-72 h-72 bg-white rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-cyan-300 rounded-full blur-3xl" />
+    <div className="min-h-screen bg-[#F8FAFC] text-sky-900 font-sans antialiased">
+      
+      {/* PREMIUM LIGHT HERO BANNER */}
+      <div className="relative overflow-hidden bg-white border-b border-sky-200/80">
+        {/* Subtle Ambient Light Gradients */}
+        <div className="absolute inset-0 opacity-40 pointers-events-none">
+          <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-sky-100 rounded-full blur-[120px]" />
+          <div className="absolute top-10 right-10 w-[400px] h-[400px] bg-sky-100 rounded-full blur-[100px]" />
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-6 py-14">
-          <div className="flex flex-col lg:flex-row lg:items-end gap-8">
-            {/* AVATAR */}
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="relative"
-            >
-              <div className="w-36 h-36 rounded-[2rem] bg-white/10 backdrop-blur-xl border border-white/20 p-2 shadow-2xl">
-                {profile?.avatarPreview ? (
-                  <img
-                    src={profile.avatarPreview}
-                    className="w-full h-full rounded-[1.5rem] object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full rounded-[1.5rem] bg-white flex items-center justify-center">
-                    <User size={60} className="text-blue-600" />
+        <div className="relative max-w-5xl mx-auto px-6 pt-16 pb-12">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+            
+            {/* AVATAR & IDENTITY */}
+            <div className="flex flex-col sm:flex-row items-center sm:items-start md:items-center gap-6">
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.3 }}
+                className="relative"
+              >
+                <div className="w-28 h-28 rounded-[2rem] bg-gradient-to-tr from-sky-100 via-sky-200 to-sky-100 p-1 shadow-sm">
+                  <div className="w-full h-full rounded-[1.8rem] bg-white p-1 overflow-hidden">
+                    {profile?.avatarPreview ? (
+                      <img
+                        src={profile.avatarPreview}
+                        className="w-full h-full rounded-[1.5rem] object-cover"
+                        alt="Profile"
+                      />
+                    ) : (
+                      <div className="w-full h-full rounded-[1.5rem] bg-sky-50 flex items-center justify-center">
+                        <User size={40} className="text-sky-400" />
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </div>
 
-              <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white rounded-full p-2 shadow-lg">
-                <ShieldCheck size={16} />
+                <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-white rounded-full p-1.5 shadow-md border-2 border-white">
+                  <ShieldCheck size={14} strokeWidth={2.5} />
+                </div>
+              </motion.div>
+
+              <div className="text-center sm:text-left">
+                <div className="flex items-center justify-center sm:justify-start gap-1.5 text-sky-600 mb-1.5">
+                  <Sparkles size={13} />
+                  <span className="text-[11px] font-bold tracking-[0.2em] uppercase">
+                    Employee Overview
+                  </span>
+                </div>
+
+                <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-sky-900">
+                  {profile?.name}
+                </h1>
+
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1 mt-3 text-sm text-sky-500 font-medium">
+                  <div className="flex items-center gap-1.5">
+                    <Briefcase size={14} className="text-sky-400" />
+                    {profile?.role || "Team Member"}
+                  </div>
+
+                  <span className="hidden sm:inline text-sky-300">•</span>
+
+                  <div className="flex items-center gap-1.5">
+                    <Building2 size={14} className="text-sky-400" />
+                    {profile?.roleId?.name || "Department"}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* QUICK EMAIL BADGE */}
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-3.5 flex items-center gap-3 max-w-xs self-center md:self-auto"
+            >
+              <div className="h-9 w-9 rounded-lg bg-sky-50 flex items-center justify-center text-sky-600 border border-sky-100">
+                <Mail size={16} />
+              </div>
+              <div className="truncate">
+                <p className="text-[10px] uppercase tracking-wider text-sky-400 font-bold">Email Address</p>
+                <p className="text-xs font-semibold text-slate-700 truncate">{profile?.email}</p>
               </div>
             </motion.div>
 
-            {/* INFO */}
-            <div className="flex-1">
-              <div className="flex items-center gap-2 text-blue-100 mb-2">
-                <Sparkles size={16} />
-                <span className="text-sm font-semibold tracking-wide uppercase">
-                  Employee Workspace
-                </span>
-              </div>
-
-              <h1 className="text-5xl font-black tracking-tight text-white">
-                {profile?.name}
-              </h1>
-
-              <div className="flex flex-wrap items-center gap-5 mt-4 text-blue-100">
-                <div className="flex items-center gap-2">
-                  <Briefcase size={16} />
-                  {profile?.role || "Employee"}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Building2 size={16} />
-                  {profile?.roleId?.name || "Organization"}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Mail size={16} />
-                  {profile?.email}
-                </div>
-              </div>
-            </div>
-
-            {/* KPI */}
-            <div className="grid grid-cols-2 gap-4 min-w-[280px]">
-              <KPI
-                label="Skills"
-                value={data.skills.length}
-                icon={<Award size={18} />}
-              />
-
-              <KPI
-                label="Projects"
-                value={data.allocations.length}
-                icon={<Briefcase size={18} />}
-              />
-
-              <KPI
-                label="Documents"
-                value={data.documents.length}
-                icon={<FileText size={18} />}
-              />
-
-              <KPI
-                label="Timesheets"
-                value={data.timesheets.length}
-                icon={<Clock3 size={18} />}
-              />
-            </div>
           </div>
         </div>
       </div>
 
-      {/* BODY */}
-      <div className="max-w-7xl mx-auto px-6 py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* SIDEBAR */}
-          <div className="lg:col-span-3">
-            <div className="top-6 bg-white border border-slate-200 rounded-3xl p-3 shadow-sm">
-              <div className="space-y-2">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 text-sm font-semibold
-                    ${
-                      activeTab === tab.id
-                        ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg"
-                        : "text-slate-500 hover:bg-slate-100"
-                    }`}
-                  >
-                    {tab.icon}
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+      {/* CORE INFO GRID */}
+      <div className="max-w-5xl mx-auto px-6 py-12">
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-8"
+        >
+          {/* PERSONAL INFORMATION CARD */}
+          <PremiumLightCard title="Personal Details">
+            <PremiumLightRow
+              icon={<Mail size={18} />}
+              label="Primary Email"
+              value={profile?.email}
+            />
+            <PremiumLightRow
+              icon={<MapPin size={18} />}
+              label="Work Location"
+              value={profile?.location}
+            />
+            <PremiumLightRow
+              icon={<Calendar size={18} />}
+              label="Date of Joining"
+              value={profile?.joiningDate}
+              isDate
+            />
+          </PremiumLightCard>
 
-          {/* CONTENT */}
-          <div className="lg:col-span-9">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2 }}
-              >
-                {/* OVERVIEW */}
-                {activeTab === "overview" && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card title="Personal Information">
-                      <DetailRow
-                        icon={<Mail size={16} />}
-                        label="Email"
-                        value={profile?.email}
-                      />
-
-                      <DetailRow
-                        icon={<MapPin size={16} />}
-                        label="Location"
-                        value={profile?.location}
-                      />
-
-                      <DetailRow
-                        icon={<Calendar size={16} />}
-                        label="Joining Date"
-                        value={profile?.joiningDate}
-                        isDate
-                      />
-                    </Card>
-
-                    <Card title="Professional Details">
-                      <DetailRow
-                        label="Employee Code"
-                        value={profile?.employeeCode}
-                      />
-
-                      <DetailRow
-                        label="Status"
-                        value={profile?.status || "Active"}
-                        isStatus
-                      />
-
-                      <DetailRow
-                        label="Hourly Cost"
-                        value={`₹${profile?.hourlyCost || 0}`}
-                      />
-                    </Card>
-                  </div>
-                )}
-
-                {/* SKILLS */}
-                {activeTab === "skills" && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                    {data.skills.map((item, i) => (
-                      <motion.div
-                        key={i}
-                        whileHover={{ y: -4 }}
-                        className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm"
-                      >
-                        <div className="flex items-center justify-between mb-5">
-                          <span className="text-xs uppercase tracking-widest font-bold text-slate-400">
-                            Skill
-                          </span>
-                        </div>
-
-                        <h3 className="text-xl font-black text-slate-800 mb-5">
-                           {item.name}
-                        </h3>
-
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-
-                {/* PROJECTS */}
-                {activeTab === "projects" && (
-                  <div className="space-y-4">
-                    {data.allocations.map((a, i) => (
-                      <div
-                        key={i}
-                        className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex items-center justify-between"
-                      >
-                        <div>
-                          <h3 className="text-lg font-bold text-slate-800">
-                            {a.projectId?.name || "Unnamed Project"}
-                          </h3>
-
-                          <p className="text-sm text-slate-500 mt-1">
-                            {a.role || "Contributor"}
-                          </p>
-                        </div>
-
-                        <div className="text-right">
-                          <div className="text-2xl font-black text-blue-600">
-                            {a.allocatedHours || 0}h
-                          </div>
-
-                          <div className="text-xs uppercase tracking-widest text-slate-400 font-bold">
-                            Allocated
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* TIMESHEETS */}
-                {activeTab === "timesheets" && (
-                  <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-                    <table className="w-full">
-                      <thead className="bg-slate-50 border-b border-slate-100">
-                        <tr>
-                          <th className="text-left px-6 py-4 text-xs uppercase tracking-widest text-slate-400">
-                            Project
-                          </th>
-
-                          <th className="text-left px-6 py-4 text-xs uppercase tracking-widest text-slate-400">
-                            Date
-                          </th>
-
-                          <th className="text-left px-6 py-4 text-xs uppercase tracking-widest text-slate-400">
-                            Status
-                          </th>
-                        </tr>
-                      </thead>
-
-                      <tbody>
-                        {data.timesheets.map((ts, i) => (
-                          <tr
-                            key={i}
-                            className="border-b border-slate-100 hover:bg-slate-50"
-                          >
-                            <td className="px-6 py-5 font-semibold">
-                              {ts.project_id?.name || "General"}
-                            </td>
-
-                            <td className="px-6 py-5 text-slate-500">
-                              {ts.work_date?.split("T")[0]}
-                            </td>
-
-                            <td className="px-6 py-5">
-                              <span
-                                className={`px-3 py-1 rounded-full text-xs font-black
-                                ${
-                                  ts.status === "Approved"
-                                    ? "bg-emerald-100 text-emerald-700"
-                                    : "bg-amber-100 text-amber-700"
-                                }`}
-                              >
-                                {ts.status}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
-                {/* PAYROLL */}
-                {activeTab === "payroll" && (
-                  <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-[2rem] p-10 text-white overflow-hidden relative">
-                    <div className="absolute top-0 right-0 opacity-10">
-                      <DollarSign size={260} />
-                    </div>
-
-                    <div className="relative">
-                      <div className="flex items-center gap-2 text-slate-400 mb-3">
-                        <TrendingUp size={18} />
-                        Financial Overview
-                      </div>
-
-                      <h2 className="text-5xl font-black mb-3">
-                        ₹
-                        {Number(
-                          data.payroll?.monthlySalary || 0
-                        ).toLocaleString("en-IN")}
-                      </h2>
-
-                      <p className="text-slate-400">
-                        Monthly Gross Salary
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* DOCUMENTS */}
-                {activeTab === "documents" && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {data.documents.map((doc, i) => (
-                      <a
-                        key={i}
-                        href={doc.fileUrl}
-                        target="_blank"
-                        className="bg-white border border-slate-200 rounded-3xl p-5 flex items-center justify-between hover:border-blue-200 hover:shadow-md transition-all"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">
-                            <FileText size={22} />
-                          </div>
-
-                          <div>
-                            <h3 className="font-bold text-slate-800">
-                              {doc.name || "Untitled"}
-                            </h3>
-
-                            <p className="text-xs text-slate-400 mt-1">
-                              Click to open
-                            </p>
-                          </div>
-                        </div>
-
-                        <ExternalLink
-                          size={18}
-                          className="text-slate-400"
-                        />
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        </div>
+          {/* PROFESSIONAL DETAILS CARD */}
+          <PremiumLightCard title="Employment Profile">
+            <PremiumLightRow
+              icon={<IdCard size={18} />}
+              label="Employee ID Code"
+              value={profile?.employeeId}
+            />
+            <PremiumLightRow
+              icon={<CircleDot size={18} />}
+              label="Current Status"
+              value={profile?.status || "Active"}
+              isStatus
+            />
+            <PremiumLightRow
+              icon={<Coins size={18} />}
+              label="Internal Hourly Cost"
+              value={`₹${(profile?.hourlyCost || 0).toLocaleString("en-IN")}`}
+            />
+          </PremiumLightCard>
+        </motion.div>
       </div>
     </div>
   );
 }
 
 /* =========================================================
-   COMPONENTS
+   PREMIUM LIGHT SUB-COMPONENTS
 ========================================================= */
 
-function KPI({ label, value, icon }: any) {
+function PremiumLightCard({ title, children }: any) {
   return (
-    <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-2xl p-4 text-white">
-      <div className="flex items-center justify-between mb-2 opacity-80">
-        <span>{icon}</span>
-
-        <span className="text-[10px] uppercase tracking-widest font-bold">
-          {label}
-        </span>
-      </div>
-
-      <div className="text-3xl font-black">{value}</div>
-    </div>
-  );
-}
-
-function Card({ title, children }: any) {
-  return (
-    <div className="bg-white border border-slate-200 rounded-[2rem] p-7 shadow-sm">
-      <h3 className="text-xl font-black mb-7 text-slate-800">
-        {title}
+    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm relative overflow-hidden">
+      <h3 className="text-[11px] uppercase tracking-[0.2em] font-bold text-indigo-700 mb-6 flex items-center gap-2">
+        <span className="h-1.5 w-1.5 rounded-full bg-sky-600" /> {title}
       </h3>
-
-      <div className="space-y-5">{children}</div>
+      <div className="space-y-4">{children}</div>
     </div>
   );
 }
 
-function DetailRow({
-  icon,
-  label,
-  value,
-  isDate,
-  isStatus,
-}: any) {
+function PremiumLightRow({ icon, label, value, isDate, isStatus }: any) {
   const displayValue =
     isDate && value
       ? new Date(value).toLocaleDateString("en-IN", {
@@ -598,21 +248,23 @@ function DetailRow({
           month: "short",
           year: "numeric",
         })
-      : value || "-";
+      : value || "—";
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0 last:pb-0">
       <div className="flex items-center gap-3 text-slate-500">
-        {icon}
-        <span className="text-sm font-semibold">{label}</span>
+        <span className="text-sky-800">
+          {icon}
+        </span>
+        <span className="text-xs font-medium text-sky-800">{label}</span>
       </div>
 
       {isStatus ? (
-        <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-xs font-black">
+        <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase">
           {displayValue}
         </span>
       ) : (
-        <span className="text-sm font-bold text-slate-800">
+        <span className="text-xs font-bold text-slate-800 tracking-wide">
           {displayValue}
         </span>
       )}

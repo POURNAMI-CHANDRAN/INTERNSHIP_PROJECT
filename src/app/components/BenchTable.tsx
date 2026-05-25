@@ -1,6 +1,6 @@
 interface BenchRow {
   employeeId: string;
-  employeeCode: string;
+  employeeId: string;
   name: string;
   benchHours: number;
   risk: "SAFE" | "MEDIUM" | "HIGH";
@@ -67,7 +67,7 @@ export function BenchTable({ data, onSelectEmployee }: BenchTableProps) {
             <td className="p-2 font-medium text-slate-900">
               {e.name}
               <span className="ml-1 text-xs text-slate-400">
-                ({e.employeeCode})
+                ({e.employeeId})
               </span>
             </td>
 

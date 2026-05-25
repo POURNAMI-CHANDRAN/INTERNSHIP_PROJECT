@@ -2,7 +2,6 @@ import mongoose from "mongoose";
 import Employee from "../models/Employee.js";
 import User from "../models/User.js";
 import Role from "../models/Roles.js";
-import { getNextEmployeeCode } from "../utils/Next.js";
 import Allocation from "../models/Allocation.js";
 import Project from "../models/Project.js";
 import WorkCategory from "../models/WorkCategory.js";
@@ -12,6 +11,7 @@ import Skill from "../models/Skill.js";
 export const createEmployee = async (req, res) => {
   try {
     const {
+      employeeId,
       name,
       email,
       roleId,
@@ -25,10 +25,46 @@ export const createEmployee = async (req, res) => {
       location,
     } = req.body;
 
-    const employeeCode = await getNextEmployeeCode();
+    /* =========================
+       VALIDATE EMPLOYEE ID
+    ========================= */
+
+    if (!employeeId) {
+      return res.status(400).json({
+        success: false,
+        message: "Employee ID is Required",
+      });
+    }
+
+    /* =========================
+       CHECK DUPLICATE
+    ========================= */
+
+    const existingEmployee = await Employee.findOne({
+      employeeId,
+    });
+
+    if (existingEmployee) {
+      return res.status(400).json({
+        success: false,
+        message: "Employee ID Already Exists",
+      });
+    }
+
+    /* =========================
+       GENERATE EMPLOYEE CODE
+    ========================= */
+
+    const employeeCode = `EMP-${String(employeeId).padStart(4, "0")}`;
+
+    /* =========================
+       CREATE EMPLOYEE
+    ========================= */
 
     const employee = await Employee.create({
+      employeeId,
       employeeCode,
+
       name,
       email,
       roleId,
@@ -46,8 +82,12 @@ export const createEmployee = async (req, res) => {
       success: true,
       data: employee,
     });
+
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
 
@@ -357,7 +397,7 @@ export const getFullEmployeeDetails = async (req, res) => {
       employee: {
         name: employee.name,
         email: employee.email,
-        employeeCode: employee.employeeCode,
+        employeeId: employee.employeeId,
         roleId: employee.roleId,
         location: employee.location,
         joiningDate: employee.joiningDate,

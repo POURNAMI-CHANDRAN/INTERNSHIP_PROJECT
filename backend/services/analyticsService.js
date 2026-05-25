@@ -86,7 +86,7 @@ export const calculateEmployeeMetrics = (employee, allocations = []) => {
   return {
     employeeId: employee._id,
     name: employee.name,
-    employeeCode: employee.employeeCode,
+    employeeId: employee.employeeId,
     location: employee.location,
 
     totalHours,

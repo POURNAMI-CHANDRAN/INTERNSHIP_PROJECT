@@ -71,7 +71,7 @@ const run = async () => {
           location: "Chennai",
           joiningDate: new Date("2024-01-10"),
         },
-        $setOnInsert: { employeeCode: "EMP-JOHN-01" },
+        $setOnInsert: { employeeId: "EMP-JOHN-01" },
       },
       afterOption
     );
@@ -89,7 +89,7 @@ const run = async () => {
           location: "Bengaluru",
           joiningDate: new Date("2023-04-20"),
         },
-        $setOnInsert: { employeeCode: "EMP-PRIYA-01" },
+        $setOnInsert: { employeeId: "EMP-PRIYA-01" },
       },
       afterOption
     );
@@ -107,7 +107,7 @@ const run = async () => {
           location: "Pune",
           joiningDate: new Date("2025-02-11"),
         },
-        $setOnInsert: { employeeCode: "EMP-RAHUL-01" },
+        $setOnInsert: { employeeId: "EMP-RAHUL-01" },
       },
       afterOption
     );
@@ -120,7 +120,7 @@ const run = async () => {
           type: "Billable",
           billingModel: "Hourly",
           billingRate: 2500,
-          status: "ACTIVE",
+          status: "Active",
           startDate: new Date("2026-01-01"),
           endDate: new Date("2026-12-31"),
         },
@@ -136,7 +136,7 @@ const run = async () => {
           type: "Billable",
           billingModel: "Hourly",
           billingRate: 2000,
-          status: "ACTIVE",
+          status: "Active",
           startDate: new Date("2026-02-01"),
           endDate: new Date("2026-10-30"),
         },
@@ -152,7 +152,7 @@ const run = async () => {
           type: "Billable",
           billingModel: "Fixed",
           fixedMonthlyRevenue: 320000,
-          status: "ACTIVE",
+          status: "Active",
           startDate: new Date("2026-03-01"),
           endDate: new Date("2026-12-31"),
         },
@@ -168,7 +168,7 @@ const run = async () => {
           type: "Non-Billable",
           billingModel: "Fixed",
           fixedMonthlyRevenue: 0,
-          status: "ACTIVE",
+          status: "Active",
           startDate: new Date("2026-01-01"),
           endDate: new Date("2026-12-31"),
         },

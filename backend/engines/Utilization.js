@@ -1,10 +1,10 @@
 /**
  * Calculates effective utilization for an employee
- * Only ACTIVE projects count
+ * Only Active projects count
  */
 export function calculateUtilization(allocations = []) {
   const activeHours = allocations
-    .filter(a => a.projectId?.status === "ACTIVE")
+    .filter(a => a.projectId?.status === "Active")
     .reduce((sum, a) => sum + a.allocatedHours, 0);
 
   const utilization = Math.round((activeHours / 160) * 100);
