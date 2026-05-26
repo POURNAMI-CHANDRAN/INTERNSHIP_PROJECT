@@ -8,7 +8,7 @@ const roleschema = new mongoose.Schema({
     trim: true,
     minlength: 2,
     maxlength: 50,
-    match: [/^[A-Za-z\s]+$/, "Only letters and spaces allowed"]
+    match: [/^[A-Za-z0-9\s/&().,-]+$/, "Only Letters and Spaces Allowed"]
   },
 
   description: String,

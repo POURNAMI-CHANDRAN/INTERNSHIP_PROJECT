@@ -19,7 +19,7 @@ const allocationSchema = new mongoose.Schema(
     workCategoryId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "WorkCategory",
-      required: true,
+      required: false,
     },
 
     month: {

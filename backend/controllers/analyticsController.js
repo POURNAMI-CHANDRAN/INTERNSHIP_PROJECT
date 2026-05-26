@@ -16,7 +16,7 @@ export const getEnterpriseDashboard = async (req, res) => {
 
     const { employeeMetrics, allocations } = await getMonthData({ month, year });
     const revenueSummary = await getRevenueSummary({ month, year });
-    const trend = await getUtilizationTrend(6);
+    const trend = await getUtilizationTrend({months: 12, year});
 
     const totalEmployees = employeeMetrics.length;
 

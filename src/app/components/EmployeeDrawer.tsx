@@ -242,7 +242,7 @@ export default function EmployeeDrawer({
         <div className="flex flex-col items-center justify-center min-w-0">
 
           {/* NAME */}
-          <h1 className="text-sm font-semibold text-slate-900 leading-tight truncate">
+          <h1 className="text-sm font-bold uppercase text-slate-900 leading-tight truncate">
             {employee?.name || "Unknown User"}
           </h1>
 
@@ -268,7 +268,7 @@ export default function EmployeeDrawer({
             </div>
 
             {/* EMAIL */}
-            <div className="flex items-center justify-center gap-1 font-medium text-indigo-900 max-w-[200px]">
+            <div className="flex items-center justify-center gap-1 font-medium text-indigo-900">
               <Mail size={13} />
               <span>
                 {employee?.email || "no-email@company.com"}
@@ -515,7 +515,7 @@ export default function EmployeeDrawer({
                         <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 min-w-0 ">
                           <div className="flex items-center gap-1 text-purple-700 shrink-0">
                             <Clock size={12} />
-                            <span>{fte.toFixed(1)} FTE</span>
+                            <span>{fte.toFixed(2)} FTE</span>
                           </div>
                           <span className="text-slate-300">•</span>
                           <div className="text-sky-700 shrink-0">{hours}h</div>

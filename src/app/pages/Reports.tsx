@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo} from "react";
-import * as XLSX from "xlsx";
+import * as XLSX from "xlsx-js-style";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { 
@@ -144,74 +144,308 @@ export default function EmployeeReports() {
   };
 
   /* ========================= EXPORT EXCEL ========================= */
-  const exportExcel = () => {
-    const wb = XLSX.utils.book_new();
+const exportExcel = () => {
+  const wb = XLSX.utils.book_new();
 
-    /* ===================== SUMMARY ===================== */
-    const summary = data.map((e) => ({
-      Name: e.name,
-      Email: e.email,
-      Skills: e.skills.join(", "),
-      Total_Hours: e.summary.total_hours,
-      Total_Revenue: e.summary.total_revenue,
-      Total_Cost: e.summary.total_cost,
-      Profit: e.summary.profit,
-    }));
+  /* =========================================================
+      MASTER DATA
+  ========================================================= */
 
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(summary),
-      "SUMMARY"
-    );
+  const rows: any[] = [];
 
-    /* ===================== FULL ALLOCATIONS ===================== */
-    const allocations: any[] = [];
+  data.forEach((emp) => {
+    let totalHours = 0;
+    let totalFTE = 0;
 
-    data.forEach((e) => {
-      e.allocations.forEach((a) => {
-        allocations.push({
-          Employee: e.name,
-          Email: e.email,
-          Skill_Set: e.skills.join(", "),
-          Project: a.project_name,
-          Month: `${a.month}/${a.year}`,
-          Hours: a.hours,
-          FTE: a.fte,
-          Billable: a.billable ? "Yes" : "No",
-          Rate: a.rate,
-          Revenue: a.revenue,
-          Cost: a.cost,
-          Profit: a.revenue - a.cost,
-        });
+    emp.allocations.forEach((a: any) => {
+      totalHours += Number(a.hours || 0);
+      totalFTE += Number(a.fte || 0);
+
+      rows.push({
+        "Employee Name": emp.name,
+        Email: emp.email,
+        Skills: emp.skills.join(", "),
+        "Project Name": a.project_name,
+        "Work Category": a.billable ? "Billable" : "Non-Billable",
+        Month: a.month,
+        Year: a.year,
+        Hours: a.hours,
+        FTE: a.fte,
+        Rate: a.rate,
+        Revenue: a.revenue,
+        Cost: a.cost,
+        Profit: a.revenue - a.cost,
       });
     });
 
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(allocations),
-      "DETAILED ALLOCATIONS"
-    );
+    /* ===== EMPLOYEE TOTAL ROW ===== */
+    rows.push({
+      "Employee Name": `TOTAL - ${emp.name}`,
+      Email: "",
+      Skills: "",
+      "Project Name": "",
+      "Work Category": "",
+      Month: "",
+      Year: "",
+      Hours: totalHours,
+      FTE: totalFTE.toFixed(2),
+      Rate: "",
+      Revenue: "",
+      Cost: "",
+      Profit: "",
+    });
 
-    /* ===================== INSIGHTS ===================== */
-    const insights = data.map((e) => ({
-      Name: e.name,
-      Utilization: ((e.summary.total_hours / 160) * 100).toFixed(1) + "%",
-      Status:
-        e.summary.profit > 0
-          ? "Profit"
-          : e.summary.profit < 0
-          ? "Loss"
-          : "Neutral",
-    }));
+    /* EMPTY SPACER ROW */
+    rows.push({});
+  });
 
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(insights),
-      "INSIGHTS"
-    );
+  /* =========================================================
+      CREATE SHEET
+  ========================================================= */
 
-    XLSX.writeFile(wb, "RESOURCELYTICS_REPORT.xlsx");
+  const ws = XLSX.utils.json_to_sheet(rows);
+
+  /* =========================================================
+      COLUMN WIDTHS
+  ========================================================= */
+
+  ws["!cols"] = [
+    { wch: 28 }, // Employee
+    { wch: 32 }, // Email
+    { wch: 35 }, // Skills
+    { wch: 28 }, // Project
+    { wch: 22 }, // Work Category
+    { wch: 10 }, // Month
+    { wch: 10 }, // Year
+    { wch: 14 }, // Hours
+    { wch: 12 }, // FTE
+    { wch: 14 }, // Rate
+    { wch: 18 }, // Revenue
+    { wch: 18 }, // Cost
+    { wch: 18 }, // Profit
+  ];
+
+  /* =========================================================
+      STYLING
+  ========================================================= */
+
+  const range = XLSX.utils.decode_range(ws["!ref"] || "");
+
+  const getUtilColor = (hours: number, fte: number) => {
+  if (hours === 0 || fte === 0) {
+    return "F87171"; // light red
+  }
+
+  if (hours === 160 || fte === 1) {
+    return "22C55E"; // green
+  }
+
+  if (hours >= 160 || fte >= 1) {
+    return "60A5FA"; // light blue
+  }
+
+  if (fte > 0 && fte < 1) {
+    return "F5D0A9"; // light brown
+  }
+
+  return "E5E7EB"; // default gray
+};
+
+for (let R = 0; R <= range.e.r; ++R) {
+  for (let C = 0; C <= range.e.c; ++C) {
+    const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+
+    if (!ws[cellAddress]) continue;
+
+    const header = R === 0;
+
+    const isTotalRow =
+      ws[XLSX.utils.encode_cell({ r: R, c: 0 })]?.v &&
+      String(ws[XLSX.utils.encode_cell({ r: R, c: 0 })]?.v).includes("TOTAL");
+
+    const colIndex = C;
+    const isHoursCol = colIndex === 7;
+    const isFteCol = colIndex === 8;
+
+    let fillColor = "FFFFFF";
+
+    if (!header && (isHoursCol || isFteCol)) {
+      const row = rows[R - 1];
+      const hours = Number(row?.Hours || 0);
+      const fte = Number(row?.FTE || 0);
+      fillColor = getUtilColor(hours, fte);
+    }
+
+    if (header) {
+      ws[cellAddress].s = {
+        font: { bold: true, color: { rgb: "FFFFFF" } },
+        fill: { fgColor: { rgb: "0EA5E9" } },
+        alignment: { horizontal: "center", vertical: "center" },
+      };
+    } 
+    
+    else if (isTotalRow) {
+      ws[cellAddress].s = {
+        font: { bold: true, color: { rgb: "111827" } },
+        fill: { fgColor: { rgb: "DBEAFE" } },
+        alignment: { horizontal: "center", vertical: "center" },
+      };
+    } 
+    
+    else {
+      ws[cellAddress].s = {
+        fill: { fgColor: { rgb: fillColor } },
+        alignment: {
+          horizontal: "center",
+          vertical: "center",
+          wrapText: true,
+        },
+        border: {
+          top: { style: "thin", color: { rgb: "E5E7EB" } },
+          bottom: { style: "thin", color: { rgb: "E5E7EB" } },
+          left: { style: "thin", color: { rgb: "E5E7EB" } },
+          right: { style: "thin", color: { rgb: "E5E7EB" } },
+        },
+      };
+    }
+  }
+}
+
+  /* =========================================================
+      FREEZE HEADER
+  ========================================================= */
+
+  ws["!freeze"] = {
+    xSplit: 0,
+    ySplit: 1,
   };
+
+  /* =========================================================
+      APPEND SHEET
+  ========================================================= */
+
+  XLSX.utils.book_append_sheet(
+    wb,
+    ws,
+    "EMPLOYEE REPORT"
+  );
+
+  // ==================== NEW SHEET=====================================
+const pivotMap: Record<string, any> = {};
+const monthSet = new Set<string>();
+
+const monthKey = (m: number, y: number) => {
+  const date = new Date(y, m - 1);
+  return `${date.toLocaleString("en-US", { month: "short" })}-${String(y).slice(-2)}`;
+};
+
+// 1️⃣ BUILD PIVOT DATA DYNAMICALLY
+data.forEach((emp) => {
+  if (!pivotMap[emp.name]) {
+    pivotMap[emp.name] = {
+      "Row Labels": emp.name,
+      "Sum of HOURS": 0,
+      "Sum of FTE": 0,
+    };
+  }
+
+  emp.allocations.forEach((a) => {
+    const key = monthKey(a.month, a.year);
+
+    monthSet.add(key);
+
+    if (!pivotMap[emp.name][key]) {
+      pivotMap[emp.name][key] = 0;
+    }
+
+    pivotMap[emp.name][key] += Number(a.hours || 0);
+
+    pivotMap[emp.name]["Sum of HOURS"] += Number(a.hours || 0);
+    pivotMap[emp.name]["Sum of FTE"] += Number(a.fte || 0);
+  });
+});
+
+// 2️⃣ BUILD FINAL COLUMN ORDER
+const monthColumns = Array.from(monthSet).sort();
+
+const columns = [
+  "Row Labels",
+  "Sum of HOURS",
+  "Sum of FTE",
+  ...monthColumns,
+];
+
+// 3️⃣ CONVERT TO SHEET FORMAT
+const pivotRows = Object.values(pivotMap).map((row: any) => {
+  const obj: any = {};
+
+  columns.forEach((col) => {
+    obj[col] = row[col] ?? 0;
+  });
+
+  return obj;
+});
+
+const pivotSheet = XLSX.utils.json_to_sheet(pivotRows);
+
+// 4️⃣ AUTO COLUMN WIDTH
+pivotSheet["!cols"] = columns.map(() => ({ wch: 18 }));
+
+// 5️⃣ STYLING (HEADER + ZEBRA ROW COLORS)
+const rangepivot = XLSX.utils.decode_range(pivotSheet["!ref"] || "");
+
+for (let R = 0; R <= rangepivot.e.r; R++) {
+  for (let C = 0; C <= rangepivot.e.c; C++) {
+    const cell = XLSX.utils.encode_cell({ r: R, c: C });
+
+    if (!pivotSheet[cell]) continue;
+
+    const isHeader = R === 0;
+
+    const rowColor = isHeader
+      ? "0EA5E9" // blue header
+      : R % 2 === 0
+      ? "F1F5F9" // light gray
+      : "FFFFFF";
+
+    pivotSheet[cell].s = {
+      fill: {
+        fgColor: { rgb: rowColor },
+      },
+      alignment: {
+        horizontal: "center",
+        vertical: "center",
+        wrapText: true,
+      },
+      font: isHeader
+        ? { bold: true, color: { rgb: "FFFFFF" }, sz: 12 }
+        : { bold: false, color: { rgb: "111827" } },
+      border: {
+        top: { style: "thin", color: { rgb: "E5E7EB" } },
+        bottom: { style: "thin", color: { rgb: "E5E7EB" } },
+        left: { style: "thin", color: { rgb: "E5E7EB" } },
+        right: { style: "thin", color: { rgb: "E5E7EB" } },
+      },
+    };
+  }
+}
+
+// 6️⃣ ADD SHEET TO WORKBOOK
+XLSX.utils.book_append_sheet(
+  wb,
+  pivotSheet,
+  "PIVOT SUMMARY"
+);
+
+  /* =========================================================
+      EXPORT
+  ========================================================= */
+
+  XLSX.writeFile(
+    wb,
+    "RESOURCELYTICS_REPORT.xlsx"
+  );
+};
 
 // ========================= EXPORT PDF ========================= */
 const exportPDF = async () => {

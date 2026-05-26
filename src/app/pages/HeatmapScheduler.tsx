@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import useResourceHeatmapData from "../../hooks/useHeatMapData";
 import { mapAllocationsToMonths } from "../../utils/HeatmapUtils";
 import { EmployeeRow } from "../components/EmployeeRow";
@@ -31,8 +31,8 @@ export default function HeatmapScheduler() {
   const [year, setYear] = useState(currentYear);
   const [saving, setSaving] = useState(false);
 
-  const [assignContext, setAssignContext] =
-    useState<AssignContext | null>(null);
+  const [assignContext, setAssignContext] = useState<AssignContext | null>(null);
+  const [workCategories, setWorkCategories] = useState<any[]>([]);
 
   const {
     employees,
@@ -47,20 +47,42 @@ export default function HeatmapScheduler() {
     if (!employees?.length) return [];
 
     return employees.map((employee: any) => {
+
       const employeeAllocations = (allocations || []).filter(
-        (a: any) => String(a.employeeId) === String(employee._id)
+        (a: any) =>
+          String(a.employeeId?._id || a.employeeId) ===
+          String(employee._id)
       );
+
+      let monthlyData = [];
+
+      try {
+        monthlyData = mapAllocationsToMonths(
+          employeeAllocations || [],
+          MONTHS,
+          year
+        );
+      } catch (err) {
+        console.error("MAP ERROR:", err);
+
+        // FALLBACK EMPTY MONTHS
+        monthlyData = MONTHS.map((m) => ({
+          month: m.month,
+          hasData: false,
+          totalHours: 0,
+          utilizationPct: 0,
+          color: "bg-gray-100",
+          projects: [],
+        }));
+      }
 
       return {
         employee,
-        monthlyData: mapAllocationsToMonths(
-          employeeAllocations,
-          MONTHS,
-          year
-        ),
+        monthlyData,
       };
     });
   }, [employees, allocations, year]);
+
 
   /* Called from EmployeeRow */
   const handleAssign = useCallback(
@@ -70,23 +92,13 @@ export default function HeatmapScheduler() {
     []
   );
 
-  /* Save allocation (real‑world flow) */
 const handleSubmitAssignment = async (data: {
   projectId: string;
   allocatedHours: number;
   isBillable: boolean;
+  workCategoryId?: string;
 }) => {
   if (!assignContext) return;
-
-  // ✅ DERIVE workCategoryId from employee
-  const workCategoryId =
-    assignContext.employee.primaryWorkCategoryId?._id ||
-    assignContext.employee.primaryWorkCategoryId;
-
-  if (!workCategoryId) {
-    console.error("Employee is missing primary work category");
-    throw new Error("Employee work category not configured.");
-  }
 
   try {
     setSaving(true);
@@ -98,7 +110,7 @@ const handleSubmitAssignment = async (data: {
       projectId: data.projectId,
       allocatedHours: data.allocatedHours,
       isBillable: data.isBillable,
-      workCategoryId, // ✅ BACKEND VALIDATION SATISFIED
+      workCategoryId: data.workCategoryId || null, 
     });
 
     await refetch();
@@ -107,6 +119,30 @@ const handleSubmitAssignment = async (data: {
     setSaving(false);
   }
 };
+
+useEffect(() => {
+  const fetchCategories = async () => {
+    try {
+      const res = await api.get("/workcategories");
+
+      const categories =
+        Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data?.data)
+          ? res.data.data
+          : [];
+
+      setWorkCategories(categories);
+    } catch (err) {
+      console.error(
+        "Failed to Fetch Work Categories",
+        err
+      );
+    }
+  };
+
+  fetchCategories();
+}, []);
 
   /* LOADING */
   if (loading && !employees.length) {
@@ -212,10 +248,14 @@ const handleSubmitAssignment = async (data: {
         open={!!assignContext}
         employeeName={assignContext?.employee.name || ""}
         monthLabel={
-          MONTHS.find((m) => m.month === assignContext?.month)?.label ||
-          ""
+          MONTHS.find((m) => m.month === assignContext?.month)?.label || ""
         }
-        defaultHours={assignContext?.existingData?.totalHours}
+        defaultHours={
+          assignContext?.existingData?.totalHours || 0
+        }
+
+        workCategories={workCategories}
+
         onClose={() => setAssignContext(null)}
         onSubmit={handleSubmitAssignment}
       />

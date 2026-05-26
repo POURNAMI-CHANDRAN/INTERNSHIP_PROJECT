@@ -162,32 +162,47 @@ export const getImpendingBench = async ({ month, year }) => {
 /* =====================================================
    UTILIZATION TREND (AI READY)
 ===================================================== */
+export async function getUtilizationTrend({
+  months = 12,
+  year = new Date().getFullYear(),
+}) {
 
-export const getUtilizationTrend = async (limit = 6) => {
-  return Allocation.aggregate([
+  const startDate = new Date(year, 0, 1);
+  const endDate = new Date(year, 11, 31, 23, 59, 59);
+
+  const trend = await Allocation.aggregate([
     {
-      $group: {
-        _id: { month: "$month", year: "$year" },
-        billableHours: {
-          $sum: {
-            $cond: [
-              {
-                $or: [
-                  { $eq: ["$billingType", "Billable"] },
-                  { $eq: ["$isBillable", true] },
-                ],
-              },
-              "$allocatedHours",
-              0,
-            ],
-          },
+      $match: {
+        allocationDate: {
+          $gte: startDate,
+          $lte: endDate,
         },
       },
     },
-    { $sort: { "_id.year": -1, "_id.month": -1 } },
-    { $limit: limit },
+
+    {
+      $group: {
+        _id: {
+          month: { $month: "$allocationDate" },
+          year: { $year: "$allocationDate" },
+        },
+
+        billableHours: {
+          $sum: "$allocatedHours",
+        },
+      },
+    },
+
+    {
+      $sort: {
+        "_id.month": 1,
+      },
+    },
+
     {
       $project: {
+        _id: 0,
+
         period: {
           $concat: [
             { $toString: "$_id.month" },
@@ -195,11 +210,15 @@ export const getUtilizationTrend = async (limit = 6) => {
             { $toString: "$_id.year" },
           ],
         },
+
         billableHours: 1,
+        year: "$_id.year",
       },
     },
   ]);
-};
+
+  return trend;
+}
 
 /* =====================================================
    REVENUE INTELLIGENCE ENGINE

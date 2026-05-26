@@ -44,6 +44,7 @@ type ChartItem = {
 type RevenueTrend = {
   period: string;
   billableHours: number;
+  year: number;
 };
 
 type BenchForecast = {
@@ -101,6 +102,11 @@ export default function Dashboard() {
 
   const kpis = data?.kpis;
   const charts = data?.charts;
+useEffect(() => {
+  console.log("YEAR:", year);
+  console.log("FILTERED:", revenueTrend);
+  console.log("ALL:", charts?.revenueTrend);
+}, [year, charts]);
   const revenueByProject = data?.revenueByProject || [];
 
   const allocationData = useMemo(() =>
@@ -113,7 +119,17 @@ export default function Dashboard() {
   , [charts]);
 
   const billableVsNon = useMemo(() => charts?.billableVsNonBillable || [], [charts]);
-  const revenueTrend = useMemo(() => charts?.revenueTrend || [], [charts]);
+  const revenueTrend = useMemo(() => {
+    return (charts?.revenueTrend || []).map((item) => {
+      const [month, itemYear] = item.period.split("/");
+
+      return {
+        ...item,
+        month: Number(month),
+        parsedYear: Number(itemYear),
+      };
+    }).filter((item) => item.parsedYear === year);
+  }, [charts, year]);
 
   const total = billableVsNon.reduce((s, d) => s + (d.value || 0), 0);
 
@@ -200,43 +216,90 @@ export default function Dashboard() {
         {/* REVENUE TREND - EXPANDED */}
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold">Revenue Growth Trend</h2>
-            <span className="text-xs font-bold uppercase tracking-wider
-             text-amber-800">Monthly Billable Hours</span>
+            <h2 className="text-lg font-bold">
+              Revenue Growth Trend
+            </h2>
+
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-800">
+              Monthly Billable Hours ({year})
+            </span>
           </div>
+
           <ResponsiveContainer width="100%" height={320}>
             <AreaChart data={revenueTrend}>
+
               <defs>
                 <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
                   <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-              <XAxis dataKey="period" axisLine={false} tickLine={false} tick={{fill: '#111827', fontSize: 12, fontWeight: 600}} dy={10} />
-              <YAxis axisLine={false} tickLine={false} tick={{fill: '#111827', fontSize: 12, fontWeight: 600}} />
+
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="#f1f5f9"
+              />
+
+              <XAxis
+                dataKey="period"
+                axisLine={false}
+                tickLine={false}
+                tick={{
+                  fill: "#111827",
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}
+                dy={10}
+              />
+
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{
+                  fill: "#111827",
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}
+              />
+
               <Tooltip
-              formatter={(value) => [`${value} hrs`, "Billable Hours"]}
-              contentStyle={{
-                backgroundColor: "rgba(255,255,255,0.9)",
-                backdropFilter: "blur(8px)",
-                borderRadius: "12px",
-                border: "1px solid #e5e7eb"
-              }}
-              labelStyle={{ color: "#9502ba", fontWeight: "bold" }}
-              itemStyle={{ color: "#8183f7", fontWeight: "bold" }}
+                formatter={(value) => [`${value} hrs`, "Billable Hours"]}
+                contentStyle={{
+                  backgroundColor: "rgba(255,255,255,0.9)",
+                  backdropFilter: "blur(8px)",
+                  borderRadius: "12px",
+                  border: "1px solid #e5e7eb",
+                }}
+                labelStyle={{
+                  color: "#9502ba",
+                  fontWeight: "bold",
+                }}
+                itemStyle={{
+                  color: "#8183f7",
+                  fontWeight: "bold",
+                }}
               />
-              <Area 
-                type="monotone" 
-                dataKey="billableHours" 
+
+              <Area
+                type="monotone"
+                dataKey="billableHours"
                 name="Billable Hours"
-                stroke="#6366f1" 
-                strokeWidth={3} 
-                fillOpacity={1} 
-                fill={AREA_GRADIENT} 
+                stroke="#6366f1"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill={AREA_GRADIENT}
+                animationDuration={800}
               />
+
             </AreaChart>
           </ResponsiveContainer>
+
+          {revenueTrend.length === 0 && (
+            <div className="text-center text-slate-500 text-sm mt-4">
+              No Revenue Trend Data Available for {year}
+            </div>
+          )}
         </div>
 
         {/* PIE CHART */}
