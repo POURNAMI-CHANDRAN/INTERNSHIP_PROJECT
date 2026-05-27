@@ -555,53 +555,71 @@ const utilization = Math.round((totalAllocatedFTE / (totalPlannedFTE || 1)) * 10
 
                   const currencySymbol = currencySymbolMap[p.billingCurrency] || "₹";
 
-                  const getCapacityStatus = () => {
-                  // No Plan + No Allocation
-                  // 0.00 / 0.00
-                  if (capacity === 0 && used === 0) {
-                    return {
-                      label: "UNPLANNED",
-                      text: "text-cyan-600",
-                      bar: "bg-cyan-400",
-                    };
-                  }
+                  const getCapacityStatus = (used: number, capacity: number) => {
+                    // 🔧 normalize floating values
+                    const u = Number(used.toFixed(2));
+                    const c = Number(capacity.toFixed(2));
 
-                  // 0.25 / 0.00
-                  if (capacity === 0 && used > 0) {
-                    return {
-                      label: "UNALLOCATED",
-                      text: "text-[#bf3cc7]",
-                      bar: "bg-[#ee76f5]",
-                    };
-                  }
+                    // 🟦 No Plan + No Allocation
+                    // 0.00 / 0.00
+                    if (c === 0 && u === 0) {
+                      return {
+                        label: "UNPLANNED",
+                        text: "text-cyan-600",
+                        bar: "bg-cyan-400",
+                      };
+                    }
 
-                  // 0.63 / 0.55
-                  if (used > capacity) {
-                    return {
-                      label: "OVERLOADED",
-                      text: "text-rose-500",
-                      bar: "bg-rose-500",
-                    };
-                  }
+                    // 🟣 Capacity not planned but work exists
+                    // 0.25 / 0.00
+                    if (c === 0 && u > 0) {
+                      return {
+                        label: "UNALLOCATED",
+                        text: "text-[#bf3cc7]",
+                        bar: "bg-[#ee76f5]",
+                      };
+                    }
 
-                  // 0.55 / 0.55
-                  if (used === capacity) {
-                    return {
-                      label: "OPTIMAL",
-                      text: "text-emerald-600",
-                      bar: "bg-emerald-500",
-                    };
-                  }
+                    // 📊 compute ratio safely
+                    const ratio = c > 0 ? u / c : 0;
 
-                  // 0.00 / 0.50
-                  return {
-                    label: "UNDERLOADED",
-                    text: "text-amber-500",
-                    bar: "bg-amber-500",
+                    // 🔴 OVERLOADED (> 100%)
+                    if (ratio > 1.01) {
+                      return {
+                        label: "OVERLOADED",
+                        text: "text-rose-500",
+                        bar: "bg-rose-500",
+                      };
+                    }
+
+                    // 🟢 OPTIMAL (close enough match)
+                    // 0.55 / 0.55 (or tiny float diff)
+                    if (Math.abs(u - c) <= 0.01) {
+                      return {
+                        label: "OPTIMAL",
+                        text: "text-emerald-600",
+                        bar: "bg-emerald-500",
+                      };
+                    }
+
+                    // 🟠 UNDERLOADED (has capacity but not fully used)
+                    if (u < c) {
+                      return {
+                        label: "UNDERLOADED",
+                        text: "text-amber-500",
+                        bar: "bg-amber-500",
+                      };
+                    }
+
+                    // fallback (safe)
+                    return {
+                      label: "UNKNOWN",
+                      text: "text-slate-500",
+                      bar: "bg-slate-400",
+                    };
                   };
-                };
-
-                const statusConfig = getCapacityStatus();
+                
+                  const statusConfig = getCapacityStatus(used, capacity);
 
                   return (
                     <tr

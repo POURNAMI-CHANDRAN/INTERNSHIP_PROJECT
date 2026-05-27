@@ -162,63 +162,43 @@ export const getImpendingBench = async ({ month, year }) => {
 /* =====================================================
    UTILIZATION TREND (AI READY)
 ===================================================== */
-export async function getUtilizationTrend({
-  months = 12,
-  year = new Date().getFullYear(),
-}) {
-
-  const startDate = new Date(year, 0, 1);
-  const endDate = new Date(year, 11, 31, 23, 59, 59);
-
-  const trend = await Allocation.aggregate([
-    {
-      $match: {
-        allocationDate: {
-          $gte: startDate,
-          $lte: endDate,
+export const getUtilizationTrend = async ({ months = 12, year }) => {
+  try {
+    const trend = await Allocation.aggregate([
+      {
+        $match: {
+          year: Number(year),
+          isBillable: true,
         },
       },
-    },
 
-    {
-      $group: {
-        _id: {
-          month: { $month: "$allocationDate" },
-          year: { $year: "$allocationDate" },
-        },
+      {
+        $group: {
+          _id: "$month",
 
-        billableHours: {
-          $sum: "$allocatedHours",
+          billableHours: {
+            $sum: "$allocatedHours",
+          },
         },
       },
-    },
 
-    {
-      $sort: {
-        "_id.month": 1,
-      },
-    },
-
-    {
-      $project: {
-        _id: 0,
-
-        period: {
-          $concat: [
-            { $toString: "$_id.month" },
-            "/",
-            { $toString: "$_id.year" },
-          ],
+      {
+        $sort: {
+          _id: 1,
         },
-
-        billableHours: 1,
-        year: "$_id.year",
       },
-    },
-  ]);
+    ]);
 
-  return trend;
-}
+    return trend.map((item) => ({
+      period: `${item._id}/${year}`,
+      billableHours: item.billableHours,
+      year,
+    }));
+  } catch (err) {
+    console.error("UTILIZATION TREND ERROR:", err);
+    return [];
+  }
+};
 
 /* =====================================================
    REVENUE INTELLIGENCE ENGINE

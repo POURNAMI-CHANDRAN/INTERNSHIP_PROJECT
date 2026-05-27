@@ -267,7 +267,7 @@ function Modal({ children, onClose }: any) {
 function ClientForm({ title, data, setData, onSave, onCancel }: any) {
     return (
         <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
-            <div className="bg-slate-900 p-6 text-white flex justify-between items-center">
+            <div className="bg-sky-200 p-6 text-slate-900 flex justify-center gap-4 items-center">
                 <h2 className="text-xl font-bold">{title}</h2>
                 <button onClick={onCancel} className="p-1 hover:bg-white/10 rounded"><X size={20} /></button>
             </div>
@@ -280,9 +280,9 @@ function ClientForm({ title, data, setData, onSave, onCancel }: any) {
                     <FormInput label="Phone" value={data.phone} onChange={(v) => setData({...data, phone: v})} />
                     <FormInput label="Full Address" value={data.address} onChange={(v) => setData({...data, address: v})} colSpan="col-span-2" />
                 </div>
-                <div className="flex justify-end gap-3 pt-6">
-                    <button onClick={onCancel} className="px-6 py-2 text-slate-600 font-semibold hover:bg-slate-50 rounded-xl transition">Discard</button>
-                    <button onClick={onSave} className="px-8 py-2 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition">Save Partner</button>
+                <div className="flex justify-center gap-3 pt-6">
+                    <button onClick={onSave} className="px-8 py-2 bg-sky-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-100 hover:bg-sky-700 transition">Save Partner</button>
+                    <button onClick={onCancel} className="px-6 py-2 text-slate-800 font-semibold hover:bg-slate-50 rounded-xl transition">Discard</button>
                 </div>
             </div>
         </div>
@@ -304,7 +304,7 @@ function FormInput({
 }) {
   return (
     <div className={colSpan}>
-      <label className="block text-xs font-bold text-slate-400 uppercase mb-1 ml-1">
+      <label className="block text-xs font-bold text-sky-800 uppercase mb-1 ml-1">
         {label}
       </label>
       <input

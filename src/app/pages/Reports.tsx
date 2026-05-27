@@ -60,7 +60,7 @@ export default function EmployeeReports() {
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
   const [skillFilter, setSkillFilter] = useState("");
-  const [filtersOpen, setFiltersOpen] = useState(true);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const loadReports = async () => {
     try {
@@ -733,7 +733,7 @@ return (
               <ClipboardList size={28} />
             </div>
             <div>
-                      <h1 className="text-2xl font-bold tracking-tight">Operational & Financial <span className="text-sky-600">Analytics</span></h1>
+              <h1 className="text-2xl font-bold tracking-tight">Operational & Financial <span className="text-sky-600">Analytics</span></h1>
               <p className="text-slate-600 font-medium">Analyze operations, utilization, and financial trends</p>
             </div>
           </div>
@@ -756,7 +756,7 @@ return (
         </button>
         </div>
         </header>
-      </div>
+     
 {/* ========================= PREMIUM FILTER BAR ========================= */}
 
 <div className="bg-white/80 backdrop-blur-lg border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
@@ -794,8 +794,12 @@ return (
 
     {/* EXPAND / COLLAPSE BUTTON */}
     <button
-      onClick={() => setFiltersOpen(!filtersOpen)}
-      className="h-9 w-9 flex items-center justify-center rounded-xl border hover:bg-indigo-100 transition"
+      onClick={() => setFiltersOpen((prev) => !prev)}
+      className={`h-9 w-9 flex items-center justify-center rounded-xl border transition-all duration-300 ${
+        filtersOpen
+          ? "bg-indigo-100 border-indigo-200"
+          : "bg-white hover:bg-indigo-50"
+      }`}
     >
       {filtersOpen ? (
         <ChevronUp size={20} className="text-indigo-400 group-hover:-rotate-45 transition" />
@@ -806,13 +810,13 @@ return (
   </div>
 </div>
 
-    <div
-      className={`transition-all duration-500 ease-in-out overflow-hidden ${
-        filtersOpen
-          ? "max-h-[1200px] opacity-100"
-          : "max-h-0 opacity-0"
-      }`}
-    >
+      <div
+        className={`overflow-hidden transition-all duration-500 ease-in-out ${
+          filtersOpen
+            ? "max-h-[1200px] opacity-100 py-2"
+            : "max-h-0 opacity-0"
+        }`}
+      >
       <div className="p-6 space-y-6">
 
     {/* ================= PRIMARY FILTERS ================= */}
@@ -938,6 +942,7 @@ return (
       </div>
     </div>
   </div>
+</div>
 </div>
 
 {/* DATA TABLE CONTAINER */}
@@ -1104,7 +1109,7 @@ return (
 
                                         <div>Profit</div>
                                         <div
-                                          className={`text-right font-bold${
+                                          className={`text-right font-bold ${
                                             a.revenue - a.cost >= 0
                                               ? "text-green-600 font-bold"
                                               : "text-red-600 font-bold"

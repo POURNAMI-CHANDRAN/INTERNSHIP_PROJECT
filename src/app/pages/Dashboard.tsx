@@ -72,13 +72,14 @@ type DashboardResponse = {
 
 /* ================= CONFIG ================= */
 
+
 // const COLORS = ["#6366f1", "#8b5cf6", "#ec4899", "#f43f5e"];
 const AREA_GRADIENT = "url(#colorRevenue)";
 const PIECOLORS = {
-          Billable: "#A855F7",
-          "Non-Billable": "#09a5bd",
-          Bench: "#94A3B8",
-          Contract: "#FACC15"};
+  Billable: "#10b981",
+  "Partial Bench": "#f59e0b",
+  Bench: "#ef4444",
+};
 
 const COLOR_ARRAY = ["#6366f1", "#94a3b8", "#f59e0b", "#10b981", "#ec4899"];
 /* ================= COMPONENT ================= */
@@ -94,6 +95,7 @@ export default function Dashboard() {
     fetch(`http://localhost:5000/api/analytics/dashboard?month=${month}&year=${year}`)
       .then((res) => res.json())
       .then((res) => {
+        console.log("API RESPONSE:", res.data);
         setData(res.data);
         setLoading(false);
       })
@@ -118,18 +120,56 @@ useEffect(() => {
       .sort((a, b) => b.hours - a.hours)  
   , [charts]);
 
-  const billableVsNon = useMemo(() => charts?.billableVsNonBillable || [], [charts]);
-  const revenueTrend = useMemo(() => {
-    return (charts?.revenueTrend || []).map((item) => {
-      const [month, itemYear] = item.period.split("/");
+  const workforceMixData = useMemo(() => {
+  const totalEmployees = kpis?.totalEmployees || 0;
+  const billableEmployees = kpis?.billableEmployees || 0;
+  const benchEmployees = kpis?.nonBillableEmployees || 0;
 
-      return {
-        ...item,
-        month: Number(month),
-        parsedYear: Number(itemYear),
-      };
-    }).filter((item) => item.parsedYear === year);
-  }, [charts, year]);
+  // Remaining employees become Partial Bench
+  const partialBench =
+    totalEmployees - billableEmployees - benchEmployees;
+
+  return [
+    {
+      name: "Billable",
+      value: billableEmployees,
+    },
+    {
+      name: "Partial Bench",
+      value: partialBench > 0 ? partialBench : 0,
+    },
+    {
+      name: "Bench",
+      value: benchEmployees,
+    },
+  ];
+}, [kpis]);
+
+const billableVsNon = workforceMixData;
+const revenueTrend = useMemo(() => {
+  if (!charts?.revenueTrend) return [];
+
+  return charts.revenueTrend
+    .filter((item) => {
+      // CASE 1: backend already sends year
+      if (item.year) {
+        return item.year === year;
+      }
+
+      // CASE 2: period format = "MM/YYYY"
+      if (item.period.includes("/")) {
+        const [, itemYear] = item.period.split("/");
+        return Number(itemYear) === year;
+      }
+
+      // CASE 3: no year in period
+      return true;
+    })
+    .map((item) => ({
+      ...item,
+      billableHours: Number(item.billableHours) || 0,
+    }));
+}, [charts, year]);
 
   const total = billableVsNon.reduce((s, d) => s + (d.value || 0), 0);
 
@@ -226,7 +266,7 @@ useEffect(() => {
           </div>
 
           <ResponsiveContainer width="100%" height={320}>
-            <AreaChart data={revenueTrend}>
+            <AreaChart data={revenueTrend || []}>
 
               <defs>
                 <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -514,7 +554,7 @@ useEffect(() => {
               </BarChart>
             </ResponsiveContainer>
           </div>
-
+        
         </div>
       </div>
     </div>
