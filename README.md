@@ -212,7 +212,7 @@ The system uses Retrieval Augmented Generation (RAG).
 
 ---
 
-# 3. Project Structure
+# 4. Project Structure
 
 ```text
 PROJECT/
@@ -234,30 +234,30 @@ PROJECT/
 
 ---
 
-# 4. Core Features
+# 5. Core Features
 
-## 4.1 Employee Management
+## 5.1 Employee Management
 
 * Add employees
 * Edit employee details
 * Track employee skills
 * View employee profiles
 
-## 4.2 Resource Allocation
+## 5.2 Resource Allocation
 
 * Assign employees to projects
 * Track FTE allocation
 * Track working hours
 * View utilization
 
-## 4.3 Dashboard
+## 5.3 Dashboard
 
 * KPI cards
 * Heatmaps
 * Charts
 * Resource summaries
 
-## 4.4 Billing & Utilization Tracking
+## 5.4 Billing & Utilization Tracking
 
 * Generate billing reports
 * Calculate project hours
@@ -265,7 +265,7 @@ PROJECT/
 
 ---
 
-# 5. FTE and Hours Logic
+# 6. FTE and Hours Logic
 
 ## Standard Rule
 
@@ -280,7 +280,7 @@ Hours = FTE × 160
 ```
 ---
 
-# 6. Installation Steps
+# 7. Installation Steps
 
 ## Clone Repository
 
@@ -309,7 +309,7 @@ npm start
 
 ---
 
-# 7. Environment Variables
+# 8. Environment Variables
 
 Create a `.env` file:
 
@@ -321,7 +321,7 @@ JWT_SECRET=
 
 ---
 
-# 8. Deployment
+# 9. Deployment
 
 ## Recommended Platforms
 
@@ -333,7 +333,7 @@ JWT_SECRET=
 
 ---
 
-# 9. Common Git Commands
+# 10. Common Git Commands
 
 ## Check Status
 
@@ -361,7 +361,7 @@ git push origin main
 
 ---
 
-# 10. Future Improvements
+# 11. Future Improvements
 
 * Automatic AI allocation
 * Advanced forecasting
@@ -370,7 +370,7 @@ git push origin main
 
 ---
 
-# 11. Conclusion
+# 12. Conclusion
 
 INTERNSHIP_PROJECT is an workforce management platform used for:
 
