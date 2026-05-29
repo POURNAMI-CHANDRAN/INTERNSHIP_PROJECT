@@ -280,7 +280,7 @@ Hours = FTE × 160
 ```
 ---
 
-# 9. Installation Steps
+# 6. Installation Steps
 
 ## Clone Repository
 
@@ -309,7 +309,7 @@ npm start
 
 ---
 
-# 10. Environment Variables
+# 7. Environment Variables
 
 Create a `.env` file:
 
@@ -321,7 +321,7 @@ JWT_SECRET=
 
 ---
 
-# 11. Deployment
+# 8. Deployment
 
 ## Recommended Platforms
 
@@ -333,7 +333,7 @@ JWT_SECRET=
 
 ---
 
-# 12. Common Git Commands
+# 9. Common Git Commands
 
 ## Check Status
 
@@ -361,7 +361,7 @@ git push origin main
 
 ---
 
-# 13. Future Improvements
+# 10. Future Improvements
 
 * Automatic AI allocation
 * Advanced forecasting
@@ -370,7 +370,7 @@ git push origin main
 
 ---
 
-# 14. Conclusion
+# 11. Conclusion
 
 INTERNSHIP_PROJECT is an workforce management platform used for:
 
